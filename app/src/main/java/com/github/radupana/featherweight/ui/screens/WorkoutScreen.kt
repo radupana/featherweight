@@ -1348,7 +1348,7 @@ private fun formatPrescribedSet(
 
     val rpeStr =
         if (rpe != null && rpe > 0f) {
-            " @ RPE ${String.format("%.1f", rpe)}"
+            " @ RPE ${String.format(java.util.Locale.US, "%.1f", rpe)}"
         } else {
             ""
         }
@@ -1363,7 +1363,7 @@ private fun formatActualSet(
     val weightStr = weightUnitManager.formatWeightWithUnit(set.actualWeight)
     val rpeStr =
         if (set.actualRpe != null && set.actualRpe!! > 0f) {
-            " @ RPE ${String.format("%.1f", set.actualRpe)}"
+            " @ RPE ${String.format(java.util.Locale.US, "%.1f", set.actualRpe)}"
         } else {
             ""
         }

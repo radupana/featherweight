@@ -26,11 +26,11 @@ class DeviationCalculationService(
     suspend fun calculateDeviations(workoutId: String): List<WorkoutDeviation> {
         CloudLogger.debug("DeviationCalculationService", "Starting deviation calculation for workout: $workoutId")
 
-        val workout = workoutDao.getWorkoutById(workoutId)
-        if (workout == null) {
-            CloudLogger.warn("DeviationCalculationService", "Workout not found: $workoutId")
-            return emptyList()
-        }
+        val workout =
+            workoutDao.getWorkoutById(workoutId) ?: run {
+                CloudLogger.warn("DeviationCalculationService", "Workout not found: $workoutId")
+                return emptyList()
+            }
 
         if (!workout.isProgrammeWorkout || workout.programmeId == null) {
             CloudLogger.debug("DeviationCalculationService", "Workout is not a programme workout, skipping deviations")
@@ -39,37 +39,7 @@ class DeviationCalculationService(
 
         CloudLogger.debug("DeviationCalculationService", "Workout is programme workout, programmeId: ${workout.programmeId}, week: ${workout.weekNumber}, day: ${workout.dayNumber}")
 
-        val programme = programmeDao.getProgrammeById(workout.programmeId)
-        if (programme == null) {
-            CloudLogger.warn("DeviationCalculationService", "Programme not found: ${workout.programmeId}")
-            return emptyList()
-        }
-
-        // Skip deviation calculation for cancelled programmes
-        if (programme.status == ProgrammeStatus.CANCELLED) {
-            CloudLogger.debug("DeviationCalculationService", "Programme status is CANCELLED, skipping deviation calculation")
-            return emptyList()
-        }
-
-        val immutableSnapshot = programme.getImmutableProgrammeSnapshot()
-        if (immutableSnapshot == null) {
-            CloudLogger.warn("DeviationCalculationService", "No immutable programme snapshot found for programme ${workout.programmeId}")
-            return emptyList()
-        }
-
-        CloudLogger.debug("DeviationCalculationService", "Found immutable programme snapshot, searching for week ${workout.weekNumber}, day ${workout.dayNumber}")
-
-        val targetWeek = immutableSnapshot.weeks.find { it.weekNumber == workout.weekNumber }
-        if (targetWeek == null) {
-            CloudLogger.warn("DeviationCalculationService", "Week ${workout.weekNumber} not found in snapshot")
-            return emptyList()
-        }
-
-        val targetWorkout = targetWeek.workouts.find { it.dayNumber == workout.dayNumber }
-        if (targetWorkout == null) {
-            CloudLogger.warn("DeviationCalculationService", "Day ${workout.dayNumber} not found in week ${workout.weekNumber}")
-            return emptyList()
-        }
+        val targetWorkout = findTargetWorkout(workout) ?: return emptyList()
 
         CloudLogger.debug("DeviationCalculationService", "Found prescribed workout: ${targetWorkout.workoutName}, exercises: ${targetWorkout.exercises.size}")
 
@@ -490,4 +460,36 @@ class DeviationCalculationService(
                 }
             }
         }
+
+    private suspend fun findTargetWorkout(workout: Workout): WorkoutStructure? {
+        val programme =
+            programmeDao.getProgrammeById(workout.programmeId!!) ?: run {
+                CloudLogger.warn("DeviationCalculationService", "Programme not found: ${workout.programmeId}")
+                return null
+            }
+
+        if (programme.status == ProgrammeStatus.CANCELLED) {
+            CloudLogger.debug("DeviationCalculationService", "Programme status is CANCELLED, skipping deviation calculation")
+            return null
+        }
+
+        val immutableSnapshot =
+            programme.getImmutableProgrammeSnapshot() ?: run {
+                CloudLogger.warn("DeviationCalculationService", "No immutable programme snapshot found for programme ${programme.id}")
+                return null
+            }
+
+        CloudLogger.debug("DeviationCalculationService", "Found immutable programme snapshot, searching for week ${workout.weekNumber}, day ${workout.dayNumber}")
+
+        val targetWeek =
+            immutableSnapshot.weeks.find { it.weekNumber == workout.weekNumber } ?: run {
+                CloudLogger.warn("DeviationCalculationService", "Week ${workout.weekNumber} not found in snapshot")
+                return null
+            }
+
+        return targetWeek.workouts.find { it.dayNumber == workout.dayNumber } ?: run {
+            CloudLogger.warn("DeviationCalculationService", "Day ${workout.dayNumber} not found in week ${workout.weekNumber}")
+            null
+        }
+    }
 }
