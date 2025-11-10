@@ -30,6 +30,7 @@ import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.programme.ExerciseFrequency
 import com.github.radupana.featherweight.data.programme.ExerciseStructure
+import com.github.radupana.featherweight.data.programme.ImmutableProgrammeSnapshot
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
@@ -41,6 +42,8 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
+import com.github.radupana.featherweight.data.programme.WeekSnapshot
+import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
@@ -53,6 +56,7 @@ import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.service.DeviationCalculationService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
@@ -106,6 +110,7 @@ class FeatherweightRepository(
     private val exerciseAliasDao = db.exerciseAliasDao()
     private val programmeDao = db.programmeDao()
     private val userExerciseUsageDao = db.userExerciseUsageDao()
+    private val workoutDeviationDao = db.workoutDeviationDao()
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val personalRecordDao = db.personalRecordDao()
@@ -498,6 +503,22 @@ class FeatherweightRepository(
 
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: String) = workoutRepository.deleteWorkoutById(workoutId)
+
+    suspend fun calculateAndSaveDeviations(workoutId: String) {
+        val service =
+            DeviationCalculationService(
+                workoutDao = workoutDao,
+                exerciseLogDao = exerciseLogDao,
+                setLogDao = setLogDao,
+                programmeDao = programmeDao,
+            )
+        val deviations = service.calculateDeviations(workoutId)
+        if (deviations.isNotEmpty()) {
+            workoutDeviationDao.insertAll(deviations)
+        }
+    }
+
+    suspend fun getDeviationsForWorkout(workoutId: String) = workoutDeviationDao.getDeviationsForWorkout(workoutId)
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
@@ -1182,21 +1203,107 @@ class FeatherweightRepository(
         notes: String?,
     ) = programmeRepository.updateProgrammeCompletionNotes(programmeId, notes)
 
+    private suspend fun captureImmutableProgrammeSnapshot(programmeId: String): ImmutableProgrammeSnapshot {
+        CloudLogger.info(TAG, "Starting snapshot capture for programme: $programmeId")
+        val programme =
+            programmeDao.getProgrammeById(programmeId)
+                ?: throw IllegalArgumentException("Programme not found: $programmeId")
+
+        CloudLogger.info(TAG, "Programme found: ${programme.name}, fetching workouts")
+        val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
+        CloudLogger.info(TAG, "Found ${allWorkouts.size} workouts for programme")
+
+        if (allWorkouts.isEmpty()) {
+            CloudLogger.error(TAG, "No workouts found for programme: $programmeId")
+            error("Cannot create snapshot: no workouts found for programme")
+        }
+
+        val weekMap = mutableMapOf<Int, MutableList<ProgrammeWorkout>>()
+        allWorkouts.forEach { workout ->
+            val week = programmeDao.getWeekById(workout.weekId)
+            if (week == null) {
+                CloudLogger.warn(TAG, "Week not found for workout: ${workout.id}, weekId: ${workout.weekId}")
+            }
+            week?.let {
+                weekMap.getOrPut(it.weekNumber) { mutableListOf() }.add(workout)
+            }
+        }
+
+        CloudLogger.info(TAG, "Organized workouts into ${weekMap.size} weeks")
+
+        val weeks =
+            weekMap
+                .map { (weekNumber, workouts) ->
+                    CloudLogger.info(TAG, "Processing week $weekNumber with ${workouts.size} workouts")
+                    val workoutSnapshots =
+                        workouts
+                            .map { programmeWorkout ->
+                                CloudLogger.info(TAG, "Parsing workout structure for day ${programmeWorkout.dayNumber}")
+                                val workoutStructure =
+                                    try {
+                                        kotlinx.serialization.json.Json
+                                            .decodeFromString<WorkoutStructure>(programmeWorkout.workoutStructure)
+                                    } catch (e: kotlinx.serialization.SerializationException) {
+                                        CloudLogger.error(TAG, "Failed to parse workout structure for day ${programmeWorkout.dayNumber}", e)
+                                        CloudLogger.error(TAG, "Workout structure JSON: ${programmeWorkout.workoutStructure}")
+                                        throw e
+                                    }
+
+                                WorkoutSnapshot(
+                                    dayNumber = programmeWorkout.dayNumber,
+                                    workoutName = programmeWorkout.name,
+                                    exercises = workoutStructure.exercises,
+                                )
+                            }.sortedBy { it.dayNumber }
+
+                    WeekSnapshot(
+                        weekNumber = weekNumber,
+                        workouts = workoutSnapshots,
+                    )
+                }.sortedBy { it.weekNumber }
+
+        CloudLogger.info(TAG, "Creating final snapshot with ${weeks.size} weeks")
+        return ImmutableProgrammeSnapshot(
+            programmeId = programmeId,
+            programmeName = programme.name,
+            durationWeeks = programme.durationWeeks,
+            capturedAt = LocalDateTime.now().toString(),
+            weeks = weeks,
+        )
+    }
+
     suspend fun activateProgramme(programmeId: String) =
         withContext(Dispatchers.IO) {
             try {
                 val programme = programmeDao.getProgrammeById(programmeId)
                 CloudLogger.info(TAG, "Activating programme - id: $programmeId, name: '${programme?.name}'")
 
-                programmeDao.setActiveProgramme(programmeId)
-
-                // Update status to IN_PROGRESS
-                programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
-
-                // Initialize progress tracking
                 if (programme == null) {
                     CloudLogger.warn(TAG, "Cannot activate programme - programme not found: $programmeId")
                     return@withContext
+                }
+
+                if (programme.status == ProgrammeStatus.NOT_STARTED && programme.immutableProgrammeJson == null) {
+                    CloudLogger.info(TAG, "Capturing immutable programme snapshot for first activation")
+                    val snapshot = captureImmutableProgrammeSnapshot(programmeId)
+                    CloudLogger.info(TAG, "Snapshot created, encoding to JSON")
+                    val snapshotJson = Programme.encodeImmutableProgrammeSnapshot(snapshot)
+                    CloudLogger.info(TAG, "Snapshot encoded, updating programme")
+
+                    programmeDao.updateProgramme(
+                        programme.copy(
+                            immutableProgrammeJson = snapshotJson,
+                            startedAt = LocalDateTime.now(),
+                            status = ProgrammeStatus.IN_PROGRESS,
+                        ),
+                    )
+                    CloudLogger.info(TAG, "Immutable programme snapshot captured successfully")
+                }
+
+                programmeDao.setActiveProgramme(programmeId)
+
+                if (programme.status != ProgrammeStatus.IN_PROGRESS) {
+                    programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
                 }
 
                 // Calculate total workouts based on actual JSON structure
@@ -1215,8 +1322,14 @@ class FeatherweightRepository(
 
                 programmeDao.insertOrUpdateProgress(progress)
                 CloudLogger.info(TAG, "Programme activated successfully - id: $programmeId, totalWorkouts: $totalWorkouts")
+            } catch (e: IllegalStateException) {
+                CloudLogger.error(TAG, "Invalid state when activating programme: $programmeId", e)
+            } catch (e: IllegalArgumentException) {
+                CloudLogger.error(TAG, "Invalid argument when activating programme: $programmeId", e)
+            } catch (e: kotlinx.serialization.SerializationException) {
+                CloudLogger.error(TAG, "Serialization error when activating programme: $programmeId", e)
             } catch (e: android.database.sqlite.SQLiteException) {
-                CloudLogger.error(TAG, "Error activating programme: $programmeId", e)
+                CloudLogger.error(TAG, "Database error when activating programme: $programmeId", e)
             }
         }
 

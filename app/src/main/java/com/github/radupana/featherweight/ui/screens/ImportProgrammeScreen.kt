@@ -108,6 +108,7 @@ fun ImportProgrammeScreen(
                             },
                             onEditWorkout = onNavigateToWorkoutEdit,
                             modifier = Modifier.fillMaxSize(),
+                            error = uiState.error,
                         )
                     }
                 }

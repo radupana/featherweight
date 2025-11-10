@@ -45,10 +45,10 @@ data class Programme(
     val deadliftMax: Float? = null,
     val ohpMax: Float? = null,
     // Weight calculation and progression rules (stored as JSON)
-    val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
-    val progressionRules: String? = null, // JSON serialized ProgressionRules
-    // Template name for template-based programmes (used when custom name is given)
+    val weightCalculationRules: String? = null,
+    val progressionRules: String? = null,
     val templateName: String? = null,
+    val immutableProgrammeJson: String? = null,
 ) {
     // Helper methods to serialize/deserialize rules
     fun getWeightCalculationRulesObject(): WeightCalculationRules? =
@@ -71,12 +71,24 @@ data class Programme(
             }
         }
 
+    fun getImmutableProgrammeSnapshot(): ImmutableProgrammeSnapshot? =
+        immutableProgrammeJson?.let {
+            try {
+                Json.decodeFromString<ImmutableProgrammeSnapshot>(it)
+            } catch (e: kotlinx.serialization.SerializationException) {
+                CloudLogger.warn(TAG, "Failed to parse immutable programme snapshot JSON", e)
+                null
+            }
+        }
+
     companion object {
         private const val TAG = "Programme"
 
         fun encodeWeightCalculationRules(rules: WeightCalculationRules): String = Json.encodeToString(rules)
 
         fun encodeProgressionRules(rules: ProgressionRules): String = Json.encodeToString(rules)
+
+        fun encodeImmutableProgrammeSnapshot(snapshot: ImmutableProgrammeSnapshot): String = Json.encodeToString(snapshot)
     }
 
     init {

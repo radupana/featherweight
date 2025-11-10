@@ -8,18 +8,13 @@ object ExceptionLogger {
         level: LogLevel = LogLevel.ERROR,
     ) {
         val fullMessage = "$message: ${throwable.message}"
-        try {
-            when (level) {
-                LogLevel.DEBUG -> CloudLogger.debug(tag, fullMessage, throwable)
-                LogLevel.WARNING -> CloudLogger.warn(tag, fullMessage, throwable)
-                LogLevel.ERROR -> CloudLogger.error(tag, fullMessage, throwable)
-            }
-        } catch (
-            @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
-        ) {
-            println("[$tag] $fullMessage")
-            println(throwable.stackTraceToString())
+        when (level) {
+            LogLevel.DEBUG -> CloudLogger.debug(tag, fullMessage, throwable)
+            LogLevel.WARNING -> CloudLogger.warn(tag, fullMessage, throwable)
+            LogLevel.ERROR -> CloudLogger.error(tag, fullMessage, throwable)
         }
+        println("[$tag] $fullMessage")
+        println(throwable.stackTraceToString())
     }
 
     fun logNonCritical(

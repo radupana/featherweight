@@ -359,6 +359,7 @@ fun ProgrammePreview(
     onConfirm: () -> Unit,
     onEditWorkout: (weekIndex: Int, workoutIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
+    error: String? = null,
 ) {
     var expandedWeeks by remember { mutableStateOf(setOf<Int>()) }
 
@@ -369,6 +370,9 @@ fun ProgrammePreview(
                 .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        error?.let {
+            ImportErrorCard(errorMessage = it)
+        }
         ProgrammeEditHintCard()
         ProgrammeSummaryCard(programme = programme)
 

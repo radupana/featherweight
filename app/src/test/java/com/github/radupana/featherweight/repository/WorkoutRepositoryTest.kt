@@ -372,7 +372,10 @@ class WorkoutRepositoryTest {
                     durationSeconds = "3600",
                     userId = "test-user-id",
                 )
-            workouts[workout1.id] = workout1
+            val id1 = workout1.id
+            workouts[id1] = workout1
+            val exercise1 = ExerciseLog(workoutId = id1, exerciseId = "1", exerciseOrder = 1)
+            exerciseLogs[exercise1.id] = exercise1
 
             // Create in-progress workout with exercises
             val workout2 =
@@ -419,6 +422,41 @@ class WorkoutRepositoryTest {
         }
 
     @Test
+    fun `getWorkoutHistory should exclude completed workouts without exercises`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            val completedWorkoutWithExercises =
+                Workout(
+                    name = "Valid Workout",
+                    date = now.minusDays(2),
+                    status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
+                    durationSeconds = "3600",
+                )
+            val validId = completedWorkoutWithExercises.id
+            workouts[validId] = completedWorkoutWithExercises
+            val exercise = ExerciseLog(workoutId = validId, exerciseId = "1", exerciseOrder = 1)
+            exerciseLogs[exercise.id] = exercise
+
+            val completedWorkoutNoExercises =
+                Workout(
+                    name = "Incomplete Sync",
+                    date = now.minusDays(1),
+                    status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
+                    durationSeconds = "3600",
+                )
+            workouts[completedWorkoutNoExercises.id] = completedWorkoutNoExercises
+
+            val history = repository.getWorkoutHistory()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(history).hasSize(1)
+            assertThat(history[0].name).isEqualTo("Valid Workout")
+        }
+
+    @Test
     fun `getWorkoutHistory should include programme information`() =
         runTest(testDispatcher) {
             // Create a programme first
@@ -449,6 +487,8 @@ class WorkoutRepositoryTest {
                 )
             val id = (nextWorkoutIdCounter++).toString()
             workouts[id] = workout.copy(id = id)
+            val exercise = ExerciseLog(workoutId = id, exerciseId = "1", exerciseOrder = 1)
+            exerciseLogs[exercise.id] = exercise
 
             val history = repository.getWorkoutHistory()
             testDispatcher.scheduler.advanceUntilIdle()
@@ -476,7 +516,10 @@ class WorkoutRepositoryTest {
                         userId = "test-user-id",
                         durationSeconds = "3600",
                     )
-                workouts[workout.id] = workout
+                val id = workout.id
+                workouts[id] = workout
+                val exercise = ExerciseLog(workoutId = id, exerciseId = "1", exerciseOrder = 1)
+                exerciseLogs[exercise.id] = exercise
             }
 
             val recent = repository.getRecentWorkouts(5)
@@ -504,7 +547,10 @@ class WorkoutRepositoryTest {
                         userId = "test-user-id",
                         durationSeconds = "3600",
                     )
-                workouts[workout.id] = workout
+                val id = workout.id
+                workouts[id] = workout
+                val exercise = ExerciseLog(workoutId = id, exerciseId = "1", exerciseOrder = 1)
+                exerciseLogs[exercise.id] = exercise
             }
 
             val recent = repository.getRecentWorkouts(10)
@@ -526,7 +572,10 @@ class WorkoutRepositoryTest {
                     userId = "test-user-id",
                     durationSeconds = "3600",
                 )
-            workouts[completedWorkout.id] = completedWorkout
+            val completedId = completedWorkout.id
+            workouts[completedId] = completedWorkout
+            val exercise = ExerciseLog(workoutId = completedId, exerciseId = "1", exerciseOrder = 1)
+            exerciseLogs[exercise.id] = exercise
 
             val emptyWorkout =
                 Workout(
@@ -542,6 +591,41 @@ class WorkoutRepositoryTest {
 
             assertThat(recent).hasSize(1)
             assertThat(recent[0].name).isEqualTo("Completed")
+        }
+
+    @Test
+    fun `getRecentWorkouts should exclude completed workouts without exercises`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            val completedWorkoutWithExercises =
+                Workout(
+                    name = "Valid Workout",
+                    date = now.minusDays(2),
+                    status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
+                    durationSeconds = "3600",
+                )
+            val validId = completedWorkoutWithExercises.id
+            workouts[validId] = completedWorkoutWithExercises
+            val exercise = ExerciseLog(workoutId = validId, exerciseId = "1", exerciseOrder = 1)
+            exerciseLogs[exercise.id] = exercise
+
+            val completedWorkoutNoExercises =
+                Workout(
+                    name = "Incomplete Sync",
+                    date = now.minusDays(1),
+                    status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
+                    durationSeconds = "3600",
+                )
+            workouts[completedWorkoutNoExercises.id] = completedWorkoutNoExercises
+
+            val recent = repository.getRecentWorkouts(10)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(recent).hasSize(1)
+            assertThat(recent[0].name).isEqualTo("Valid Workout")
         }
 
     @Test
