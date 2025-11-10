@@ -162,12 +162,6 @@ class WorkoutRepository(
                     .mapNotNull { workout ->
                         val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
-                        CloudLogger.debug(
-                            TAG,
-                            "HISTORY_LIST_LOAD: workoutId=${workout.id}, name=${workout.name}, " +
-                                "status=${workout.status}, exerciseCount=${exercises.size}",
-                        )
-
                         if (exercises.isEmpty()) return@mapNotNull null
 
                         val allSets = mutableListOf<SetLog>()

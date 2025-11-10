@@ -1204,14 +1204,11 @@ class FeatherweightRepository(
     ) = programmeRepository.updateProgrammeCompletionNotes(programmeId, notes)
 
     private suspend fun captureImmutableProgrammeSnapshot(programmeId: String): ImmutableProgrammeSnapshot {
-        CloudLogger.info(TAG, "Starting snapshot capture for programme: $programmeId")
         val programme =
             programmeDao.getProgrammeById(programmeId)
                 ?: throw IllegalArgumentException("Programme not found: $programmeId")
 
-        CloudLogger.info(TAG, "Programme found: ${programme.name}, fetching workouts")
         val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
-        CloudLogger.info(TAG, "Found ${allWorkouts.size} workouts for programme")
 
         if (allWorkouts.isEmpty()) {
             CloudLogger.error(TAG, "No workouts found for programme: $programmeId")
@@ -1229,16 +1226,12 @@ class FeatherweightRepository(
             }
         }
 
-        CloudLogger.info(TAG, "Organized workouts into ${weekMap.size} weeks")
-
         val weeks =
             weekMap
                 .map { (weekNumber, workouts) ->
-                    CloudLogger.info(TAG, "Processing week $weekNumber with ${workouts.size} workouts")
                     val workoutSnapshots =
                         workouts
                             .map { programmeWorkout ->
-                                CloudLogger.info(TAG, "Parsing workout structure for day ${programmeWorkout.dayNumber}")
                                 val workoutStructure =
                                     try {
                                         kotlinx.serialization.json.Json
@@ -1261,8 +1254,6 @@ class FeatherweightRepository(
                         workouts = workoutSnapshots,
                     )
                 }.sortedBy { it.weekNumber }
-
-        CloudLogger.info(TAG, "Creating final snapshot with ${weeks.size} weeks")
         return ImmutableProgrammeSnapshot(
             programmeId = programmeId,
             programmeName = programme.name,

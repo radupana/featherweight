@@ -76,7 +76,10 @@ object DeviationFormatter {
                 DeviationType.REP_DEVIATION -> "Reps"
                 DeviationType.RPE_DEVIATION -> "RPE"
                 DeviationType.EXERCISE_SWAP -> "Exercise swapped"
-                else -> return ""
+                DeviationType.EXERCISE_SKIPPED,
+                DeviationType.EXERCISE_ADDED,
+                DeviationType.SCHEDULE_DEVIATION,
+                -> return ""
             }
 
         return if (deviation.deviationType == DeviationType.EXERCISE_SWAP) {
