@@ -459,7 +459,7 @@ jobs:
         fi
 
     - name: Create GitHub Release with Assets
-      uses: softprops/action-gh-release@v2.3.2
+      uses: softprops/action-gh-release@v2.4.2
       with:
         tag_name: ${{ steps.release_version.outputs.tag }}
         name: ${{ steps.release_version.outputs.title }}
