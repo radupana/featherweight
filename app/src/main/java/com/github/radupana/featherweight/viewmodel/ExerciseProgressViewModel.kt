@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
@@ -630,17 +629,16 @@ class ExerciseProgressViewModel(
                 return
             }
 
-            // Define RPE zones
+            // Define RPE zones (colors are now handled in the UI layer)
             val rpeZones =
                 listOf(
-                    Triple("Light", "RPE 1-4", 1f..4f) to Color(0xFF81C784), // Light Green
-                    Triple("Medium", "RPE 5-7", 5f..7f) to Color(0xFFFFB74D), // Amber
-                    Triple("Heavy", "RPE 8-10", 8f..10f) to Color(0xFFE53935), // Red
+                    Triple("Light", "RPE 1-4", 1f..4f),
+                    Triple("Medium", "RPE 5-7", 5f..7f),
+                    Triple("Heavy", "RPE 8-10", 8f..10f),
                 )
 
             val rpeData =
-                rpeZones.mapNotNull { (zoneInfo, color) ->
-                    val (zoneName, rangeLabel, rpeRange) = zoneInfo
+                rpeZones.mapNotNull { (zoneName, rangeLabel, rpeRange) ->
                     val setsInZone =
                         completedSetsWithRPE.filter { set ->
                             set.actualRpe!! in rpeRange
@@ -653,7 +651,6 @@ class ExerciseProgressViewModel(
                             volume = setsInZone.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat(),
                             sets = setsInZone.size,
                             avgWeight = setsInZone.map { it.actualWeight }.average().toFloat(),
-                            color = color,
                         )
                     } else {
                         null

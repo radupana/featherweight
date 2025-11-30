@@ -61,6 +61,7 @@ import com.github.radupana.featherweight.ui.components.RepRangeChart
 import com.github.radupana.featherweight.ui.components.RepRangeDistribution
 import com.github.radupana.featherweight.ui.components.TrainingPatternsChart
 import com.github.radupana.featherweight.ui.components.VolumeBarChart
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.ExerciseProgressViewModel
 import kotlinx.coroutines.launch
@@ -565,7 +566,7 @@ private fun PlateauInterventionCard(
         modifier = modifier,
         colors =
             CardDefaults.cardColors(
-                containerColor = Color(0xFFFF9800).copy(alpha = 0.1f),
+                containerColor = FeatherweightColors.warningContainer(),
             ),
     ) {
         Column(
@@ -579,7 +580,7 @@ private fun PlateauInterventionCard(
                 Icon(
                     Icons.Default.Warning,
                     contentDescription = null,
-                    tint = Color(0xFFFF9800),
+                    tint = FeatherweightColors.warning(),
                 )
                 Text(
                     text = "Plateau Detected",
@@ -708,22 +709,22 @@ private fun StatusCard(
 }
 
 @Composable
-private fun getStatusBackgroundColor(status: ExerciseProgressViewModel.ProgressStatus): Color =
+private fun getStatusBackgroundColor(status: ExerciseProgressViewModel.ProgressStatus) =
     when (status) {
-        ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+        ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> FeatherweightColors.successContainer()
         ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primaryContainer
-        ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800).copy(alpha = 0.2f)
-        ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722).copy(alpha = 0.2f)
+        ExerciseProgressViewModel.ProgressStatus.PLATEAU -> FeatherweightColors.warningContainer()
+        ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> FeatherweightColors.dangerContainer()
         ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.surfaceVariant
     }
 
 @Composable
-private fun getStatusIconColor(status: ExerciseProgressViewModel.ProgressStatus): Color =
+private fun getStatusIconColor(status: ExerciseProgressViewModel.ProgressStatus) =
     when (status) {
-        ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50)
+        ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> FeatherweightColors.success()
         ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primary
-        ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800)
-        ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722)
+        ExerciseProgressViewModel.ProgressStatus.PLATEAU -> FeatherweightColors.warning()
+        ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> FeatherweightColors.danger()
         ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -749,7 +750,7 @@ private fun StatusTooltipDialog(
             ) {
                 StatusExplanation(
                     status = "Making Gains",
-                    color = Color(0xFF4CAF50),
+                    color = FeatherweightColors.success(),
                     description = "Your weights are increasing. Shows progress made in the last month.",
                 )
                 StatusExplanation(
@@ -759,12 +760,12 @@ private fun StatusTooltipDialog(
                 )
                 StatusExplanation(
                     status = "Plateau",
-                    color = Color(0xFFFF9800),
+                    color = FeatherweightColors.warning(),
                     description = "Stuck at the same weight for multiple weeks. Consider a deload or changing rep ranges.",
                 )
                 StatusExplanation(
                     status = "Extended Break",
-                    color = Color(0xFFFF5722),
+                    color = FeatherweightColors.danger(),
                     description = "Haven't performed this exercise in 14+ days.",
                 )
                 StatusExplanation(

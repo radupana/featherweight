@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,12 +35,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.ui.theme.CardColors
+import com.github.radupana.featherweight.ui.theme.seamlessGradient
 import com.github.radupana.featherweight.util.WeightFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +59,7 @@ fun CleanSetRow(
     onDeleteSet: () -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
+    parentCoordinates: LayoutCoordinates? = null,
 ) {
     val showTargetValues = isProgrammeWorkout
     val dismissState = createSetRowDismissState(readOnly, onDeleteSet)
@@ -78,6 +81,7 @@ fun CleanSetRow(
             onToggleCompleted = onToggleCompleted,
             canMarkComplete = canMarkComplete,
             readOnly = readOnly,
+            parentCoordinates = parentCoordinates,
         )
     }
 }
@@ -110,19 +114,13 @@ private fun createSetRowDismissState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
-    val progress = dismissState.progress
-    val targetValue = dismissState.targetValue
-    val currentValue = dismissState.currentValue
-
-    if (progress > 0.01f &&
-        targetValue == SwipeToDismissBoxValue.EndToStart &&
-        currentValue != SwipeToDismissBoxValue.EndToStart
-    ) {
+    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+        val progress = dismissState.progress.coerceIn(0f, 1f)
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.CenterEnd,
         ) {
-            val minWidth = 40.dp
+            val minWidth = 48.dp
             val maxAdditionalWidth = 160.dp
             val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
 
@@ -143,9 +141,8 @@ private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Alignment.CenterEnd,
                 ) {
-                    val iconOffset = ((1 - progress) * 15).dp
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Delete",
@@ -155,8 +152,8 @@ private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
                             ),
                         modifier =
                             Modifier
-                                .size((20 + (4 * progress)).dp)
-                                .offset(x = iconOffset),
+                                .padding(end = 12.dp)
+                                .size((20 + (4 * progress)).dp),
                     )
                 }
             }
@@ -175,9 +172,15 @@ private fun SetRowContent(
     onToggleCompleted: (Boolean) -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
+    parentCoordinates: LayoutCoordinates?,
 ) {
+    val gradientColors = listOf(CardColors.gradientTop, CardColors.gradientBottom)
+
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .seamlessGradient(parentCoordinates, gradientColors),
     ) {
         Row(
             modifier =

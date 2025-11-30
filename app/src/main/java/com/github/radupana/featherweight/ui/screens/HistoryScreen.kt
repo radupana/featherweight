@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +59,7 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.components.history.CalendarView
 import com.github.radupana.featherweight.ui.components.history.WeekGroupView
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -274,20 +274,11 @@ fun WorkoutHistoryCard(
     onDeleteWorkout: (String) -> Unit = {},
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    // Color scheme based on workout status
     val containerColor =
         when (workout.status) {
-            WorkoutStatus.COMPLETED -> {
-                MaterialTheme.colorScheme.surface
-            }
-
-            WorkoutStatus.IN_PROGRESS -> {
-                Color(0xFFFFFBE6) // Very light yellow background for in-progress
-            }
-
-            WorkoutStatus.NOT_STARTED -> {
-                Color(0xFFF5F5F5) // Light gray background for not started
-            }
+            WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.surface
+            WorkoutStatus.IN_PROGRESS -> FeatherweightColors.inProgressBackground()
+            WorkoutStatus.NOT_STARTED -> FeatherweightColors.notStartedBackground()
         }
 
     Card(
@@ -325,14 +316,8 @@ fun WorkoutHistoryCard(
                         color =
                             when (workout.status) {
                                 WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurface
-                                WorkoutStatus.IN_PROGRESS ->
-                                    Color(
-                                        0xFF5D4037,
-                                    ) // Darker brown for in-progress
-                                WorkoutStatus.NOT_STARTED ->
-                                    Color(
-                                        0xFF757575,
-                                    ) // Gray for not started
+                                WorkoutStatus.IN_PROGRESS -> FeatherweightColors.inProgressText()
+                                WorkoutStatus.NOT_STARTED -> FeatherweightColors.notStartedText()
                             },
                     )
                     Text(
@@ -342,13 +327,9 @@ fun WorkoutHistoryCard(
                             when (workout.status) {
                                 WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurfaceVariant
                                 WorkoutStatus.IN_PROGRESS ->
-                                    Color(
-                                        0xFF8D6E63,
-                                    ) // Medium brown for in-progress
+                                    FeatherweightColors.inProgressText().copy(alpha = 0.7f)
                                 WorkoutStatus.NOT_STARTED ->
-                                    Color(
-                                        0xFF9E9E9E,
-                                    ) // Light gray for not started
+                                    FeatherweightColors.notStartedText().copy(alpha = 0.7f)
                             },
                     )
                 }
@@ -470,7 +451,7 @@ fun WorkoutStatItem(
                 if (isCompleted) {
                     MaterialTheme.colorScheme.primary
                 } else {
-                    Color(0xFF6D4C41) // Warm brown for in-progress values
+                    FeatherweightColors.inProgressText()
                 },
         )
         Text(
@@ -480,7 +461,7 @@ fun WorkoutStatItem(
                 if (isCompleted) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
-                    Color(0xFF8D6E63) // Medium brown for in-progress labels
+                    FeatherweightColors.inProgressText().copy(alpha = 0.7f)
                 },
         )
     }

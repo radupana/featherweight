@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +52,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.toEquipment
 import com.github.radupana.featherweight.data.exercise.toExerciseDifficultyOrNull
 import com.github.radupana.featherweight.data.exercise.toMuscleGroup
+import com.github.radupana.featherweight.ui.theme.CardColors
 import com.github.radupana.featherweight.viewmodel.ExerciseSuggestion
 
 @Composable
@@ -172,11 +177,19 @@ fun ExerciseCard(
             modifier
                 .fillMaxWidth()
                 .clickable { onSelect() },
-        elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, CardColors.border),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(CardColors.gradientTop, CardColors.gradientBottom),
+                        ),
+                    ).padding(12.dp),
         ) {
             ExerciseCardHeader(
                 exercise = exercise,
@@ -281,15 +294,19 @@ fun SuggestionCard(
             modifier
                 .fillMaxWidth()
                 .clickable { onSelect() },
-        elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(CardColors.gradientTop, CardColors.gradientBottom),
+                        ),
+                    ).padding(12.dp),
         ) {
             SuggestionCardHeader(
                 suggestion = suggestion,
@@ -298,7 +315,6 @@ fun SuggestionCard(
             Spacer(modifier = Modifier.height(4.dp))
             SuggestionCardDetails(suggestion = suggestion)
 
-            // Show suggestion reason for smart suggestions
             if (suggestion.suggestionReason.isNotEmpty() && suggestion.swapCount == 0) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(

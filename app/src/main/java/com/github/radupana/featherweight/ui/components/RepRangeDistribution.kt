@@ -151,7 +151,7 @@ private fun RepRangeChartCanvas(
 ) {
     var clickPosition by remember { mutableStateOf<Offset?>(null) }
     val textMeasurer = rememberTextMeasurer()
-    val barColors = ChartTheme.repRangeColors
+    val barColors = ChartTheme.repRangeColors()
     val onSurfaceColor = ChartTheme.axisLabelColor()
     val surfaceVariantColor = ChartTheme.gridLineColor()
 
