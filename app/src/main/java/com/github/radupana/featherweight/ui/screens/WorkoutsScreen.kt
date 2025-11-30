@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
-import com.github.radupana.featherweight.ui.theme.GradientCard
+import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.theme.PrimaryActionButton
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
@@ -221,7 +221,7 @@ fun WorkoutsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            GradientCard(
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -252,7 +252,7 @@ fun WorkoutsScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            GradientCard(
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(

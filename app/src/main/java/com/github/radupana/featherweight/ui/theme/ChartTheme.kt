@@ -14,23 +14,25 @@ object ChartTheme {
     @Composable
     fun axisLabelColor() = MaterialTheme.colorScheme.onSurfaceVariant
 
-    val prMarkerColor = Color(0xFFFCD34D)
+    @Composable
+    fun prMarkerColor() = FeatherweightColors.gold()
 
     @Composable
     fun chartBackgroundColor() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 
     @Composable
-    fun positiveChangeColor() = Color(0xFF10B981)
+    fun positiveChangeColor() = FeatherweightColors.success()
 
     @Composable
-    fun negativeChangeColor() = Color(0xFFEF4444)
+    fun negativeChangeColor() = FeatherweightColors.danger()
 
-    val repRangeColors =
+    @Composable
+    fun repRangeColors(): List<Color> =
         listOf(
-            Color(0xFF10B981),
-            Color(0xFF6366F1),
-            Color(0xFFF59E0B),
-            Color(0xFFEF4444),
+            FeatherweightColors.success(),
+            MaterialTheme.colorScheme.secondary,
+            FeatherweightColors.warning(),
+            FeatherweightColors.danger(),
         )
 
     val onColoredBackground = Color.White

@@ -179,7 +179,7 @@ private fun ChartCanvas(
     val primaryColor = ChartTheme.primaryChartColor()
     val onSurfaceColor = ChartTheme.axisLabelColor()
     val surfaceVariantColor = ChartTheme.gridLineColor()
-    val prColor = ChartTheme.prMarkerColor
+    val prColor = ChartTheme.prMarkerColor()
 
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(dataPoints) {

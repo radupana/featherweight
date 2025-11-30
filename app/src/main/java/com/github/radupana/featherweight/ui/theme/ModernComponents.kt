@@ -60,31 +60,6 @@ fun GlassCard(
 }
 
 @Composable
-fun GradientCard(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, CardColors.border),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(CardColors.gradientTop, CardColors.gradientBottom),
-                        ),
-                    ).padding(16.dp),
-            content = content,
-        )
-    }
-}
-
-@Composable
 fun PrimaryActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

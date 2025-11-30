@@ -74,7 +74,7 @@ object FeatherweightColors {
 
 @Composable
 fun FeatherweightTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

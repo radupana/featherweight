@@ -36,6 +36,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.radupana.featherweight.ui.theme.ChartTheme
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.util.WeightFormatter
 
 data class IntensityZoneData(
@@ -44,8 +45,17 @@ data class IntensityZoneData(
     val volume: Float,
     val sets: Int,
     val avgWeight: Float,
-    val color: Color,
+    val color: Color = Color.Unspecified,
 )
+
+@Composable
+fun getZoneColor(zoneName: String): Color =
+    when (zoneName) {
+        "Light" -> FeatherweightColors.rpeLight()
+        "Medium" -> FeatherweightColors.rpeMedium()
+        "Heavy" -> FeatherweightColors.rpeHeavy()
+        else -> FeatherweightColors.rpeLight()
+    }
 
 @Composable
 fun IntensityZoneChart(
@@ -162,6 +172,17 @@ private fun IntensityZoneChartCanvas(
     val onSurfaceColor = ChartTheme.axisLabelColor()
     val surfaceVariantColor = ChartTheme.gridLineColor()
 
+    // Pre-compute theme-aware colors for each zone (composable context)
+    val lightColor = FeatherweightColors.rpeLight()
+    val mediumColor = FeatherweightColors.rpeMedium()
+    val heavyColor = FeatherweightColors.rpeHeavy()
+    val zoneColors =
+        mapOf(
+            "Light" to lightColor,
+            "Medium" to mediumColor,
+            "Heavy" to heavyColor,
+        )
+
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(intensityData) {
         animationProgress.animateTo(1f, animationSpec = tween(IntensityZoneChartConstants.ANIMATION_DURATION_MS))
@@ -245,9 +266,10 @@ private fun IntensityZoneChartCanvas(
 
             val isSelected = zone == selectedZone
 
-            // Bar with zone-specific color
+            // Bar with theme-aware zone color
+            val zoneColor = zoneColors[zone.zone] ?: lightColor
             drawRect(
-                color = zone.color.copy(alpha = if (isSelected) 1f else 0.8f),
+                color = zoneColor.copy(alpha = if (isSelected) 1f else 0.8f),
                 topLeft = Offset(x, y),
                 size = Size(barWidth, barHeight),
             )
