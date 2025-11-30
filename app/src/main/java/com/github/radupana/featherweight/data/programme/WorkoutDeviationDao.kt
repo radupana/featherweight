@@ -86,4 +86,31 @@ interface WorkoutDeviationDao {
         """,
     )
     suspend fun getMostRecentProgrammeWithDeviations(): String?
+
+    /**
+     * Returns all deviations for the programme with the most recent deviation activity.
+     *
+     * This is an optimized single-query alternative to calling:
+     * 1. getMostRecentProgrammeWithDeviations() to get the programme ID
+     * 2. getDeviationsForProgramme(programmeId) to get the deviations
+     *
+     * The subquery identifies the most recently active programme (by MAX deviation timestamp),
+     * then the outer query fetches all deviations for that programme.
+     *
+     * Returns empty list if no programmes have any deviation data.
+     *
+     * Used by InsightsViewModel to build the AI training analysis payload efficiently.
+     */
+    @Query(
+        """
+        SELECT * FROM workout_deviations
+        WHERE programmeId = (
+            SELECT programmeId FROM workout_deviations
+            GROUP BY programmeId
+            ORDER BY MAX(timestamp) DESC
+            LIMIT 1
+        )
+        """,
+    )
+    suspend fun getDeviationsForMostRecentProgramme(): List<WorkoutDeviation>
 }

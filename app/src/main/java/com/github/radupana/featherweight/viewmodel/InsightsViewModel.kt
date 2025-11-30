@@ -43,7 +43,7 @@ class InsightsViewModel(
     companion object {
         private const val TAG = "InsightsViewModel"
         private const val MINIMUM_WORKOUTS_FOR_ANALYSIS = 1
-        private const val MAX_WORKOUTS_FOR_ANALYSIS = 50
+        private const val MAX_WORKOUTS_FOR_ANALYSIS = 20
 
         fun calculateAnalysisMetadata(workouts: List<WorkoutSummary>): AnalysisMetadata {
             val startDate = workouts.lastOrNull()?.date?.toLocalDate()
@@ -554,22 +554,20 @@ class InsightsViewModel(
 
     private suspend fun addProgrammeDeviationSummary(payload: JsonObject) {
         try {
-            // Find the most recent active or completed programme with deviation data
-            val programmeId = repository.getMostRecentProgrammeWithDeviations()
-            if (programmeId == null) {
+            // Optimized: Get deviations for most recent programme in single query
+            // This combines getMostRecentProgrammeWithDeviations() + getDeviationsForProgramme()
+            val deviations = repository.getDeviationsForMostRecentProgramme()
+            if (deviations.isEmpty()) {
                 addDeviationUnavailableStatus(payload, "no_programme_with_deviations")
                 return
             }
 
+            // Extract programmeId from deviations (all have same programmeId from the query)
+            val programmeId = deviations.first().programmeId
+
             val programmeDetails = repository.getProgrammeWithDetails(programmeId)
             if (programmeDetails == null) {
                 addDeviationUnavailableStatus(payload, "programme_details_not_found")
-                return
-            }
-
-            val deviations = repository.getDeviationsForProgramme(programmeId)
-            if (deviations.isEmpty()) {
-                addDeviationUnavailableStatus(payload, "no_deviations_recorded")
                 return
             }
 

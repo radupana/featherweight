@@ -529,6 +529,8 @@ class FeatherweightRepository(
 
     suspend fun getMostRecentProgrammeWithDeviations() = workoutDeviationDao.getMostRecentProgrammeWithDeviations()
 
+    suspend fun getDeviationsForMostRecentProgramme() = workoutDeviationDao.getDeviationsForMostRecentProgramme()
+
     suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
     // Get exercise by ID (returns Exercise)
