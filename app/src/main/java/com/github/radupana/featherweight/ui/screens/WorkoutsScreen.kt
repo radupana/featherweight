@@ -18,7 +18,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
-import com.github.radupana.featherweight.ui.components.GlassmorphicCard
+import com.github.radupana.featherweight.ui.theme.GradientCard
+import com.github.radupana.featherweight.ui.theme.PrimaryActionButton
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
@@ -221,8 +221,7 @@ fun WorkoutsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Start Freestyle Workout button
-            GlassmorphicCard(
+            GradientCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -237,7 +236,7 @@ fun WorkoutsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
+                PrimaryActionButton(
                     onClick = {
                         scope.launch {
                             workoutViewModel.startNewWorkout(forceNew = true)
@@ -252,9 +251,8 @@ fun WorkoutsScreen(
                 }
             }
 
-            // Template workouts section
             Spacer(modifier = Modifier.height(12.dp))
-            GlassmorphicCard(
+            GradientCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -269,7 +267,7 @@ fun WorkoutsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
+                PrimaryActionButton(
                     onClick = onNavigateToTemplateSelection,
                     modifier = Modifier.fillMaxWidth(),
                 ) {

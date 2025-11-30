@@ -38,13 +38,28 @@ private val Gray400 = Color(0xFF9CA3AF)
 private val Gray500 = Color(0xFF6B7280)
 private val Gray700 = Color(0xFF374151)
 private val Gray800 = Color(0xFF1F2937)
-private val Gray900 = Color(0xFF111827)
 
 private val Slate500 = Color(0xFF64748B)
 private val Slate600 = Color(0xFF475569)
 private val Slate700 = Color(0xFF334155)
 private val Slate800 = Color(0xFF1E293B)
 private val Slate900 = Color(0xFF0F172A)
+
+private val CardGradientTopColor = Color(0xFF2A374A)
+private val CardGradientBottomColor = Color(0xFF1E293B)
+private val CardBorderColor = Color(0xFF334155)
+private val AccentBrightColor = Color(0xFF34D399)
+
+object CardColors {
+    val gradientTop: Color = CardGradientTopColor
+    val gradientBottom: Color = CardGradientBottomColor
+    val border: Color = CardBorderColor
+}
+
+object ButtonColors {
+    val primaryGradientStart: Color = AccentBrightColor
+    val primaryGradientEnd: Color = Color(0xFF10B981)
+}
 
 val LightColorScheme =
     lightColorScheme(
@@ -97,7 +112,7 @@ val DarkColorScheme =
         onError = Red900,
         errorContainer = Red800,
         onErrorContainer = Red200,
-        background = Gray900,
+        background = Slate900,
         onBackground = Gray50,
         surface = Gray800,
         onSurface = Gray100,
