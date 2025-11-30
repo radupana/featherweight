@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.data.AdherenceAnalysis
 import com.github.radupana.featherweight.data.InsightCategory
 import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
@@ -12,6 +13,7 @@ import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.CloudFunctionService
+import com.github.radupana.featherweight.service.DeviationSummaryService
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
@@ -35,12 +37,13 @@ class InsightsViewModel(
     val repository = FeatherweightRepository(application)
     private val authManager = ServiceLocator.provideAuthenticationManager(application)
     private val cloudFunctionService = CloudFunctionService()
+    private val deviationSummaryService = DeviationSummaryService()
     private val gson = Gson()
 
     companion object {
         private const val TAG = "InsightsViewModel"
         private const val MINIMUM_WORKOUTS_FOR_ANALYSIS = 1
-        private const val MAX_WORKOUTS_FOR_ANALYSIS = 50
+        private const val MAX_WORKOUTS_FOR_ANALYSIS = 20
 
         fun calculateAnalysisMetadata(workouts: List<WorkoutSummary>): AnalysisMetadata {
             val startDate = workouts.lastOrNull()?.date?.toLocalDate()
@@ -347,6 +350,19 @@ class InsightsViewModel(
         period.addProperty("avg_frequency_per_week", String.format(Locale.US, "%.1f", metadata.avgFrequencyPerWeek))
         payload.add("analysis_period", period)
 
+        // Batch fetch all data upfront to avoid N+1 queries
+        val workoutIds = workouts.map { it.id }
+        val allExerciseLogs = repository.getExerciseLogsForWorkouts(workoutIds)
+        val exerciseLogsByWorkout = allExerciseLogs.groupBy { it.workoutId }
+
+        val exerciseLogIds = allExerciseLogs.map { it.id }
+        val allSetLogs = repository.getSetLogsForExercises(exerciseLogIds)
+        val setLogsByExerciseLog = allSetLogs.groupBy { it.exerciseLogId }
+
+        val uniqueExerciseIds = allExerciseLogs.map { it.exerciseId }.distinct()
+        val exerciseEntities = repository.getExercisesByIds(uniqueExerciseIds)
+        val exerciseMap = exerciseEntities.associateBy { it.id }
+
         val allSets = mutableListOf<com.github.radupana.featherweight.data.SetLog>()
         val setsByExercise = mutableMapOf<String, MutableList<com.github.radupana.featherweight.data.SetLog>>()
         val exercisesUsed = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.Exercise>()
@@ -362,13 +378,13 @@ class InsightsViewModel(
             workoutObj.addProperty("duration_minutes", workout.duration?.div(60) ?: 0)
             workoutObj.addProperty("notes", "")
 
-            val exercises = repository.getExerciseLogsForWorkout(workout.id)
+            val exercises = exerciseLogsByWorkout[workout.id] ?: emptyList()
             val exercisesArray = com.google.gson.JsonArray()
             val sessionData = mutableListOf<com.github.radupana.featherweight.service.ExerciseSessionData>()
 
             for (exercise in exercises) {
                 val exerciseObj = JsonObject()
-                val exerciseEntity = repository.getExerciseById(exercise.exerciseId)
+                val exerciseEntity = exerciseMap[exercise.exerciseId]
                 val exerciseName = exerciseEntity?.name ?: "Unknown Exercise"
                 exerciseObj.addProperty("name", exerciseName)
 
@@ -376,7 +392,7 @@ class InsightsViewModel(
                     exercisesUsed[exercise.exerciseId] = exerciseEntity
                 }
 
-                val sets = repository.getSetLogsForExercise(exercise.id)
+                val sets = setLogsByExerciseLog[exercise.id] ?: emptyList()
                 val setsArray = com.google.gson.JsonArray()
 
                 allSets.addAll(sets)
@@ -388,7 +404,7 @@ class InsightsViewModel(
                 for ((index, set) in sets.withIndex()) {
                     val setObj = JsonObject()
                     setObj.addProperty("set_number", index + 1)
-                    val weight = set.actualWeight ?: set.targetWeight ?: 0f
+                    val weight = set.actualWeight ?: 0f
                     setObj.addProperty("weight", weight)
                     setObj.addProperty("reps", set.actualReps ?: set.targetReps)
                     setObj.addProperty("rpe", set.actualRpe)
@@ -400,16 +416,6 @@ class InsightsViewModel(
                         if (weight > maxWeight) maxWeight = weight
                         totalVolume += weight * (set.actualReps ?: 0)
                     }
-                }
-
-                if (maxWeight > 0f) {
-                    sessionData.add(
-                        com.github.radupana.featherweight.service.ExerciseSessionData(
-                            exerciseId = exercise.exerciseId,
-                            maxWeight = maxWeight,
-                            totalVolume = totalVolume,
-                        ),
-                    )
                 }
 
                 exerciseObj.add("sets", setsArray)
@@ -515,9 +521,14 @@ class InsightsViewModel(
         val prs = repository.getRecentPRs(limit = 20)
         val prsArray = com.google.gson.JsonArray()
 
+        // Batch fetch exercise names for PRs
+        val prExerciseIds = prs.map { it.exerciseId }.distinct()
+        val prExerciseEntities = repository.getExercisesByIds(prExerciseIds)
+        val prExerciseMap = prExerciseEntities.associateBy { it.id }
+
         for (pr in prs) {
             val prObj = JsonObject()
-            val exerciseName = repository.getExerciseById(pr.exerciseId)?.name ?: "Unknown Exercise"
+            val exerciseName = prExerciseMap[pr.exerciseId]?.name ?: "Unknown Exercise"
             prObj.addProperty("exercise", exerciseName)
             prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
             prObj.addProperty("weight", pr.weight)
@@ -536,7 +547,75 @@ class InsightsViewModel(
 
         payload.add("personal_records", prsArray)
 
+        addProgrammeDeviationSummary(payload)
+
         return gson.toJson(payload)
+    }
+
+    private suspend fun addProgrammeDeviationSummary(payload: JsonObject) {
+        try {
+            // Optimized: Get deviations for most recent programme in single query
+            // This combines getMostRecentProgrammeWithDeviations() + getDeviationsForProgramme()
+            val deviations = repository.getDeviationsForMostRecentProgramme()
+            if (deviations.isEmpty()) {
+                addDeviationUnavailableStatus(payload, "no_programme_with_deviations")
+                return
+            }
+
+            // Extract programmeId from deviations (all have same programmeId from the query)
+            val programmeId = deviations.first().programmeId
+
+            val programmeDetails = repository.getProgrammeWithDetails(programmeId)
+            if (programmeDetails == null) {
+                addDeviationUnavailableStatus(payload, "programme_details_not_found")
+                return
+            }
+
+            val summary = deviationSummaryService.summarizeDeviations(deviations, programmeDetails)
+
+            val deviationObj = JsonObject()
+            deviationObj.addProperty("status", "available")
+            deviationObj.addProperty("programme_name", summary.programmeName)
+            deviationObj.addProperty("programme_type", summary.programmeType)
+            deviationObj.addProperty("duration_weeks", summary.durationWeeks)
+            deviationObj.addProperty("workouts_completed", summary.workoutsCompleted)
+            deviationObj.addProperty("workouts_prescribed", summary.workoutsPrescribed)
+            deviationObj.addProperty(
+                "avg_volume_deviation_percent",
+                String.format(Locale.US, "%.1f", summary.avgVolumeDeviationPercent),
+            )
+            deviationObj.addProperty(
+                "avg_intensity_deviation_percent",
+                String.format(Locale.US, "%.1f", summary.avgIntensityDeviationPercent),
+            )
+            deviationObj.addProperty("exercise_swap_count", summary.exerciseSwapCount)
+            deviationObj.addProperty("exercise_skip_count", summary.exerciseSkipCount)
+            deviationObj.addProperty("exercise_add_count", summary.exerciseAddCount)
+
+            val keyDeviationsArray = com.google.gson.JsonArray()
+            summary.keyDeviations.forEach { keyDeviationsArray.add(it) }
+            deviationObj.add("key_deviations", keyDeviationsArray)
+
+            payload.add("programme_deviation_summary", deviationObj)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            // Fail-fast: database errors indicate bugs that should be fixed
+            ExceptionLogger.logException(TAG, "Database error in deviation summary", e)
+            throw e
+        } catch (e: IllegalStateException) {
+            // Fail-fast: state errors indicate bugs that should be fixed
+            ExceptionLogger.logException(TAG, "State error in deviation summary", e)
+            throw e
+        }
+    }
+
+    private fun addDeviationUnavailableStatus(
+        payload: JsonObject,
+        reason: String,
+    ) {
+        val deviationObj = JsonObject()
+        deviationObj.addProperty("status", "unavailable")
+        deviationObj.addProperty("reason", reason)
+        payload.add("programme_deviation_summary", deviationObj)
     }
 
     private fun parseAIResponse(
@@ -574,6 +653,8 @@ class InsightsViewModel(
                 recommendations.add(element.asString)
             }
 
+            val adherenceAnalysisJson = parseAdherenceAnalysis(jsonResponse)
+
             return TrainingAnalysis(
                 analysisDate = LocalDateTime.now(),
                 periodStart = startDate,
@@ -582,6 +663,7 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(keyInsights),
                 recommendationsJson = gson.toJson(recommendations),
                 warningsJson = gson.toJson(warnings),
+                adherenceAnalysisJson = adherenceAnalysisJson,
             )
         } catch (e: com.google.gson.JsonSyntaxException) {
             ExceptionLogger.logException(TAG, "Failed to parse AI analysis, using fallback", e)
@@ -671,6 +753,79 @@ class InsightsViewModel(
                 Log.d(TAG, "Unknown severity '$severityStr', defaulting to INFO")
                 InsightSeverity.INFO
             }
+        }
+    }
+
+    private fun parseAdherenceAnalysis(jsonResponse: JsonObject): String? {
+        val adherenceObj = jsonResponse.get("adherence_analysis")
+        if (adherenceObj == null || adherenceObj.isJsonNull) return null
+
+        return try {
+            val obj = adherenceObj.asJsonObject
+
+            // Validate required fields exist
+            if (!obj.has("adherence_score") || !obj.has("score_explanation")) {
+                CloudLogger.warn(
+                    TAG,
+                    "Adherence analysis missing required fields: adherence_score or score_explanation",
+                )
+                return null
+            }
+
+            val positivePatterns = mutableListOf<String>()
+            obj.getAsJsonArray("positive_patterns")?.forEach { element ->
+                positivePatterns.add(element.asString)
+            }
+
+            val negativePatterns = mutableListOf<String>()
+            obj.getAsJsonArray("negative_patterns")?.forEach { element ->
+                negativePatterns.add(element.asString)
+            }
+
+            val adherenceRecommendations = mutableListOf<String>()
+            obj.getAsJsonArray("adherence_recommendations")?.forEach { element ->
+                adherenceRecommendations.add(element.asString)
+            }
+
+            val adherenceScore = obj.get("adherence_score")?.asInt ?: 0
+            val scoreExplanation = obj.get("score_explanation")?.asString ?: ""
+
+            // Validate score is in valid range (0-100)
+            if (adherenceScore < 0 || adherenceScore > 100) {
+                CloudLogger.warn(TAG, "Invalid adherence score: $adherenceScore (expected 0-100)")
+                return null
+            }
+
+            // Validate score explanation is not empty (score without context is meaningless)
+            if (scoreExplanation.isBlank()) {
+                CloudLogger.warn(TAG, "Empty score_explanation - adherence score has no context")
+                return null
+            }
+
+            // Filter out empty/blank patterns
+            val validPositivePatterns = positivePatterns.filter { it.isNotBlank() }
+            val validNegativePatterns = negativePatterns.filter { it.isNotBlank() }
+            val validRecommendations = adherenceRecommendations.filter { it.isNotBlank() }
+
+            val analysis =
+                AdherenceAnalysis(
+                    adherenceScore = adherenceScore,
+                    scoreExplanation = scoreExplanation,
+                    positivePatterns = validPositivePatterns,
+                    negativePatterns = validNegativePatterns,
+                    adherenceRecommendations = validRecommendations,
+                )
+
+            gson.toJson(analysis)
+        } catch (e: IllegalStateException) {
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: malformed JSON structure", e)
+            null
+        } catch (e: UnsupportedOperationException) {
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: type mismatch in JSON", e)
+            null
+        } catch (e: NumberFormatException) {
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: invalid number format", e)
+            null
         }
     }
 }

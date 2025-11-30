@@ -8,6 +8,13 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'LICENSE'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
     inputs:
       skip_deploy:
@@ -138,6 +145,16 @@ jobs:
         path: app/build/reports/coverage/test/debug/
         if-no-files-found: warn
 
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: app/build/reports/coverage/test/debug/report.xml
+        flags: unittests
+        name: featherweight-android
+        fail_ci_if_error: false
+        verbose: true
+
   code-quality:
     runs-on: ubuntu-latest
 
@@ -215,8 +232,8 @@ jobs:
   approve-deployment:
     needs: [test, code-quality]
     runs-on: ubuntu-latest
-    # Only run approval for automatic pushes (not manual workflow_dispatch with skip_deploy)
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.skip_deploy != 'true')
+    # Only run deployment on main branch pushes or manual workflow_dispatch (not PRs)
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.skip_deploy != 'true'))
 
     steps:
     - name: Wait for deployment approval

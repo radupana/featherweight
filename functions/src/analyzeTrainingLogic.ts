@@ -134,12 +134,37 @@ export async function refundQuota(
  * Gets the appropriate system prompt based on workout count
  * @param {number} workoutCount - Number of workouts
  * @param {number} weeks - Number of weeks
+ * @param {boolean} hasDeviationData - Whether deviation data is included
  * @return {string} The system prompt
  */
 export function getSystemPrompt(
   workoutCount: number,
-  weeks: number
+  weeks: number,
+  hasDeviationData: boolean = false
 ): string {
+  const adherenceInstructions = hasDeviationData ? `
+
+PROGRAMME ADHERENCE ANALYSIS:
+The training data includes programme deviation data. Analyze adherence:
+- Score adherence 0-100 based on deviation patterns
+- Identify positive patterns (consistency, hitting targets)
+- Identify negative patterns (frequent skips, swaps, intensity issues)
+- Provide specific adherence recommendations
+- Note: Not all deviations are failures - smart auto-regulation is positive
+
+Include in your JSON response an "adherence_analysis" object with:
+- "adherence_score": number (0-100)
+- "score_explanation": string (brief explanation)
+- "positive_patterns": array of strings
+- "negative_patterns": array of strings
+- "adherence_recommendations": array of strings
+
+If no deviation data is present, set "adherence_analysis" to null.
+` : "";
+
+  const adherenceJsonSchema = hasDeviationData ?
+    ", \"adherence_analysis\" (object with score, patterns, recommendations)" :
+    "";
   if (workoutCount <= 5) {
     return "You are an expert strength coach providing " +
       "INITIAL feedback on a lifter's training.\n\n" +
@@ -154,10 +179,11 @@ export function getSystemPrompt(
       "push/pull ratio > 2:1)?\n" +
       "5. Encouragement: Brief note to continue training consistently.\n\n" +
       "Keep assessment under 100 words. Be supportive but honest.\n\n" +
+      adherenceInstructions +
       "Return JSON with keys: \"overall_assessment\" (string), " +
       "\"key_insights\" (array of objects with \"category\", \"message\", " +
       "\"severity\"), \"recommendations\" (array of strings), " +
-      "\"warnings\" (array of strings).\n\n" +
+      "\"warnings\" (array of strings)" + adherenceJsonSchema + ".\n\n" +
       "CRITICAL: For each insight:\n" +
       "- category must be ONE of: VOLUME, INTENSITY, FREQUENCY, " +
       "PROGRESSION, RECOVERY, CONSISTENCY, BALANCE, TECHNIQUE\n" +
@@ -178,10 +204,11 @@ export function getSystemPrompt(
       "4. Balance: Push/pull ratio, compound/isolation distribution\n" +
       "5. Recommendations: 2-3 actionable suggestions for next 2-4 weeks\n\n" +
       "Caveat any claims about trends. Keep assessment under 125 words.\n\n" +
+      adherenceInstructions +
       "Return JSON with keys: \"overall_assessment\" (string), " +
       "\"key_insights\" (array of objects with \"category\", \"message\", " +
       "\"severity\"), \"recommendations\" (array of strings), " +
-      "\"warnings\" (array of strings).\n\n" +
+      "\"warnings\" (array of strings)" + adherenceJsonSchema + ".\n\n" +
       "IMPORTANT: For each insight:\n" +
       "- category must be ONE of: VOLUME, INTENSITY, FREQUENCY, " +
       "PROGRESSION, RECOVERY, CONSISTENCY, BALANCE, TECHNIQUE\n" +
@@ -202,10 +229,11 @@ export function getSystemPrompt(
     "5. Recovery: Signs of over/undertraining?\n" +
     "6. Recommendations: 2-3 specific, evidence-based actions\n\n" +
     "Be direct and actionable. Keep assessment under 150 words.\n\n" +
+    adherenceInstructions +
     "Return JSON with keys: \"overall_assessment\" (string), " +
     "\"key_insights\" (array of objects with \"category\", \"message\", " +
     "\"severity\"), \"recommendations\" (array of strings), " +
-    "\"warnings\" (array of strings).\n\n" +
+    "\"warnings\" (array of strings)" + adherenceJsonSchema + ".\n\n" +
     "IMPORTANT: For each insight:\n" +
     "- category must be ONE of: VOLUME, INTENSITY, FREQUENCY, " +
     "PROGRESSION, RECOVERY, CONSISTENCY, BALANCE, TECHNIQUE\n" +
@@ -226,19 +254,23 @@ export async function callOpenAI(
 
   let workoutCount = 1;
   let weeks = 1;
+  let hasDeviationData = false;
   try {
     const data = JSON.parse(trainingData);
     workoutCount = data.analysis_period?.total_workouts || 1;
     weeks = data.analysis_period?.total_weeks || 1;
-  } catch {
+    hasDeviationData = !!data.programme_deviation_summary;
+  } catch (e) {
+    console.error("Failed to parse training data JSON, using defaults:", e);
     workoutCount = 1;
     weeks = 1;
+    hasDeviationData = false;
   }
 
-  const systemPrompt = getSystemPrompt(workoutCount, weeks);
+  const systemPrompt = getSystemPrompt(workoutCount, weeks, hasDeviationData);
 
   console.log("Calling OpenAI with workout count:", workoutCount,
-    "weeks:", weeks);
+    "weeks:", weeks, "hasDeviationData:", hasDeviationData);
   console.log("Training data payload length:", trainingData.length);
   console.log("Training data payload:", trainingData);
   console.log("System prompt:", systemPrompt);

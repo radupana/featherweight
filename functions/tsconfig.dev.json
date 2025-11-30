@@ -1,5 +1,9 @@
 {
   "include": [
-    ".eslintrc.js"
+    ".eslintrc.js",
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }

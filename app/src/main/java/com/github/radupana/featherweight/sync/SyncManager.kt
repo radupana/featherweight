@@ -642,11 +642,33 @@ class SyncManager(
         CloudLogger.debug("SyncManager", "downloadAndMergeExerciseLogs: Downloaded ${remoteLogs.size} exercise logs")
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreExerciseLog(it) }
 
-        // Use upsert to avoid constraint violations
+        // Get all local workout IDs to filter out orphaned exercise logs
+        val localWorkoutIds =
+            database
+                .workoutDao()
+                .getAllWorkouts(userId)
+                .map { it.id }
+                .toSet()
+
+        var insertedCount = 0
+        var skippedCount = 0
         localLogs.forEach { log ->
+            // Skip exercise logs that reference non-existent workouts (orphaned data)
+            if (log.workoutId !in localWorkoutIds) {
+                CloudLogger.warn(
+                    "SyncManager",
+                    "Skipping orphaned exercise log ${log.id} - workout ${log.workoutId} doesn't exist",
+                )
+                skippedCount++
+                return@forEach
+            }
             database.exerciseLogDao().upsertExerciseLog(log)
+            insertedCount++
         }
-        CloudLogger.debug("SyncManager", "downloadAndMergeExerciseLogs: Inserted ${localLogs.size} exercise logs")
+        CloudLogger.debug(
+            "SyncManager",
+            "downloadAndMergeExerciseLogs: Inserted $insertedCount, skipped $skippedCount orphaned exercise logs",
+        )
     }
 
     private suspend fun downloadAndMergeSetLogs(
@@ -658,11 +680,29 @@ class SyncManager(
         CloudLogger.debug("SyncManager", "downloadAndMergeSetLogs: Downloaded ${remoteLogs.size} set logs")
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreSetLog(it) }
 
-        // Use upsert to avoid constraint violations
+        // Check which exercise log IDs from incoming set logs actually exist locally
+        val referencedExerciseLogIds = localLogs.map { it.exerciseLogId }.distinct()
+        val existingExerciseLogIds = database.exerciseLogDao().getExistingExerciseLogIds(referencedExerciseLogIds).toSet()
+
+        var insertedCount = 0
+        var skippedCount = 0
         localLogs.forEach { log ->
+            // Skip set logs that reference non-existent exercise logs (orphaned data)
+            if (log.exerciseLogId !in existingExerciseLogIds) {
+                CloudLogger.warn(
+                    "SyncManager",
+                    "Skipping orphaned set log ${log.id} - exercise log ${log.exerciseLogId} doesn't exist",
+                )
+                skippedCount++
+                return@forEach
+            }
             database.setLogDao().upsertSetLog(log)
+            insertedCount++
         }
-        CloudLogger.debug("SyncManager", "downloadAndMergeSetLogs: Inserted ${localLogs.size} set logs")
+        CloudLogger.debug(
+            "SyncManager",
+            "downloadAndMergeSetLogs: Inserted $insertedCount, skipped $skippedCount orphaned set logs",
+        )
     }
 
     private suspend fun downloadAndMergeWorkoutTemplates(
@@ -687,9 +727,33 @@ class SyncManager(
         val remoteExercises = firestoreRepository.downloadTemplateExercises(userId, lastSyncTime).getOrThrow()
         val localExercises = remoteExercises.map { SyncConverters.fromFirestoreTemplateExercise(it) }
 
-        // Use upsert to avoid constraint violations
+        // Get all local template IDs to filter out orphaned template exercises
+        val localTemplateIds =
+            database
+                .workoutTemplateDao()
+                .getTemplates(userId)
+                .map { it.id }
+                .toSet()
+
+        var insertedCount = 0
+        var skippedCount = 0
         localExercises.forEach { exercise ->
+            if (exercise.templateId !in localTemplateIds) {
+                CloudLogger.warn(
+                    "SyncManager",
+                    "Skipping orphaned template exercise ${exercise.id} - template ${exercise.templateId} doesn't exist",
+                )
+                skippedCount++
+                return@forEach
+            }
             database.templateExerciseDao().upsertTemplateExercise(exercise)
+            insertedCount++
+        }
+        if (skippedCount > 0) {
+            CloudLogger.debug(
+                "SyncManager",
+                "downloadAndMergeTemplateExercises: Inserted $insertedCount, skipped $skippedCount orphaned",
+            )
         }
     }
 
@@ -700,9 +764,33 @@ class SyncManager(
         val remoteSets = firestoreRepository.downloadTemplateSets(userId, lastSyncTime).getOrThrow()
         val localSets = remoteSets.map { SyncConverters.fromFirestoreTemplateSet(it) }
 
-        // Use upsert to avoid constraint violations
+        // Get all local template exercise IDs to filter out orphaned template sets
+        val templates = database.workoutTemplateDao().getTemplates(userId)
+        val localTemplateExerciseIds = mutableSetOf<String>()
+        templates.forEach { template ->
+            val exercises = database.templateExerciseDao().getExercisesForTemplate(template.id)
+            exercises.forEach { localTemplateExerciseIds.add(it.id) }
+        }
+
+        var insertedCount = 0
+        var skippedCount = 0
         localSets.forEach { set ->
+            if (set.templateExerciseId !in localTemplateExerciseIds) {
+                CloudLogger.warn(
+                    "SyncManager",
+                    "Skipping orphaned template set ${set.id} - template exercise ${set.templateExerciseId} doesn't exist",
+                )
+                skippedCount++
+                return@forEach
+            }
             database.templateSetDao().upsertTemplateSet(set)
+            insertedCount++
+        }
+        if (skippedCount > 0) {
+            CloudLogger.debug(
+                "SyncManager",
+                "downloadAndMergeTemplateSets: Inserted $insertedCount, skipped $skippedCount orphaned",
+            )
         }
     }
 
