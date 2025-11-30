@@ -39,13 +39,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.AdherenceAnalysis
 import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.TrainingInsight
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import java.time.temporal.ChronoUnit
 
 @Composable
@@ -275,7 +275,7 @@ fun TrainingAnalysisCard(
                                             Icon(
                                                 imageVector = Icons.Default.Warning,
                                                 contentDescription = null,
-                                                tint = Color(0xFFFF9800),
+                                                tint = FeatherweightColors.warning(),
                                                 modifier = Modifier.size(20.dp),
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
@@ -436,7 +436,7 @@ private fun AdherenceSection(adherence: AdherenceAnalysis) {
                 ) {
                     Text(
                         text = "✓",
-                        color = Color(0xFF4CAF50),
+                        color = FeatherweightColors.success(),
                         modifier = Modifier.padding(end = 8.dp),
                     )
                     Text(
@@ -457,7 +457,7 @@ private fun AdherenceSection(adherence: AdherenceAnalysis) {
                 ) {
                     Text(
                         text = "!",
-                        color = Color(0xFFFF9800),
+                        color = FeatherweightColors.warning(),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(end = 8.dp),
                     )
@@ -503,10 +503,10 @@ private fun AdherenceSection(adherence: AdherenceAnalysis) {
 private fun AdherenceScoreBadge(score: Int) {
     val (backgroundColor, textColor) =
         when {
-            score >= 90 -> Color(0xFF4CAF50) to Color.White
-            score >= 75 -> Color(0xFF8BC34A) to Color.Black
-            score >= 60 -> Color(0xFFFF9800) to Color.Black
-            else -> Color(0xFFF44336) to Color.White
+            score >= 90 -> FeatherweightColors.scoreExcellent() to FeatherweightColors.onSuccess()
+            score >= 75 -> FeatherweightColors.scoreGood() to MaterialTheme.colorScheme.onSurface
+            score >= 60 -> FeatherweightColors.scoreFair() to MaterialTheme.colorScheme.onSurface
+            else -> FeatherweightColors.scorePoor() to MaterialTheme.colorScheme.onError
         }
 
     Box(

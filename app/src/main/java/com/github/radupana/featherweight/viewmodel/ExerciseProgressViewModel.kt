@@ -630,12 +630,12 @@ class ExerciseProgressViewModel(
                 return
             }
 
-            // Define RPE zones
+            // Define RPE zones - Iron & Mint palette
             val rpeZones =
                 listOf(
-                    Triple("Light", "RPE 1-4", 1f..4f) to Color(0xFF81C784), // Light Green
-                    Triple("Medium", "RPE 5-7", 5f..7f) to Color(0xFFFFB74D), // Amber
-                    Triple("Heavy", "RPE 8-10", 8f..10f) to Color(0xFFE53935), // Red
+                    Triple("Light", "RPE 1-4", 1f..4f) to Color(0xFF6EE7B7), // Emerald 300
+                    Triple("Medium", "RPE 5-7", 5f..7f) to Color(0xFFFCD34D), // Amber 300
+                    Triple("Heavy", "RPE 8-10", 8f..10f) to Color(0xFFF87171), // Red 400
                 )
 
             val rpeData =

@@ -25,11 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.github.radupana.featherweight.R
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import kotlinx.coroutines.delay
 
 private object SplashConstants {
@@ -109,8 +109,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         label = "scalePulse",
     )
 
-    // Background color
-    val backgroundColor = Color(0xFF1A1A1A)
+    val backgroundColor = FeatherweightColors.splashBackground()
 
     LaunchedEffect(Unit) {
         // Start animation immediately

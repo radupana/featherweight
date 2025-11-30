@@ -23,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -41,6 +40,7 @@ import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
+import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 
@@ -81,11 +81,12 @@ fun PRCelebrationDialog(
         restartOnPlay = true,
     )
 
+    val goldColor = FeatherweightColors.gold()
     val dynamicProperties =
         rememberLottieDynamicProperties(
             rememberLottieDynamicProperty(
                 property = LottieProperty.STROKE_COLOR,
-                value = Color(0xFFFFD700).toArgb(),
+                value = goldColor.toArgb(),
                 keyPath = arrayOf("**"),
             ),
         )
@@ -274,7 +275,7 @@ private fun PRDetailCard(
                         text = "+${WeightFormatter.formatDecimal(personalRecord.improvementPercentage, 1)}% improvement",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF4CAF50),
+                        color = FeatherweightColors.success(),
                     )
                 }
             }
