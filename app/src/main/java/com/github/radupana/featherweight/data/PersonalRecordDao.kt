@@ -81,9 +81,6 @@ interface PersonalRecordDao {
     @Query("DELETE FROM personal_records")
     suspend fun deleteAllPersonalRecords()
 
-    @Query("DELETE FROM personal_records WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
-
     @Query("DELETE FROM personal_records WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()
 

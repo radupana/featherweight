@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.util.IdGenerator
         Index(value = ["exerciseLogId"]),
         Index(value = ["exerciseLogId", "isCompleted", "actualWeight"]),
         Index("userId"),
+        Index("completedAt"),
     ],
     foreignKeys = [
         ForeignKey(

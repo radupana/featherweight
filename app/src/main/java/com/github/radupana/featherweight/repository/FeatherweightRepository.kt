@@ -1831,57 +1831,20 @@ class FeatherweightRepository(
         CloudLogger.debug(TAG, "Starting local database deletion for userId: $userId")
 
         try {
-            // 1. Delete SetLogs (leaf nodes) - for specific user
-            CloudLogger.debug(TAG, "Deleting SetLogs for userId: $userId")
-            setLogDao.deleteAllByUserId(userId)
-            CloudLogger.debug(TAG, "Deleted SetLogs")
-
-            // 2. Delete ExerciseLogs - for specific user
-            CloudLogger.debug(TAG, "Deleting ExerciseLogs for userId: $userId")
-            exerciseLogDao.deleteAllByUserId(userId)
-            CloudLogger.debug(TAG, "Deleted ExerciseLogs")
-
-            // 3. Delete Workouts - for specific user
-            CloudLogger.debug(TAG, "Deleting Workouts for userId: $userId")
-            workoutDao.deleteAllByUserId(userId)
-            CloudLogger.debug(TAG, "Deleted Workouts")
-
-            // 4. Delete PersonalRecords - for specific user
-            CloudLogger.debug(TAG, "Deleting PersonalRecords for userId: $userId")
-            personalRecordDao.deleteAllByUserId(userId)
-            CloudLogger.debug(TAG, "Deleted PersonalRecords")
-
-            // 5. Delete ExerciseMaxTracking - for specific user
-            CloudLogger.debug(TAG, "Deleting ExerciseMaxTracking for userId: $userId")
+            setLogDao.deleteAllForUser(userId)
+            exerciseLogDao.deleteAllForUser(userId)
+            workoutDao.deleteAllForUser(userId)
+            personalRecordDao.deleteAllForUser(userId)
             db.exerciseMaxTrackingDao().deleteAllForUser(userId)
-
-            // 7. Delete GlobalExerciseProgress - for specific user
-            CloudLogger.debug(TAG, "Deleting GlobalExerciseProgress for userId: $userId")
-            globalExerciseProgressDao.deleteAllByUserId(userId)
-
-            // 8. Delete TrainingAnalysis - for specific user
-            CloudLogger.debug(TAG, "Deleting TrainingAnalysis for userId: $userId")
-            db.trainingAnalysisDao().deleteAllByUserId(userId)
-
-            // 9. Delete all Programme-related data - for specific user
-            // Delete in proper order to respect foreign keys
-            CloudLogger.debug(TAG, "Deleting Programme data for userId: $userId")
+            globalExerciseProgressDao.deleteAllForUser(userId)
+            db.trainingAnalysisDao().deleteAllForUser(userId)
             programmeDao.deleteAllProgrammeProgressForUser(userId)
             programmeDao.deleteAllProgrammeWorkoutsForUser(userId)
             programmeDao.deleteAllProgrammeWeeksForUser(userId)
-            programmeDao.deleteAllProgrammesForUser(userId)
-
-            // 10. Delete ExercisePerformanceTracking - for specific user
-            CloudLogger.debug(TAG, "Deleting ExercisePerformanceTracking for userId: $userId")
-            db.programmeExerciseTrackingDao().deleteAllByUserId(userId)
-
-            // 11. Delete ExerciseSwapHistory - for specific user
-            CloudLogger.debug(TAG, "Deleting ExerciseSwapHistory for userId: $userId")
-            db.exerciseSwapHistoryDao().deleteAllByUserId(userId)
-
-            // 12. Delete ParseRequests - for specific user
-            CloudLogger.debug(TAG, "Deleting ParseRequests for userId: $userId")
-            db.parseRequestDao().deleteAllByUserId(userId)
+            programmeDao.deleteAllForUser(userId)
+            db.programmeExerciseTrackingDao().deleteAllForUser(userId)
+            db.exerciseSwapHistoryDao().deleteAllForUser(userId)
+            db.parseRequestDao().deleteAllForUser(userId)
 
             CloudLogger.debug(TAG, "Local database deletion complete")
         } catch (e: android.database.sqlite.SQLiteException) {

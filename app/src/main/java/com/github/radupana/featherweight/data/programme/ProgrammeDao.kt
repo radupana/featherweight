@@ -179,10 +179,7 @@ interface ProgrammeDao {
     )
 
     @Query("DELETE FROM programmes WHERE userId = :userId")
-    suspend fun deleteAllProgrammesForUser(userId: String)
-
-    @Query("DELETE FROM programmes WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
+    suspend fun deleteAllForUser(userId: String)
 
     @Query("DELETE FROM programmes WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()

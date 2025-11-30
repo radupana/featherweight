@@ -156,7 +156,7 @@ class WorkoutRepository(
         withContext(ioDispatcher) {
             val startTime = System.currentTimeMillis()
             val userId = authManager.getCurrentUserId() ?: "local"
-            val allWorkouts = workoutDao.getWorkoutsByUserId(userId)
+            val allWorkouts = workoutDao.getAllWorkouts(userId)
             val result =
                 allWorkouts
                     .mapNotNull { workout ->
