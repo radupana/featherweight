@@ -21,9 +21,6 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC")
     suspend fun getAllWorkouts(userId: String): List<Workout>
 
-    @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC")
-    suspend fun getWorkoutsByUserId(userId: String): List<Workout>
-
     @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC LIMIT :limit")
     suspend fun getRecentWorkouts(
         userId: String,
@@ -58,9 +55,6 @@ interface WorkoutDao {
 
     @Query("DELETE FROM workouts WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
-
-    @Query("DELETE FROM workouts WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
 
     @Query("DELETE FROM workouts WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()

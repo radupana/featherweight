@@ -344,8 +344,16 @@ jobs:
           Build: ${{ github.run_number }}
           Commit: ${{ github.sha }}
 
-          ⚠️ IMPORTANT: Please UNINSTALL the app completely before installing this version.
-          All previously created user accounts have been cleared during development.
+          🚨🚨🚨 BREAKING CHANGE - ACTION REQUIRED 🚨🚨🚨
+
+          ⚠️ You MUST UNINSTALL the app completely before installing this version!
+
+          The database schema has changed (new indexes added). If you don't uninstall first, the app will crash on startup.
+
+          Steps:
+          1. Uninstall Featherweight from your device
+          2. Install this new version
+          3. Sign in again (your cloud data is safe)
 
           📱 This is an ALPHA build with Firebase feedback enabled
           Use the "Feedback" button in the bottom navigation bar

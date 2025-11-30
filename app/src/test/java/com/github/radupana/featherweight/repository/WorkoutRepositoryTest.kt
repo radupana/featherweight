@@ -115,17 +115,6 @@ class WorkoutRepositoryTest {
             workouts.values.filter { it.userId == userId }.toList()
         }
 
-        coEvery { workoutDao.getWorkoutsByUserId(any()) } answers {
-            val userId = firstArg<String>()
-            workouts.values
-                .filter {
-                    it.userId == userId ||
-                        it.userId == null ||
-                        // For backward compatibility with tests that don't set userId
-                        it.userId == "test-user-id" // Default test user
-                }.toList()
-        }
-
         coEvery { workoutDao.getRecentWorkouts(any(), any()) } answers {
             val userId = firstArg<String>()
             val limit = secondArg<Int>()

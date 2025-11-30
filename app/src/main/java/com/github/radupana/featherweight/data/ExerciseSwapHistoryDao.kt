@@ -55,9 +55,6 @@ interface ExerciseSwapHistoryDao {
     @Query("DELETE FROM exercise_swap_history WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 
-    @Query("DELETE FROM exercise_swap_history WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
-
     @Query("DELETE FROM exercise_swap_history WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()
 

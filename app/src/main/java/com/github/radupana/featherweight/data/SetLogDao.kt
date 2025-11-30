@@ -11,9 +11,6 @@ interface SetLogDao {
     @Insert
     suspend fun insertSetLog(setLog: SetLog)
 
-    @Insert
-    suspend fun insert(setLog: SetLog)
-
     @Upsert
     suspend fun upsertSetLog(setLog: SetLog)
 
@@ -35,9 +32,6 @@ interface SetLogDao {
 
     @Update
     suspend fun updateSetLog(setLog: SetLog)
-
-    @Update
-    suspend fun update(setLog: SetLog)
 
     @Query("DELETE FROM set_logs WHERE id = :setId")
     suspend fun deleteSetLog(setId: String)
@@ -89,9 +83,6 @@ interface SetLogDao {
 
     @Query("DELETE FROM set_logs WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
-
-    @Query("DELETE FROM set_logs WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
 
     @Query("DELETE FROM set_logs WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()

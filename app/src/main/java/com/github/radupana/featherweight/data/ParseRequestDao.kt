@@ -41,9 +41,6 @@ interface ParseRequestDao {
     @Query("DELETE FROM parse_requests WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 
-    @Query("DELETE FROM parse_requests WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
-
     @Query("DELETE FROM parse_requests WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()
 

@@ -174,7 +174,7 @@ class AccountDeletionServiceTest {
             coVerify { setLogDao.deleteAllForUser(userId) }
             coVerify { exerciseLogDao.deleteAllForUser(userId) }
             coVerify { workoutDao.deleteAllForUser(userId) }
-            coVerify { programmeDao.deleteAllProgrammesForUser(userId) }
+            coVerify { programmeDao.deleteAllForUser(userId) }
             coVerify { oneRMDao.deleteAllForUser(userId) }
             coVerify { personalRecordDao.deleteAllForUser(userId) }
             coVerify { exerciseSwapHistoryDao.deleteAllForUser(userId) }

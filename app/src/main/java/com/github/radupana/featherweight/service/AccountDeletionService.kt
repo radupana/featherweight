@@ -289,7 +289,7 @@ class AccountDeletionService(
             database.workoutDao().deleteAllForUser(userId)
 
             // Programme related
-            database.programmeDao().deleteAllProgrammesForUser(userId)
+            database.programmeDao().deleteAllForUser(userId)
 
             // User stats
             database.exerciseMaxTrackingDao().deleteAllForUser(userId)

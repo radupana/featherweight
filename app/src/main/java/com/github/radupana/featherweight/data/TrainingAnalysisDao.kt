@@ -17,7 +17,7 @@ interface TrainingAnalysisDao {
     suspend fun getAnalysisById(id: String): TrainingAnalysis?
 
     @Query("DELETE FROM training_analyses WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
+    suspend fun deleteAllForUser(userId: String)
 
     @Query("DELETE FROM training_analyses WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()

@@ -36,9 +36,6 @@ interface GlobalExerciseProgressDao {
     @Query("DELETE FROM global_exercise_progress WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
 
-    @Query("DELETE FROM global_exercise_progress WHERE userId = :userId")
-    suspend fun deleteAllByUserId(userId: String)
-
     @Query("DELETE FROM global_exercise_progress WHERE userId IS NULL")
     suspend fun deleteAllWhereUserIdIsNull()
 }

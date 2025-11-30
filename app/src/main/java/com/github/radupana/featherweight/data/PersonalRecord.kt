@@ -15,8 +15,8 @@ enum class PRType {
     indices = [
         androidx.room.Index(value = ["exerciseId"]),
         androidx.room.Index("userId"),
+        androidx.room.Index("recordDate"),
     ],
-    // Note: Removed foreign key since it can reference either system or custom exercises
 )
 data class PersonalRecord(
     @PrimaryKey val id: String = IdGenerator.generateId(),

@@ -12,7 +12,12 @@ import java.time.LocalDateTime
 
 @Entity(
     tableName = "training_analyses",
-    indices = [androidx.room.Index("userId")],
+    indices = [
+        androidx.room.Index("userId"),
+        androidx.room.Index("analysisDate"),
+        androidx.room.Index("periodStart"),
+        androidx.room.Index("periodEnd"),
+    ],
 )
 data class TrainingAnalysis(
     @PrimaryKey
@@ -29,56 +34,51 @@ data class TrainingAnalysis(
 ) {
     companion object {
         private const val TAG = "TrainingAnalysis"
-        private val gson = Gson() // Single instance for performance
+        private val gson = Gson()
+        private val insightsType = object : TypeToken<List<TrainingInsight>>() {}.type
+        private val stringsType = object : TypeToken<List<String>>() {}.type
     }
 
-    // Helper properties to convert JSON strings
     val keyInsights: List<TrainingInsight>
-        get() =
-            try {
-                gson.fromJson(
-                    keyInsightsJson,
-                    object : TypeToken<List<TrainingInsight>>() {}.type,
-                ) ?: emptyList()
-            } catch (e: JsonSyntaxException) {
-                CloudLogger.warn(TAG, "Failed to parse key insights JSON", e)
-                emptyList()
-            }
+        get() = parseInsights(keyInsightsJson)
 
     val recommendations: List<String>
-        get() =
-            try {
-                gson.fromJson(
-                    recommendationsJson,
-                    object : TypeToken<List<String>>() {}.type,
-                ) ?: emptyList()
-            } catch (e: JsonSyntaxException) {
-                CloudLogger.warn(TAG, "Failed to parse recommendations JSON", e)
-                emptyList()
-            }
+        get() = parseStrings(recommendationsJson, "recommendations")
 
     val warnings: List<String>
-        get() =
-            try {
-                gson.fromJson(
-                    warningsJson,
-                    object : TypeToken<List<String>>() {}.type,
-                ) ?: emptyList()
-            } catch (e: JsonSyntaxException) {
-                CloudLogger.warn(TAG, "Failed to parse warnings JSON", e)
-                emptyList()
-            }
+        get() = parseStrings(warningsJson, "warnings")
 
     val adherenceAnalysis: AdherenceAnalysis?
-        get() =
-            adherenceAnalysisJson?.let { json ->
-                try {
-                    gson.fromJson(json, AdherenceAnalysis::class.java)
-                } catch (e: JsonSyntaxException) {
-                    CloudLogger.warn(TAG, "Failed to parse adherence analysis JSON", e)
-                    null
-                }
+        get() = parseAdherence(adherenceAnalysisJson)
+
+    private fun parseInsights(json: String): List<TrainingInsight> =
+        try {
+            gson.fromJson(json, insightsType) ?: emptyList()
+        } catch (e: JsonSyntaxException) {
+            CloudLogger.warn(TAG, "Failed to parse key insights JSON", e)
+            emptyList()
+        }
+
+    private fun parseStrings(
+        json: String,
+        field: String,
+    ): List<String> =
+        try {
+            gson.fromJson(json, stringsType) ?: emptyList()
+        } catch (e: JsonSyntaxException) {
+            CloudLogger.warn(TAG, "Failed to parse $field JSON", e)
+            emptyList()
+        }
+
+    private fun parseAdherence(json: String?): AdherenceAnalysis? =
+        json?.let {
+            try {
+                gson.fromJson(it, AdherenceAnalysis::class.java)
+            } catch (e: JsonSyntaxException) {
+                CloudLogger.warn(TAG, "Failed to parse adherence analysis JSON", e)
+                null
             }
+        }
 }
 
 data class TrainingInsight(
