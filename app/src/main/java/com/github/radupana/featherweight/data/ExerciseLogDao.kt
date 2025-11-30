@@ -17,6 +17,9 @@ interface ExerciseLogDao {
     @Query("SELECT * FROM exercise_logs WHERE workoutId = :workoutId ORDER BY exerciseOrder")
     suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog>
 
+    @Query("SELECT * FROM exercise_logs WHERE workoutId IN (:workoutIds) ORDER BY workoutId, exerciseOrder")
+    suspend fun getExerciseLogsForWorkouts(workoutIds: List<String>): List<ExerciseLog>
+
     @Query("DELETE FROM exercise_logs WHERE id = :exerciseLogId")
     suspend fun deleteExerciseLog(exerciseLogId: String)
 

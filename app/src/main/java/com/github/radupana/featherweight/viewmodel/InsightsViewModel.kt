@@ -350,6 +350,19 @@ class InsightsViewModel(
         period.addProperty("avg_frequency_per_week", String.format(Locale.US, "%.1f", metadata.avgFrequencyPerWeek))
         payload.add("analysis_period", period)
 
+        // Batch fetch all data upfront to avoid N+1 queries
+        val workoutIds = workouts.map { it.id }
+        val allExerciseLogs = repository.getExerciseLogsForWorkouts(workoutIds)
+        val exerciseLogsByWorkout = allExerciseLogs.groupBy { it.workoutId }
+
+        val exerciseLogIds = allExerciseLogs.map { it.id }
+        val allSetLogs = repository.getSetLogsForExercises(exerciseLogIds)
+        val setLogsByExerciseLog = allSetLogs.groupBy { it.exerciseLogId }
+
+        val uniqueExerciseIds = allExerciseLogs.map { it.exerciseId }.distinct()
+        val exerciseEntities = repository.getExercisesByIds(uniqueExerciseIds)
+        val exerciseMap = exerciseEntities.associateBy { it.id }
+
         val allSets = mutableListOf<com.github.radupana.featherweight.data.SetLog>()
         val setsByExercise = mutableMapOf<String, MutableList<com.github.radupana.featherweight.data.SetLog>>()
         val exercisesUsed = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.Exercise>()
@@ -365,13 +378,13 @@ class InsightsViewModel(
             workoutObj.addProperty("duration_minutes", workout.duration?.div(60) ?: 0)
             workoutObj.addProperty("notes", "")
 
-            val exercises = repository.getExerciseLogsForWorkout(workout.id)
+            val exercises = exerciseLogsByWorkout[workout.id] ?: emptyList()
             val exercisesArray = com.google.gson.JsonArray()
             val sessionData = mutableListOf<com.github.radupana.featherweight.service.ExerciseSessionData>()
 
             for (exercise in exercises) {
                 val exerciseObj = JsonObject()
-                val exerciseEntity = repository.getExerciseById(exercise.exerciseId)
+                val exerciseEntity = exerciseMap[exercise.exerciseId]
                 val exerciseName = exerciseEntity?.name ?: "Unknown Exercise"
                 exerciseObj.addProperty("name", exerciseName)
 
@@ -379,7 +392,7 @@ class InsightsViewModel(
                     exercisesUsed[exercise.exerciseId] = exerciseEntity
                 }
 
-                val sets = repository.getSetLogsForExercise(exercise.id)
+                val sets = setLogsByExerciseLog[exercise.id] ?: emptyList()
                 val setsArray = com.google.gson.JsonArray()
 
                 allSets.addAll(sets)
@@ -508,9 +521,14 @@ class InsightsViewModel(
         val prs = repository.getRecentPRs(limit = 20)
         val prsArray = com.google.gson.JsonArray()
 
+        // Batch fetch exercise names for PRs
+        val prExerciseIds = prs.map { it.exerciseId }.distinct()
+        val prExerciseEntities = repository.getExercisesByIds(prExerciseIds)
+        val prExerciseMap = prExerciseEntities.associateBy { it.id }
+
         for (pr in prs) {
             val prObj = JsonObject()
-            val exerciseName = repository.getExerciseById(pr.exerciseId)?.name ?: "Unknown Exercise"
+            val exerciseName = prExerciseMap[pr.exerciseId]?.name ?: "Unknown Exercise"
             prObj.addProperty("exercise", exerciseName)
             prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
             prObj.addProperty("weight", pr.weight)
@@ -535,42 +553,46 @@ class InsightsViewModel(
     }
 
     private suspend fun addProgrammeDeviationSummary(payload: JsonObject) {
-        // Find the most recent programme with deviation data (could be active or completed)
-        val programmeIdsWithDeviations = repository.getProgrammeIdsWithDeviations()
-        if (programmeIdsWithDeviations.isEmpty()) return
+        try {
+            // Find the most recent active or completed programme with deviation data
+            val programmeId = repository.getMostRecentProgrammeWithDeviations() ?: return
 
-        // Use the most recent programme with deviations
-        val programmeId = programmeIdsWithDeviations.first()
-        val programmeDetails = repository.getProgrammeWithDetails(programmeId) ?: return
+            val programmeDetails = repository.getProgrammeWithDetails(programmeId) ?: return
 
-        val deviations = repository.getDeviationsForProgramme(programmeId)
-        if (deviations.isEmpty()) return
+            val deviations = repository.getDeviationsForProgramme(programmeId)
+            if (deviations.isEmpty()) return
 
-        val summary = deviationSummaryService.summarizeDeviations(deviations, programmeDetails)
+            val summary = deviationSummaryService.summarizeDeviations(deviations, programmeDetails)
 
-        val deviationObj = JsonObject()
-        deviationObj.addProperty("programme_name", summary.programmeName)
-        deviationObj.addProperty("programme_type", summary.programmeType)
-        deviationObj.addProperty("duration_weeks", summary.durationWeeks)
-        deviationObj.addProperty("workouts_completed", summary.workoutsCompleted)
-        deviationObj.addProperty("workouts_prescribed", summary.workoutsPrescribed)
-        deviationObj.addProperty(
-            "avg_volume_deviation_percent",
-            String.format(Locale.US, "%.1f", summary.avgVolumeDeviationPercent),
-        )
-        deviationObj.addProperty(
-            "avg_intensity_deviation_percent",
-            String.format(Locale.US, "%.1f", summary.avgIntensityDeviationPercent),
-        )
-        deviationObj.addProperty("exercise_swap_count", summary.exerciseSwapCount)
-        deviationObj.addProperty("exercise_skip_count", summary.exerciseSkipCount)
-        deviationObj.addProperty("exercise_add_count", summary.exerciseAddCount)
+            val deviationObj = JsonObject()
+            deviationObj.addProperty("programme_name", summary.programmeName)
+            deviationObj.addProperty("programme_type", summary.programmeType)
+            deviationObj.addProperty("duration_weeks", summary.durationWeeks)
+            deviationObj.addProperty("workouts_completed", summary.workoutsCompleted)
+            deviationObj.addProperty("workouts_prescribed", summary.workoutsPrescribed)
+            deviationObj.addProperty(
+                "avg_volume_deviation_percent",
+                String.format(Locale.US, "%.1f", summary.avgVolumeDeviationPercent),
+            )
+            deviationObj.addProperty(
+                "avg_intensity_deviation_percent",
+                String.format(Locale.US, "%.1f", summary.avgIntensityDeviationPercent),
+            )
+            deviationObj.addProperty("exercise_swap_count", summary.exerciseSwapCount)
+            deviationObj.addProperty("exercise_skip_count", summary.exerciseSkipCount)
+            deviationObj.addProperty("exercise_add_count", summary.exerciseAddCount)
 
-        val keyDeviationsArray = com.google.gson.JsonArray()
-        summary.keyDeviations.forEach { keyDeviationsArray.add(it) }
-        deviationObj.add("key_deviations", keyDeviationsArray)
+            val keyDeviationsArray = com.google.gson.JsonArray()
+            summary.keyDeviations.forEach { keyDeviationsArray.add(it) }
+            deviationObj.add("key_deviations", keyDeviationsArray)
 
-        payload.add("programme_deviation_summary", deviationObj)
+            payload.add("programme_deviation_summary", deviationObj)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            // Log but don't fail the entire analysis - deviation data is supplementary
+            ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
+        } catch (e: IllegalStateException) {
+            ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
+        }
     }
 
     private fun parseAIResponse(

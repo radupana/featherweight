@@ -20,6 +20,9 @@ interface SetLogDao {
     @Query("SELECT * FROM set_logs WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
     suspend fun getSetLogsForExercise(exerciseLogId: String): List<SetLog>
 
+    @Query("SELECT * FROM set_logs WHERE exerciseLogId IN (:exerciseLogIds) ORDER BY exerciseLogId, setOrder")
+    suspend fun getSetLogsForExercises(exerciseLogIds: List<String>): List<SetLog>
+
     @Query("SELECT * FROM set_logs WHERE id = :setLogId")
     suspend fun getSetLogById(setLogId: String): SetLog?
 

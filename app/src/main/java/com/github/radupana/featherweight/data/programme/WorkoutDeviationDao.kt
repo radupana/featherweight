@@ -56,4 +56,15 @@ interface WorkoutDeviationDao {
         """,
     )
     suspend fun getProgrammeIdsWithDeviations(): List<String>
+
+    @Query(
+        """
+        SELECT wd.programmeId FROM workout_deviations wd
+        INNER JOIN programmes p ON wd.programmeId = p.id
+        GROUP BY wd.programmeId
+        ORDER BY p.startedAt DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getMostRecentProgrammeWithDeviations(): String?
 }

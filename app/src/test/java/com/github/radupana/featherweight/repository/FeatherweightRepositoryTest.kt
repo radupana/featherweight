@@ -9,6 +9,9 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.programme.DeviationType
 import com.github.radupana.featherweight.data.programme.ImmutableProgrammeSnapshot
 import com.github.radupana.featherweight.data.programme.Programme
@@ -47,6 +50,7 @@ class FeatherweightRepositoryTest {
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var setLogDao: SetLogDao
     private lateinit var workoutDeviationDao: WorkoutDeviationDao
+    private lateinit var exerciseDao: ExerciseDao
 
     @Before
     fun setup() {
@@ -68,12 +72,14 @@ class FeatherweightRepositoryTest {
         exerciseLogDao = mockk(relaxed = true)
         setLogDao = mockk(relaxed = true)
         workoutDeviationDao = mockk(relaxed = true)
+        exerciseDao = mockk(relaxed = true)
 
         every { database.programmeDao() } returns programmeDao
         every { database.workoutDao() } returns workoutDao
         every { database.exerciseLogDao() } returns exerciseLogDao
         every { database.setLogDao() } returns setLogDao
         every { database.workoutDeviationDao() } returns workoutDeviationDao
+        every { database.exerciseDao() } returns exerciseDao
 
         repository = FeatherweightRepository(application, database, mockk(relaxed = true))
     }
@@ -328,6 +334,107 @@ class FeatherweightRepositoryTest {
             coVerify(exactly = 1) { workoutDeviationDao.getDeviationsForWorkout(workoutId) }
         }
 
+    @Test
+    fun `getExerciseLogsForWorkouts returns exercise logs for multiple workouts`() =
+        runTest {
+            val workoutIds = listOf("workout1", "workout2", "workout3")
+            val exerciseLogs =
+                listOf(
+                    ExerciseLog(id = "ex1", workoutId = "workout1", exerciseId = "exercise1", exerciseOrder = 0),
+                    ExerciseLog(id = "ex2", workoutId = "workout1", exerciseId = "exercise2", exerciseOrder = 1),
+                    ExerciseLog(id = "ex3", workoutId = "workout2", exerciseId = "exercise1", exerciseOrder = 0),
+                    ExerciseLog(id = "ex4", workoutId = "workout3", exerciseId = "exercise3", exerciseOrder = 0),
+                )
+
+            coEvery { exerciseLogDao.getExerciseLogsForWorkouts(workoutIds) } returns exerciseLogs
+
+            val result = repository.getExerciseLogsForWorkouts(workoutIds)
+
+            assertThat(result).hasSize(4)
+            assertThat(result.map { it.workoutId }).containsExactly("workout1", "workout1", "workout2", "workout3")
+            coVerify(exactly = 1) { exerciseLogDao.getExerciseLogsForWorkouts(workoutIds) }
+        }
+
+    @Test
+    fun `getSetLogsForExercises returns set logs for multiple exercise logs`() =
+        runTest {
+            val exerciseLogIds = listOf("ex1", "ex2", "ex3")
+            val setLogs =
+                listOf(
+                    SetLog(id = "set1", exerciseLogId = "ex1", setOrder = 0, actualReps = 5, actualWeight = 100f, isCompleted = true),
+                    SetLog(id = "set2", exerciseLogId = "ex1", setOrder = 1, actualReps = 5, actualWeight = 100f, isCompleted = true),
+                    SetLog(id = "set3", exerciseLogId = "ex2", setOrder = 0, actualReps = 8, actualWeight = 80f, isCompleted = true),
+                    SetLog(id = "set4", exerciseLogId = "ex3", setOrder = 0, actualReps = 10, actualWeight = 60f, isCompleted = true),
+                )
+
+            coEvery { setLogDao.getSetLogsForExercises(exerciseLogIds) } returns setLogs
+
+            val result = repository.getSetLogsForExercises(exerciseLogIds)
+
+            assertThat(result).hasSize(4)
+            assertThat(result.map { it.exerciseLogId }).containsExactly("ex1", "ex1", "ex2", "ex3")
+            coVerify(exactly = 1) { setLogDao.getSetLogsForExercises(exerciseLogIds) }
+        }
+
+    @Test
+    fun `getExercisesByIds returns exercises for multiple IDs`() =
+        runTest {
+            val exerciseIds = listOf("exercise1", "exercise2", "exercise3")
+            val exercises =
+                listOf(
+                    createExercise(id = "exercise1", name = "Squat"),
+                    createExercise(id = "exercise2", name = "Bench Press"),
+                    createExercise(id = "exercise3", name = "Deadlift"),
+                )
+
+            coEvery { exerciseDao.getExercisesByIds(exerciseIds) } returns exercises
+
+            val result = repository.getExercisesByIds(exerciseIds)
+
+            assertThat(result).hasSize(3)
+            assertThat(result.map { it.name }).containsExactly("Squat", "Bench Press", "Deadlift")
+            coVerify(exactly = 1) { exerciseDao.getExercisesByIds(exerciseIds) }
+        }
+
+    @Test
+    fun `getExerciseLogsForWorkouts returns empty list for empty input`() =
+        runTest {
+            val emptyWorkoutIds = emptyList<String>()
+
+            coEvery { exerciseLogDao.getExerciseLogsForWorkouts(emptyWorkoutIds) } returns emptyList()
+
+            val result = repository.getExerciseLogsForWorkouts(emptyWorkoutIds)
+
+            assertThat(result).isEmpty()
+            coVerify(exactly = 1) { exerciseLogDao.getExerciseLogsForWorkouts(emptyWorkoutIds) }
+        }
+
+    @Test
+    fun `getSetLogsForExercises returns empty list for empty input`() =
+        runTest {
+            val emptyExerciseLogIds = emptyList<String>()
+
+            coEvery { setLogDao.getSetLogsForExercises(emptyExerciseLogIds) } returns emptyList()
+
+            val result = repository.getSetLogsForExercises(emptyExerciseLogIds)
+
+            assertThat(result).isEmpty()
+            coVerify(exactly = 1) { setLogDao.getSetLogsForExercises(emptyExerciseLogIds) }
+        }
+
+    @Test
+    fun `getExercisesByIds returns empty list for empty input`() =
+        runTest {
+            val emptyExerciseIds = emptyList<String>()
+
+            coEvery { exerciseDao.getExercisesByIds(emptyExerciseIds) } returns emptyList()
+
+            val result = repository.getExercisesByIds(emptyExerciseIds)
+
+            assertThat(result).isEmpty()
+            coVerify(exactly = 1) { exerciseDao.getExercisesByIds(emptyExerciseIds) }
+        }
+
     private fun createProgramme(
         id: String,
         name: String,
@@ -343,5 +450,17 @@ class FeatherweightRepositoryTest {
         userId = "test-user",
         isActive = isActive,
         status = status,
+    )
+
+    private fun createExercise(
+        id: String,
+        name: String,
+    ) = Exercise(
+        id = id,
+        name = name,
+        type = ExerciseType.SYSTEM.name,
+        category = "CHEST",
+        movementPattern = "PUSH",
+        equipment = "BARBELL",
     )
 }

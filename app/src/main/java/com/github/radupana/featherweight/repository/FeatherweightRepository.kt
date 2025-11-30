@@ -161,6 +161,8 @@ class FeatherweightRepository(
 
     suspend fun getExerciseById(id: String) = exerciseRepository.getExerciseById(id)
 
+    suspend fun getExercisesByIds(ids: List<String>): List<Exercise> = exerciseDao.getExercisesByIds(ids)
+
     suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
     // Get muscles for a variation
@@ -487,7 +489,11 @@ class FeatherweightRepository(
 
     suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
 
+    suspend fun getExerciseLogsForWorkouts(workoutIds: List<String>): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkouts(workoutIds)
+
     suspend fun getSetLogsForExercise(exerciseLogId: String): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
+
+    suspend fun getSetLogsForExercises(exerciseLogIds: List<String>): List<SetLog> = setLogDao.getSetLogsForExercises(exerciseLogIds)
 
     // Delete an exercise log (will cascade delete all its sets due to foreign key)
     suspend fun deleteExerciseLog(exerciseLogId: String) = exerciseRepository.deleteExerciseLog(exerciseLogId)
@@ -520,6 +526,8 @@ class FeatherweightRepository(
     suspend fun getDeviationsForProgramme(programmeId: String) = workoutDeviationDao.getDeviationsForProgramme(programmeId)
 
     suspend fun getProgrammeIdsWithDeviations() = workoutDeviationDao.getProgrammeIdsWithDeviations()
+
+    suspend fun getMostRecentProgrammeWithDeviations() = workoutDeviationDao.getMostRecentProgrammeWithDeviations()
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 

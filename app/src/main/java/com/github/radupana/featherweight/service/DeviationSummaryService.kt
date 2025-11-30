@@ -110,7 +110,7 @@ class DeviationSummaryService {
         }
 
         byType[DeviationType.EXERCISE_SWAP]?.let { swaps ->
-            if (swaps.isNotEmpty()) {
+            if (swaps.isNotEmpty() && completedWorkouts > 0) {
                 val uniqueWorkouts = swaps.map { it.workoutId }.distinct().size
                 summaries.add("Swapped exercises in $uniqueWorkouts of $completedWorkouts workouts")
             }
