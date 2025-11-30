@@ -47,7 +47,6 @@ import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
-import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.ProgrammeWeekHistory
@@ -484,8 +483,6 @@ class FeatherweightRepository(
         return null
     }
 
-    private suspend fun getExerciseStats(exerciseId: String): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseId)
-
     suspend fun getWorkoutById(workoutId: String): Workout? = workoutRepository.getWorkoutById(workoutId)
 
     suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
@@ -519,6 +516,10 @@ class FeatherweightRepository(
     }
 
     suspend fun getDeviationsForWorkout(workoutId: String) = workoutDeviationDao.getDeviationsForWorkout(workoutId)
+
+    suspend fun getDeviationsForProgramme(programmeId: String) = workoutDeviationDao.getDeviationsForProgramme(programmeId)
+
+    suspend fun getProgrammeIdsWithDeviations() = workoutDeviationDao.getProgrammeIdsWithDeviations()
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 

@@ -22,9 +22,10 @@ data class TrainingAnalysis(
     val periodStart: LocalDate,
     val periodEnd: LocalDate,
     val overallAssessment: String,
-    val keyInsightsJson: String, // Store as JSON string
-    val recommendationsJson: String, // Store as JSON string
-    val warningsJson: String, // Store as JSON string
+    val keyInsightsJson: String,
+    val recommendationsJson: String,
+    val warningsJson: String,
+    val adherenceAnalysisJson: String? = null,
 ) {
     companion object {
         private const val TAG = "TrainingAnalysis"
@@ -67,6 +68,17 @@ data class TrainingAnalysis(
                 CloudLogger.warn(TAG, "Failed to parse warnings JSON", e)
                 emptyList()
             }
+
+    val adherenceAnalysis: AdherenceAnalysis?
+        get() =
+            adherenceAnalysisJson?.let { json ->
+                try {
+                    gson.fromJson(json, AdherenceAnalysis::class.java)
+                } catch (e: JsonSyntaxException) {
+                    CloudLogger.warn(TAG, "Failed to parse adherence analysis JSON", e)
+                    null
+                }
+            }
 }
 
 data class TrainingInsight(
@@ -92,3 +104,11 @@ enum class InsightSeverity {
     WARNING,
     CRITICAL,
 }
+
+data class AdherenceAnalysis(
+    val adherenceScore: Int,
+    val scoreExplanation: String,
+    val positivePatterns: List<String>,
+    val negativePatterns: List<String>,
+    val adherenceRecommendations: List<String>,
+)

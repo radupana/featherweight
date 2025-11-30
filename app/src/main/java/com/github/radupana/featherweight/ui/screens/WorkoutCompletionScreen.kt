@@ -113,10 +113,6 @@ fun WorkoutCompletionScreen(
                         PersonalRecordsCard(summary.personalRecords, repository, exerciseNames)
                     }
 
-                    if (summary.deviations.isNotEmpty()) {
-                        DeviationsCard(summary.deviations)
-                    }
-
                     // Workout Insights
                     WorkoutInsightsCard(summary)
 
@@ -496,92 +492,6 @@ private fun formatDuration(duration: java.time.Duration): String {
         hours > 0 -> "${hours}h ${minutes}m"
         else -> "${minutes}m"
     }
-}
-
-@Composable
-private fun DeviationsCard(deviations: List<com.github.radupana.featherweight.data.programme.WorkoutDeviation>) {
-    GlassmorphicCard(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "📊",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = "Programme Adherence",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            deviations.forEach { deviation ->
-                DeviationItem(deviation)
-                if (deviation != deviations.last()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeviationItem(deviation: com.github.radupana.featherweight.data.programme.WorkoutDeviation) {
-    val deviationText = formatDeviation(deviation)
-    val deviationColor =
-        when {
-            kotlin.math.abs(deviation.deviationMagnitude) > 0.2f -> MaterialTheme.colorScheme.error
-            kotlin.math.abs(deviation.deviationMagnitude) > 0.1f -> MaterialTheme.colorScheme.tertiary
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = deviationText,
-            style = MaterialTheme.typography.bodyLarge,
-            color = deviationColor,
-        )
-        Text(
-            text = formatMagnitude(deviation.deviationMagnitude),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            color = deviationColor,
-        )
-    }
-}
-
-private fun formatDeviation(deviation: com.github.radupana.featherweight.data.programme.WorkoutDeviation): String =
-    when (deviation.deviationType) {
-        com.github.radupana.featherweight.data.programme.DeviationType.VOLUME_DEVIATION -> "Volume"
-        com.github.radupana.featherweight.data.programme.DeviationType.INTENSITY_DEVIATION -> "Intensity"
-        com.github.radupana.featherweight.data.programme.DeviationType.SET_COUNT_DEVIATION -> "Set Count"
-        com.github.radupana.featherweight.data.programme.DeviationType.REP_DEVIATION -> "Reps"
-        com.github.radupana.featherweight.data.programme.DeviationType.RPE_DEVIATION -> "RPE"
-        com.github.radupana.featherweight.data.programme.DeviationType.EXERCISE_SWAP -> "Exercise Swapped"
-        com.github.radupana.featherweight.data.programme.DeviationType.EXERCISE_SKIPPED -> "Exercise Skipped"
-        com.github.radupana.featherweight.data.programme.DeviationType.EXERCISE_ADDED -> "Exercise Added"
-        com.github.radupana.featherweight.data.programme.DeviationType.SCHEDULE_DEVIATION -> "Schedule Deviation"
-    }
-
-private fun formatMagnitude(magnitude: Float): String {
-    val percentage = (magnitude * 100).toInt()
-    val sign = if (percentage > 0) "+" else ""
-    return "$sign$percentage%"
 }
 
 private data class InsightItem(

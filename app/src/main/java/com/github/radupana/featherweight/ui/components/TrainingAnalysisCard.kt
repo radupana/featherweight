@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.github.radupana.featherweight.data.AdherenceAnalysis
 import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.TrainingInsight
@@ -319,6 +320,10 @@ fun TrainingAnalysisCard(
                                         Spacer(modifier = Modifier.height(4.dp))
                                     }
                                 }
+
+                                validAnalysis.adherenceAnalysis?.let { adherence ->
+                                    AdherenceSection(adherence)
+                                }
                             }
                         }
                     }
@@ -388,6 +393,133 @@ private fun InsightRow(insight: TrainingInsight) {
             text = insight.message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun AdherenceSection(adherence: AdherenceAnalysis) {
+    Column {
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Programme Adherence",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            AdherenceScoreBadge(score = adherence.adherenceScore)
+        }
+
+        if (adherence.scoreExplanation.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = adherence.scoreExplanation,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (adherence.positivePatterns.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            adherence.positivePatterns.forEach { pattern ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        text = "✓",
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        text = pattern,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        if (adherence.negativePatterns.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            adherence.negativePatterns.forEach { pattern ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color(0xFFFF9800),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        text = pattern,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+
+        if (adherence.adherenceRecommendations.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "To Improve Adherence",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            adherence.adherenceRecommendations.forEach { recommendation ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        text = "→",
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        text = recommendation,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdherenceScoreBadge(score: Int) {
+    val (backgroundColor, textColor) =
+        when {
+            score >= 90 -> Color(0xFF4CAF50) to Color.White
+            score >= 75 -> Color(0xFF8BC34A) to Color.Black
+            score >= 60 -> Color(0xFFFF9800) to Color.Black
+            else -> Color(0xFFF44336) to Color.White
+        }
+
+    Box(
+        modifier =
+            Modifier
+                .background(backgroundColor, RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = "$score%",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = textColor,
         )
     }
 }

@@ -48,4 +48,12 @@ interface WorkoutDeviationDao {
 
     @Query("DELETE FROM workout_deviations")
     suspend fun deleteAll()
+
+    @Query(
+        """
+        SELECT DISTINCT programmeId FROM workout_deviations
+        ORDER BY timestamp DESC
+        """,
+    )
+    suspend fun getProgrammeIdsWithDeviations(): List<String>
 }

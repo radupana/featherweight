@@ -138,6 +138,16 @@ jobs:
         path: app/build/reports/coverage/test/debug/
         if-no-files-found: warn
 
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: app/build/reports/coverage/test/debug/report.xml
+        flags: unittests
+        name: featherweight-android
+        fail_ci_if_error: false
+        verbose: true
+
   code-quality:
     runs-on: ubuntu-latest
 
