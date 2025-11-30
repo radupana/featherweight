@@ -1,0 +1,101 @@
+# Dependabot configuration for Featherweight
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Gradle dependencies (Android app)
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "android"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group all AndroidX libraries together
+      androidx:
+        patterns:
+          - "androidx.*"
+      # Group Firebase libraries together
+      firebase:
+        patterns:
+          - "com.google.firebase:*"
+          - "com.google.gms:*"
+      # Group Kotlin libraries together
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.kotlinx*"
+      # Group testing libraries
+      testing:
+        patterns:
+          - "junit:*"
+          - "io.mockk:*"
+          - "app.cash.turbine:*"
+          - "com.google.truth:*"
+      # Group network libraries
+      network:
+        patterns:
+          - "com.squareup.okhttp3:*"
+          - "com.squareup.retrofit2:*"
+
+  # npm dependencies (Cloud Functions)
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "cloud-functions"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group Firebase dependencies
+      firebase:
+        patterns:
+          - "firebase-*"
+          - "@google-cloud/*"
+      # Group TypeScript and ESLint
+      typescript-tooling:
+        patterns:
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "eslint*"
+      # Group testing libraries
+      testing:
+        patterns:
+          - "jest"
+          - "@types/jest"
+          - "ts-jest"
+          - "firebase-functions-test"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Group GitHub's official actions
+      github-actions:
+        patterns:
+          - "actions/*"
+      # Group Google Cloud actions
+      google-actions:
+        patterns:
+          - "google-github-actions/*"
