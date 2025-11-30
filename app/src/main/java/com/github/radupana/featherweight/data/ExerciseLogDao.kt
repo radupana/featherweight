@@ -41,6 +41,9 @@ interface ExerciseLogDao {
     @Query("SELECT * FROM exercise_logs WHERE id = :id")
     suspend fun getExerciseLogById(id: String): ExerciseLog?
 
+    @Query("SELECT id FROM exercise_logs WHERE id IN (:ids)")
+    suspend fun getExistingExerciseLogIds(ids: List<String>): List<String>
+
     @Query(
         """
         SELECT el.* FROM exercise_logs el

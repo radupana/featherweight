@@ -43,7 +43,7 @@ class InsightsViewModel(
     companion object {
         private const val TAG = "InsightsViewModel"
         private const val MINIMUM_WORKOUTS_FOR_ANALYSIS = 1
-        private const val MAX_WORKOUTS_FOR_ANALYSIS = 20
+        private const val MAX_WORKOUTS_FOR_ANALYSIS = 50
 
         fun calculateAnalysisMetadata(workouts: List<WorkoutSummary>): AnalysisMetadata {
             val startDate = workouts.lastOrNull()?.date?.toLocalDate()
@@ -600,11 +600,13 @@ class InsightsViewModel(
 
             payload.add("programme_deviation_summary", deviationObj)
         } catch (e: android.database.sqlite.SQLiteException) {
-            ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
-            addDeviationUnavailableStatus(payload, "database_error")
+            // Fail-fast: database errors indicate bugs that should be fixed
+            ExceptionLogger.logException(TAG, "Database error in deviation summary", e)
+            throw e
         } catch (e: IllegalStateException) {
-            ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
-            addDeviationUnavailableStatus(payload, "internal_error")
+            // Fail-fast: state errors indicate bugs that should be fixed
+            ExceptionLogger.logException(TAG, "State error in deviation summary", e)
+            throw e
         }
     }
 
@@ -796,13 +798,24 @@ class InsightsViewModel(
                 return null
             }
 
+            // Validate score explanation is not empty (score without context is meaningless)
+            if (scoreExplanation.isBlank()) {
+                CloudLogger.warn(TAG, "Empty score_explanation - adherence score has no context")
+                return null
+            }
+
+            // Filter out empty/blank patterns
+            val validPositivePatterns = positivePatterns.filter { it.isNotBlank() }
+            val validNegativePatterns = negativePatterns.filter { it.isNotBlank() }
+            val validRecommendations = adherenceRecommendations.filter { it.isNotBlank() }
+
             val analysis =
                 AdherenceAnalysis(
                     adherenceScore = adherenceScore,
                     scoreExplanation = scoreExplanation,
-                    positivePatterns = positivePatterns,
-                    negativePatterns = negativePatterns,
-                    adherenceRecommendations = adherenceRecommendations,
+                    positivePatterns = validPositivePatterns,
+                    negativePatterns = validNegativePatterns,
+                    adherenceRecommendations = validRecommendations,
                 )
 
             gson.toJson(analysis)

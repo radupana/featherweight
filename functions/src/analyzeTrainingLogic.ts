@@ -260,7 +260,8 @@ export async function callOpenAI(
     workoutCount = data.analysis_period?.total_workouts || 1;
     weeks = data.analysis_period?.total_weeks || 1;
     hasDeviationData = !!data.programme_deviation_summary;
-  } catch {
+  } catch (e) {
+    console.error("Failed to parse training data JSON, using defaults:", e);
     workoutCount = 1;
     weeks = 1;
     hasDeviationData = false;

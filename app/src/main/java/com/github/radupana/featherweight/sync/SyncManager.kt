@@ -680,17 +680,15 @@ class SyncManager(
         CloudLogger.debug("SyncManager", "downloadAndMergeSetLogs: Downloaded ${remoteLogs.size} set logs")
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreSetLog(it) }
 
-        // Get all local exercise log IDs to filter out orphaned set logs
-        val workouts = database.workoutDao().getAllWorkouts(userId)
-        val workoutIds = workouts.map { it.id }
-        val allExerciseLogs = database.exerciseLogDao().getExerciseLogsForWorkouts(workoutIds)
-        val localExerciseLogIds = allExerciseLogs.map { it.id }.toSet()
+        // Check which exercise log IDs from incoming set logs actually exist locally
+        val referencedExerciseLogIds = localLogs.map { it.exerciseLogId }.distinct()
+        val existingExerciseLogIds = database.exerciseLogDao().getExistingExerciseLogIds(referencedExerciseLogIds).toSet()
 
         var insertedCount = 0
         var skippedCount = 0
         localLogs.forEach { log ->
             // Skip set logs that reference non-existent exercise logs (orphaned data)
-            if (log.exerciseLogId !in localExerciseLogIds) {
+            if (log.exerciseLogId !in existingExerciseLogIds) {
                 CloudLogger.warn(
                     "SyncManager",
                     "Skipping orphaned set log ${log.id} - exercise log ${log.exerciseLogId} doesn't exist",

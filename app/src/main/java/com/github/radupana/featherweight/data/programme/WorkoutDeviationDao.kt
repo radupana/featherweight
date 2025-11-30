@@ -58,16 +58,20 @@ interface WorkoutDeviationDao {
     suspend fun getProgrammeIdsWithDeviations(): List<String>
 
     /**
-     * Returns the programme ID of the most recently started programme that has deviation data.
+     * Returns the programme ID with the most recent deviation activity.
      *
      * Selection logic:
      * - Only considers programmes that have at least one recorded deviation
-     * - Orders by programme start date (startedAt), not by when deviations were recorded
-     * - Returns the single most recent programme
+     * - Orders by most recent deviation timestamp (MAX(wd.timestamp))
+     * - Returns the programme the user has been most recently working on
+     *
+     * Rationale:
+     * - A programme with recent deviation activity is most relevant for AI analysis
+     * - User may have started a new programme but not recorded any workouts yet
+     * - Using deviation timestamp ensures we analyze the programme with actual data
      *
      * Edge cases:
-     * - If user has multiple programmes with deviations, returns the most recently started one
-     * - If the currently active programme has no deviations yet, returns a previous programme
+     * - If user has multiple programmes with deviations, returns the one with most recent activity
      * - Returns null if no programmes have any deviation data
      *
      * This is used for AI training analysis to provide adherence context based on the user's
@@ -75,10 +79,9 @@ interface WorkoutDeviationDao {
      */
     @Query(
         """
-        SELECT wd.programmeId FROM workout_deviations wd
-        INNER JOIN programmes p ON wd.programmeId = p.id
-        GROUP BY wd.programmeId
-        ORDER BY p.startedAt DESC
+        SELECT programmeId FROM workout_deviations
+        GROUP BY programmeId
+        ORDER BY MAX(timestamp) DESC
         LIMIT 1
         """,
     )
