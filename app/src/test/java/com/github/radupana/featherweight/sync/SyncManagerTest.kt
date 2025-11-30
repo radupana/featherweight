@@ -600,7 +600,15 @@ class SyncManagerTest {
                     userId = userId,
                     name = "Remote Workout",
                     notes = "Updated from cloud",
-                    date = Timestamp(Date(2024 - 1900, 0, 2, 10, 0)),
+                    date =
+                        Timestamp(
+                            Date.from(
+                                java.time.LocalDateTime
+                                    .of(2024, 1, 2, 10, 0)
+                                    .atZone(java.time.ZoneId.systemDefault())
+                                    .toInstant(),
+                            ),
+                        ),
                     status = "COMPLETED",
                     programmeId = null,
                     weekNumber = null,

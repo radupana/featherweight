@@ -197,13 +197,7 @@ class ExerciseRepository(
     suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): String {
-        // Ensure userId is set for authenticated users
-        val exerciseWithUserId =
-            if (authManager != null) {
-                exerciseLog.copy(userId = authManager.getCurrentUserId() ?: "local")
-            } else {
-                exerciseLog
-            }
+        val exerciseWithUserId = exerciseLog.copy(userId = authManager.getCurrentUserId() ?: "local")
         exerciseLogDao.insertExerciseLog(exerciseWithUserId)
         return exerciseWithUserId.id
     }

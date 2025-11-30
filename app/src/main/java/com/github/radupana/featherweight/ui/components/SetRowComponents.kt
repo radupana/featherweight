@@ -28,6 +28,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,8 +62,7 @@ fun CleanSetRow(
     readOnly: Boolean,
     parentCoordinates: LayoutCoordinates? = null,
 ) {
-    val showTargetValues = isProgrammeWorkout
-    val dismissState = createSetRowDismissState(readOnly, onDeleteSet)
+    val dismissState = createSetRowDismissState(onDeleteSet)
 
     SwipeToDismissBox(
         state = dismissState,
@@ -76,7 +76,7 @@ fun CleanSetRow(
             set = set,
             setNumber = setNumber,
             oneRMEstimate = oneRMEstimate,
-            showTargetValues = showTargetValues,
+            showTargetValues = isProgrammeWorkout,
             onUpdateSet = onUpdateSet,
             onToggleCompleted = onToggleCompleted,
             canMarkComplete = canMarkComplete,
@@ -88,28 +88,19 @@ fun CleanSetRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun createSetRowDismissState(
-    readOnly: Boolean,
-    onDeleteSet: () -> Unit,
-): SwipeToDismissBoxState =
+private fun createSetRowDismissState(onDeleteSet: () -> Unit): SwipeToDismissBoxState =
     rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    if (!readOnly) {
-                        onDeleteSet()
-                        true
-                    } else {
-                        false
-                    }
-                }
-                else -> false
-            }
-        },
         positionalThreshold = { totalDistance ->
             totalDistance * 0.33f
         },
-    )
+    ).also { state ->
+        LaunchedEffect(state.currentValue) {
+            if (state.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                onDeleteSet()
+                state.snapTo(SwipeToDismissBoxValue.Settled)
+            }
+        }
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
