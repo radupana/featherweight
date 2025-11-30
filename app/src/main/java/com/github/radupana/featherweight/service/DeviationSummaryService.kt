@@ -148,6 +148,15 @@ class DeviationSummaryService {
     }
 
     companion object {
+        /**
+         * Maximum number of key deviation summaries to include in the analysis payload.
+         *
+         * Set to 7 because:
+         * - There are 7 deviation types tracked (volume, intensity, swap, skip, add, set count, rep)
+         * - This ensures at most one summary per deviation type is included
+         * - Keeps the AI prompt concise while covering all deviation categories
+         * - Prevents token bloat in the AI request payload
+         */
         private const val MAX_KEY_DEVIATIONS = 7
     }
 }

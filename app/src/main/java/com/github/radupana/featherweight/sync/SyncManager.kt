@@ -682,11 +682,9 @@ class SyncManager(
 
         // Get all local exercise log IDs to filter out orphaned set logs
         val workouts = database.workoutDao().getAllWorkouts(userId)
-        val localExerciseLogIds = mutableSetOf<String>()
-        workouts.forEach { workout ->
-            val exerciseLogs = database.exerciseLogDao().getExerciseLogsForWorkout(workout.id)
-            exerciseLogs.forEach { localExerciseLogIds.add(it.id) }
-        }
+        val workoutIds = workouts.map { it.id }
+        val allExerciseLogs = database.exerciseLogDao().getExerciseLogsForWorkouts(workoutIds)
+        val localExerciseLogIds = allExerciseLogs.map { it.id }.toSet()
 
         var insertedCount = 0
         var skippedCount = 0

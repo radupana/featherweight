@@ -177,6 +177,7 @@ class SyncManagerTest {
         coEvery { templateSetDao.upsertTemplateSet(any()) } returns Unit
         coEvery { exerciseDao.getAllExercises() } returns emptyList()
         coEvery { exerciseDao.getCustomExercisesByUser(any()) } returns emptyList()
+        coEvery { exerciseLogDao.getExerciseLogsForWorkouts(any()) } returns emptyList()
         coEvery { exerciseMuscleDao.getAllExerciseMuscles() } returns emptyList()
         coEvery { exerciseInstructionDao.getAllInstructions() } returns emptyList()
         coEvery { exerciseAliasDao.getAllAliases() } returns emptyList()

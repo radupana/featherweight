@@ -555,16 +555,28 @@ class InsightsViewModel(
     private suspend fun addProgrammeDeviationSummary(payload: JsonObject) {
         try {
             // Find the most recent active or completed programme with deviation data
-            val programmeId = repository.getMostRecentProgrammeWithDeviations() ?: return
+            val programmeId = repository.getMostRecentProgrammeWithDeviations()
+            if (programmeId == null) {
+                addDeviationUnavailableStatus(payload, "no_programme_with_deviations")
+                return
+            }
 
-            val programmeDetails = repository.getProgrammeWithDetails(programmeId) ?: return
+            val programmeDetails = repository.getProgrammeWithDetails(programmeId)
+            if (programmeDetails == null) {
+                addDeviationUnavailableStatus(payload, "programme_details_not_found")
+                return
+            }
 
             val deviations = repository.getDeviationsForProgramme(programmeId)
-            if (deviations.isEmpty()) return
+            if (deviations.isEmpty()) {
+                addDeviationUnavailableStatus(payload, "no_deviations_recorded")
+                return
+            }
 
             val summary = deviationSummaryService.summarizeDeviations(deviations, programmeDetails)
 
             val deviationObj = JsonObject()
+            deviationObj.addProperty("status", "available")
             deviationObj.addProperty("programme_name", summary.programmeName)
             deviationObj.addProperty("programme_type", summary.programmeType)
             deviationObj.addProperty("duration_weeks", summary.durationWeeks)
@@ -588,11 +600,22 @@ class InsightsViewModel(
 
             payload.add("programme_deviation_summary", deviationObj)
         } catch (e: android.database.sqlite.SQLiteException) {
-            // Log but don't fail the entire analysis - deviation data is supplementary
             ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
+            addDeviationUnavailableStatus(payload, "database_error")
         } catch (e: IllegalStateException) {
             ExceptionLogger.logNonCritical(TAG, "Failed to add deviation summary", e)
+            addDeviationUnavailableStatus(payload, "internal_error")
         }
+    }
+
+    private fun addDeviationUnavailableStatus(
+        payload: JsonObject,
+        reason: String,
+    ) {
+        val deviationObj = JsonObject()
+        deviationObj.addProperty("status", "unavailable")
+        deviationObj.addProperty("reason", reason)
+        payload.add("programme_deviation_summary", deviationObj)
     }
 
     private fun parseAIResponse(
@@ -740,6 +763,15 @@ class InsightsViewModel(
         return try {
             val obj = adherenceObj.asJsonObject
 
+            // Validate required fields exist
+            if (!obj.has("adherence_score") || !obj.has("score_explanation")) {
+                CloudLogger.warn(
+                    TAG,
+                    "Adherence analysis missing required fields: adherence_score or score_explanation",
+                )
+                return null
+            }
+
             val positivePatterns = mutableListOf<String>()
             obj.getAsJsonArray("positive_patterns")?.forEach { element ->
                 positivePatterns.add(element.asString)
@@ -755,10 +787,19 @@ class InsightsViewModel(
                 adherenceRecommendations.add(element.asString)
             }
 
+            val adherenceScore = obj.get("adherence_score")?.asInt ?: 0
+            val scoreExplanation = obj.get("score_explanation")?.asString ?: ""
+
+            // Validate score is in valid range (0-100)
+            if (adherenceScore < 0 || adherenceScore > 100) {
+                CloudLogger.warn(TAG, "Invalid adherence score: $adherenceScore (expected 0-100)")
+                return null
+            }
+
             val analysis =
                 AdherenceAnalysis(
-                    adherenceScore = obj.get("adherence_score")?.asInt ?: 0,
-                    scoreExplanation = obj.get("score_explanation")?.asString ?: "",
+                    adherenceScore = adherenceScore,
+                    scoreExplanation = scoreExplanation,
                     positivePatterns = positivePatterns,
                     negativePatterns = negativePatterns,
                     adherenceRecommendations = adherenceRecommendations,
@@ -766,10 +807,13 @@ class InsightsViewModel(
 
             gson.toJson(analysis)
         } catch (e: IllegalStateException) {
-            CloudLogger.warn(TAG, "Failed to parse adherence analysis", e)
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: malformed JSON structure", e)
             null
         } catch (e: UnsupportedOperationException) {
-            CloudLogger.warn(TAG, "Failed to parse adherence analysis", e)
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: type mismatch in JSON", e)
+            null
+        } catch (e: NumberFormatException) {
+            CloudLogger.warn(TAG, "Failed to parse adherence analysis: invalid number format", e)
             null
         }
     }
