@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -118,7 +117,7 @@ private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.CenterEnd,
         ) {
-            val minWidth = 40.dp
+            val minWidth = 48.dp
             val maxAdditionalWidth = 160.dp
             val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
 
@@ -139,9 +138,8 @@ private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Alignment.CenterEnd,
                 ) {
-                    val iconOffset = ((1 - progress) * 15).dp
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Delete",
@@ -151,8 +149,8 @@ private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
                             ),
                         modifier =
                             Modifier
-                                .size((20 + (4 * progress)).dp)
-                                .offset(x = iconOffset),
+                                .padding(end = 12.dp)
+                                .size((20 + (4 * progress)).dp),
                     )
                 }
             }
@@ -176,7 +174,7 @@ private fun SetRowContent(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(CardColors.gradientBottom),
+                .background(CardColors.gradientTop),
     ) {
         Row(
             modifier =
