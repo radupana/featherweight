@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.ui.theme.CardColors
 import com.github.radupana.featherweight.util.WeightFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,14 +112,8 @@ private fun createSetRowDismissState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
-    val progress = dismissState.progress
-    val targetValue = dismissState.targetValue
-    val currentValue = dismissState.currentValue
-
-    if (progress > 0.01f &&
-        targetValue == SwipeToDismissBoxValue.EndToStart &&
-        currentValue != SwipeToDismissBoxValue.EndToStart
-    ) {
+    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+        val progress = dismissState.progress.coerceIn(0f, 1f)
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.CenterEnd,
@@ -177,7 +173,10 @@ private fun SetRowContent(
     readOnly: Boolean,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(CardColors.gradientBottom),
     ) {
         Row(
             modifier =
