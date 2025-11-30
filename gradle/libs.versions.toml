@@ -4,16 +4,16 @@ androidDatabaseSqlcipher = "4.5.4"
 compose = "2.9.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
-firebaseAppcheckDebug = "18.0.0"
+firebaseAppcheckDebug = "19.0.1"
 firebaseAppcheckPlayintegrity = "19.0.1"
-firebaseBom = "34.4.0"
+firebaseBom = "34.6.0"
 firebaseAppdistributionApi = "16.0.0-beta15"
 firebaseAppdistribution = "16.0.0-beta17"
 gson = "2.13.2"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"
-kotlinTestJunit = "1.9.22"
+kotlinTestJunit = "2.2.21"
 kotlinxCoroutinesPlayServices = "1.10.2"
 kotlinxCoroutinesTest = "1.10.2"
 lifecycleRuntimeKtx = "2.9.4"
@@ -26,7 +26,7 @@ mockk = "1.14.6"
 mockkAndroid = "1.14.6"
 reorderable = "3.0.0"
 room = "2.8.3"
-ktlint-gradle = "13.1.0"
+ktlint-gradle = "14.0.1"
 detekt = "1.23.8"
 coreSplashscreen = "1.0.1"
 kotlinx-serialization = "1.9.0"
@@ -64,7 +64,7 @@ firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-functions = { module = "com.google.firebase:firebase-functions" }
-google-auth = { module = "com.google.android.gms:play-services-auth", version = "21.3.0" }
+google-auth = { module = "com.google.android.gms:play-services-auth", version = "21.4.0" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 firebase-performance = { module = "com.google.firebase:firebase-perf" }
