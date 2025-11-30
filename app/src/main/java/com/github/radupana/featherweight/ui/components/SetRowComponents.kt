@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.CardColors
+import com.github.radupana.featherweight.ui.theme.seamlessGradient
 import com.github.radupana.featherweight.util.WeightFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +59,7 @@ fun CleanSetRow(
     onDeleteSet: () -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
+    parentCoordinates: LayoutCoordinates? = null,
 ) {
     val showTargetValues = isProgrammeWorkout
     val dismissState = createSetRowDismissState(readOnly, onDeleteSet)
@@ -79,6 +81,7 @@ fun CleanSetRow(
             onToggleCompleted = onToggleCompleted,
             canMarkComplete = canMarkComplete,
             readOnly = readOnly,
+            parentCoordinates = parentCoordinates,
         )
     }
 }
@@ -169,12 +172,15 @@ private fun SetRowContent(
     onToggleCompleted: (Boolean) -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
+    parentCoordinates: LayoutCoordinates?,
 ) {
+    val gradientColors = listOf(CardColors.gradientTop, CardColors.gradientBottom)
+
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(CardColors.gradientTop),
+                .seamlessGradient(parentCoordinates, gradientColors),
     ) {
         Row(
             modifier =

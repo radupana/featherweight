@@ -23,11 +23,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
+    onCoordinatesAvailable: ((LayoutCoordinates) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -44,6 +47,12 @@ fun GlassCard(
                         Brush.verticalGradient(
                             colors = listOf(CardColors.gradientTop, CardColors.gradientBottom),
                         ),
+                    ).then(
+                        if (onCoordinatesAvailable != null) {
+                            Modifier.onGloballyPositioned { onCoordinatesAvailable(it) }
+                        } else {
+                            Modifier
+                        },
                     ).padding(16.dp),
             content = content,
         )
