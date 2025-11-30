@@ -85,9 +85,8 @@ class FirestoreRepository {
         try {
             var query: Query = firestore.collection(EXERCISES_COLLECTION)
 
-            // Filter by update time if provided
             lastSyncTime?.let {
-                query = query.whereGreaterThan("updatedAt", it.toDate().toInstant().toString())
+                query = query.whereGreaterThan("updatedAt", it)
             }
 
             val snapshot = query.get().await()

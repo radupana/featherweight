@@ -172,9 +172,12 @@ class SyncManagerTest {
         coEvery { workoutTemplateDao.getTemplates(any()) } returns emptyList()
         coEvery { workoutTemplateDao.upsertTemplate(any()) } returns Unit
         coEvery { templateExerciseDao.getExercisesForTemplate(any()) } returns emptyList()
+        coEvery { templateExerciseDao.getExercisesForTemplates(any()) } returns emptyList()
         coEvery { templateExerciseDao.upsertTemplateExercise(any()) } returns Unit
         coEvery { templateSetDao.getSetsForTemplateExercise(any()) } returns emptyList()
+        coEvery { templateSetDao.getSetsForTemplateExercises(any()) } returns emptyList()
         coEvery { templateSetDao.upsertTemplateSet(any()) } returns Unit
+        coEvery { setLogDao.getSetLogsForExercises(any()) } returns emptyList()
         coEvery { exerciseDao.getAllExercises() } returns emptyList()
         coEvery { exerciseDao.getCustomExercisesByUser(any()) } returns emptyList()
         coEvery { exerciseLogDao.getExerciseLogsForWorkouts(any()) } returns emptyList()
@@ -407,10 +410,10 @@ class SyncManagerTest {
 
             val result = syncManager.syncAll()
 
-            assertTrue(result.isSuccess)
-            val state = result.getOrNull()
-            assertTrue(state is SyncState.Error)
-            assertTrue(state.message.contains("Network error"), "Error message was: ${state.message}")
+            assertTrue(result.isFailure)
+            val exception = result.exceptionOrNull()
+            assertTrue(exception is com.google.firebase.FirebaseException)
+            assertTrue(exception?.message?.contains("Network error") == true, "Error message was: ${exception?.message}")
         }
 
     @Test
@@ -562,10 +565,10 @@ class SyncManagerTest {
 
             val result = syncManager.syncAll()
 
-            assertTrue(result.isSuccess)
-            val state = result.getOrNull()
-            assertTrue(state is SyncState.Error)
-            assertTrue(state.message.contains("Download failed"))
+            assertTrue(result.isFailure)
+            val exception = result.exceptionOrNull()
+            assertTrue(exception is com.google.firebase.FirebaseException)
+            assertTrue(exception?.message?.contains("Download failed") == true)
 
             coVerify(exactly = 0) { firestoreRepository.uploadWorkouts(any(), any()) }
         }

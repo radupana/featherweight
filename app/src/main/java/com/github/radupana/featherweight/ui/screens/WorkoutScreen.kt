@@ -409,16 +409,11 @@ private fun WorkoutDialogs(
         )
     }
 
-    // Completed Workout Menu Dialog
     if (showCompletedWorkoutMenu) {
         CompletedWorkoutMenuDialog(
             onSaveAsTemplate = {
-                android.util.Log.i("WorkoutScreen", "Save as template clicked in dialog, workoutId: $currentWorkoutId")
                 onCompletedWorkoutMenuChange(false)
-                currentWorkoutId?.let {
-                    android.util.Log.i("WorkoutScreen", "Calling onSaveAsTemplate with workoutId: $it")
-                    onSaveAsTemplate(it)
-                } ?: android.util.Log.w("WorkoutScreen", "currentWorkoutId is null, cannot save as template")
+                currentWorkoutId?.let { onSaveAsTemplate(it) }
             },
             onExportWorkout = {
                 onCompletedWorkoutMenuChange(false)

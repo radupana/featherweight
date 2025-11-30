@@ -147,32 +147,7 @@ class ProfileViewModel(
     }
 
     private fun loadProfileData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                // Profile data loaded immediately
-
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: android.database.sqlite.SQLiteException) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Database error loading profile: ${e.message}",
-                        isLoading = false,
-                    )
-            } catch (e: IllegalStateException) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Invalid state loading profile: ${e.message}",
-                        isLoading = false,
-                    )
-            } catch (e: SecurityException) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Permission error loading profile: ${e.message}",
-                        isLoading = false,
-                    )
-            }
-        }
+        _uiState.value = _uiState.value.copy(isLoading = false)
     }
 
     private fun observeCurrentMaxes() {
@@ -500,38 +475,38 @@ class ProfileViewModel(
                 exportRequest,
             )
 
-        // Update UI to show export started
         _uiState.value =
             _uiState.value.copy(
                 isExporting = true,
                 successMessage = "Export started. You'll be notified when complete.",
             )
 
-        // Observe work status
-        WorkManager
-            .getInstance(context)
-            .getWorkInfoByIdLiveData(exportRequest.id)
-            .observeForever { workInfo ->
-                when (workInfo?.state) {
-                    androidx.work.WorkInfo.State.SUCCEEDED -> {
-                        val filePath = workInfo.outputData.getString("filePath")
-                        _uiState.value =
-                            _uiState.value.copy(
-                                isExporting = false,
-                                successMessage = "Export completed successfully!",
-                                exportedFilePath = filePath,
-                            )
+        viewModelScope.launch {
+            WorkManager
+                .getInstance(context)
+                .getWorkInfoByIdFlow(exportRequest.id)
+                .collect { workInfo ->
+                    when (workInfo?.state) {
+                        androidx.work.WorkInfo.State.SUCCEEDED -> {
+                            val filePath = workInfo.outputData.getString("filePath")
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    isExporting = false,
+                                    successMessage = "Export completed successfully!",
+                                    exportedFilePath = filePath,
+                                )
+                        }
+                        androidx.work.WorkInfo.State.FAILED -> {
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    isExporting = false,
+                                    error = "Export failed. Please try again.",
+                                )
+                        }
+                        else -> Unit
                     }
-                    androidx.work.WorkInfo.State.FAILED -> {
-                        _uiState.value =
-                            _uiState.value.copy(
-                                isExporting = false,
-                                error = "Export failed. Please try again.",
-                            )
-                    }
-                    else -> { /* ongoing */ }
                 }
-            }
+        }
     }
 
     fun clearExportedFile() {

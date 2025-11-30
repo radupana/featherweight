@@ -71,7 +71,6 @@ fun WorkoutTemplateSelectionScreen(
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(Unit) {
-        android.util.Log.i("TemplateSelectionScreen", "Screen launched, refreshing templates...")
         viewModel.loadTemplates()
     }
 
@@ -189,14 +188,8 @@ fun WorkoutTemplateSelectionScreen(
                             ) { template ->
                                 TemplateCard(
                                     template = template,
-                                    onStartWorkout = {
-                                        android.util.Log.i("TemplateSelectionScreen", "Starting workout from template: ${template.summary.id} - ${template.summary.name}")
-                                        onTemplateSelected(template.summary.id)
-                                    },
-                                    onDelete = {
-                                        android.util.Log.i("TemplateSelectionScreen", "Deleting template: ${template.summary.id} - ${template.summary.name}")
-                                        viewModel.deleteTemplate(template.summary.id)
-                                    },
+                                    onStartWorkout = { onTemplateSelected(template.summary.id) },
+                                    onDelete = { viewModel.deleteTemplate(template.summary.id) },
                                 )
                             }
                         }

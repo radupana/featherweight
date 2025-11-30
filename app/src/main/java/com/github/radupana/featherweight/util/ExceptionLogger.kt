@@ -13,8 +13,6 @@ object ExceptionLogger {
             LogLevel.WARNING -> CloudLogger.warn(tag, fullMessage, throwable)
             LogLevel.ERROR -> CloudLogger.error(tag, fullMessage, throwable)
         }
-        println("[$tag] $fullMessage")
-        println(throwable.stackTraceToString())
     }
 
     fun logNonCritical(

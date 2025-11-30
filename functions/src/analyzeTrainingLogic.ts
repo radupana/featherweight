@@ -269,12 +269,6 @@ export async function callOpenAI(
 
   const systemPrompt = getSystemPrompt(workoutCount, weeks, hasDeviationData);
 
-  console.log("Calling OpenAI with workout count:", workoutCount,
-    "weeks:", weeks, "hasDeviationData:", hasDeviationData);
-  console.log("Training data payload length:", trainingData.length);
-  console.log("Training data payload:", trainingData);
-  console.log("System prompt:", systemPrompt);
-
   const completion = await openai.chat.completions.create({
     model: "gpt-5-mini",
     messages: [

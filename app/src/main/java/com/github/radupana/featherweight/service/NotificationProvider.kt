@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.service
 
+import com.github.radupana.featherweight.util.ExceptionLogger
+
 interface SoundProvider {
     fun playNotificationSound()
 }
@@ -22,9 +24,9 @@ class DefaultSoundProvider(
             val ringtone = android.media.RingtoneManager.getRingtone(context, notificationUri)
             ringtone?.play()
         } catch (e: SecurityException) {
-            android.util.Log.w(TAG, "Security exception playing sound", e)
+            ExceptionLogger.logNonCritical(TAG, "Security exception playing sound", e)
         } catch (e: IllegalArgumentException) {
-            android.util.Log.w(TAG, "Invalid URI for notification sound", e)
+            ExceptionLogger.logNonCritical(TAG, "Invalid URI for notification sound", e)
         }
     }
 }
@@ -53,9 +55,9 @@ class DefaultVibrationProvider(
                 vibrator.vibrate(effect)
             }
         } catch (e: SecurityException) {
-            android.util.Log.w(TAG, "Security exception accessing vibrator", e)
+            ExceptionLogger.logNonCritical(TAG, "Security exception accessing vibrator", e)
         } catch (e: IllegalArgumentException) {
-            android.util.Log.w(TAG, "Invalid vibration pattern", e)
+            ExceptionLogger.logNonCritical(TAG, "Invalid vibration pattern", e)
         }
     }
 }

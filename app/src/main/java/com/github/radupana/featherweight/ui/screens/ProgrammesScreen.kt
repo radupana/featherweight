@@ -91,13 +91,6 @@ fun ProgrammesScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showRawTextDialog by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(uiState.error) {
-        if (uiState.error != null) {
-            kotlinx.coroutines.delay(3000)
-            viewModel.clearMessages()
-        }
-    }
-
     LaunchedEffect(Unit) {
         viewModel.refreshProgrammeProgress()
         workoutViewModel.loadInProgressWorkouts()
