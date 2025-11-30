@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up JDK 21
       uses: actions/setup-java@v5
@@ -94,7 +94,7 @@ jobs:
       run: ./gradlew testDebugUnitTest || (echo "Test failed. Check test report artifact for details."; exit 1)
 
     - name: Set up Node.js for Cloud Functions
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '22'
         cache: 'npm'
@@ -112,7 +112,7 @@ jobs:
 
     - name: Upload Cloud Functions test results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: cloud-functions-test-results
         path: functions/coverage/
@@ -132,14 +132,14 @@ jobs:
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: test-results
         path: app/build/reports/tests/testDebugUnitTest/
 
     - name: Upload unit test coverage
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: unit-test-coverage
         path: app/build/reports/coverage/test/debug/
@@ -160,7 +160,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up JDK 21
       uses: actions/setup-java@v5
@@ -212,7 +212,7 @@ jobs:
 
     - name: Upload lint results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: lint-results
         path: app/build/reports/lint-results-debug.html
@@ -223,7 +223,7 @@ jobs:
 
     - name: Upload detekt results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: detekt-results
         path: app/build/reports/detekt/
@@ -268,7 +268,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up JDK 21
       uses: actions/setup-java@v5
@@ -314,7 +314,7 @@ jobs:
         echo "Deploying version: $VERSION"
 
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: apk-alpha
         path: app/build/outputs/apk/alpha/app-alpha.apk
@@ -325,10 +325,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Download APK artifact
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v6.0.0
       with:
         name: apk-alpha
         path: apk
@@ -360,10 +360,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v6.0.0
       with:
         path: artifacts
 
@@ -459,7 +459,7 @@ jobs:
         fi
 
     - name: Create GitHub Release with Assets
-      uses: softprops/action-gh-release@v2.3.2
+      uses: softprops/action-gh-release@v2.4.2
       with:
         tag_name: ${{ steps.release_version.outputs.tag }}
         name: ${{ steps.release_version.outputs.title }}
