@@ -14,6 +14,7 @@ import com.github.radupana.featherweight.data.programme.WorkoutDeviation
 import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
 import com.github.radupana.featherweight.util.CloudLogger
 import java.time.LocalDateTime
+import kotlin.math.abs
 
 class DeviationCalculationService(
     private val workoutDao: WorkoutDao,
@@ -23,6 +24,7 @@ class DeviationCalculationService(
 ) {
     companion object {
         private const val DEVIATION_THRESHOLD = 0.10f
+        private const val FLOAT_EPSILON = 0.0001f
     }
 
     suspend fun calculateDeviations(workoutId: String): List<WorkoutDeviation> {
@@ -224,7 +226,7 @@ class DeviationCalculationService(
 
         val deviationMagnitude = ((actualVolume - targetVolume) / targetVolume).toFloat()
 
-        return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
+        return if (abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -250,11 +252,11 @@ class DeviationCalculationService(
         val targetAvgWeight = targetWeights.average().toFloat()
         val actualAvgWeight = completedSets.map { it.actualWeight }.average().toFloat()
 
-        if (targetAvgWeight == 0f) return null
+        if (abs(targetAvgWeight) < FLOAT_EPSILON) return null
 
         val deviationMagnitude = (actualAvgWeight - targetAvgWeight) / targetAvgWeight
 
-        return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
+        return if (abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -280,7 +282,7 @@ class DeviationCalculationService(
 
         val deviationMagnitude = (actualSetCount - targetSets).toFloat() / targetSets
 
-        return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
+        return if (abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -310,7 +312,7 @@ class DeviationCalculationService(
 
         val deviationMagnitude = (actualTotalReps - targetTotalReps).toFloat() / targetTotalReps
 
-        return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
+        return if (abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -341,11 +343,11 @@ class DeviationCalculationService(
         if (actualRpes.isEmpty()) return null
 
         val actualAvgRpe = actualRpes.average().toFloat()
-        if (targetAvgRpe == 0f) return null
+        if (abs(targetAvgRpe) < FLOAT_EPSILON) return null
 
         val deviationMagnitude = (actualAvgRpe - targetAvgRpe) / targetAvgRpe
 
-        return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
+        return if (abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,

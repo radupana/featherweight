@@ -41,10 +41,10 @@ class WorkoutTemplateRepository(
             val templates = templateDao.getTemplatesByUserId(userId)
 
             templates.map { template ->
-                val exercises = templateExerciseDao.getTemplateExercisesByTemplateId(template.id)
+                val exercises = templateExerciseDao.getExercisesForTemplate(template.id)
                 val setCount =
                     exercises.sumOf { exercise ->
-                        templateSetDao.getTemplateSetsByExerciseId(exercise.id).size
+                        templateSetDao.getSetsForTemplateExercise(exercise.id).size
                     }
 
                 TemplateSummary(
@@ -146,7 +146,7 @@ class WorkoutTemplateRepository(
                 )
             workoutDao.insertWorkout(workout)
 
-            val templateExercises = templateExerciseDao.getTemplateExercisesByTemplateId(templateId)
+            val templateExercises = templateExerciseDao.getExercisesForTemplate(templateId)
 
             templateExercises.forEach { templateExercise ->
                 val exerciseLog =
@@ -159,7 +159,7 @@ class WorkoutTemplateRepository(
                     )
                 exerciseLogDao.insertExerciseLog(exerciseLog)
 
-                val templateSets = templateSetDao.getTemplateSetsByExerciseId(templateExercise.id)
+                val templateSets = templateSetDao.getSetsForTemplateExercise(templateExercise.id)
                 templateSets.forEach { templateSet ->
                     val setLog =
                         SetLog(

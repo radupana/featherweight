@@ -42,18 +42,13 @@ fun CreateTemplateFromWorkoutScreen(
     val saveSuccess by viewModel.saveSuccess.collectAsState()
 
     LaunchedEffect(workoutId) {
-        android.util.Log.i("CreateTemplateScreen", "LaunchedEffect(workoutId) - workoutId: $workoutId")
         viewModel.initialize(workoutId)
     }
 
     LaunchedEffect(saveSuccess) {
-        android.util.Log.i("CreateTemplateScreen", "LaunchedEffect(saveSuccess) - saveSuccess: $saveSuccess")
         if (viewModel.isReadyForNavigation()) {
-            android.util.Log.i("CreateTemplateScreen", "Ready for navigation (initialized + saveSuccess), calling onTemplateCreated")
             viewModel.consumeNavigationEvent()
             onTemplateCreated()
-        } else {
-            android.util.Log.i("CreateTemplateScreen", "Not ready for navigation - either not initialized or saveSuccess is stale")
         }
     }
 

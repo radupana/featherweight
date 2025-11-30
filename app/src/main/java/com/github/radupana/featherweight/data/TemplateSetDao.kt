@@ -23,8 +23,8 @@ interface TemplateSetDao {
     @Query("SELECT * FROM template_sets WHERE templateExerciseId = :exerciseId ORDER BY setOrder")
     suspend fun getSetsForTemplateExercise(exerciseId: String): List<TemplateSet>
 
-    @Query("SELECT * FROM template_sets WHERE templateExerciseId = :exerciseId ORDER BY setOrder")
-    suspend fun getTemplateSetsByExerciseId(exerciseId: String): List<TemplateSet>
+    @Query("SELECT * FROM template_sets WHERE templateExerciseId IN (:exerciseIds) ORDER BY setOrder")
+    suspend fun getSetsForTemplateExercises(exerciseIds: List<String>): List<TemplateSet>
 
     @Query("DELETE FROM template_sets WHERE id = :setId")
     suspend fun deleteTemplateSet(setId: String)

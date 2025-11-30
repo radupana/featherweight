@@ -207,7 +207,7 @@ class FeatherweightRepository(
 
     suspend fun getTemplateExercises(templateId: String): List<TemplateExercise> =
         withContext(Dispatchers.IO) {
-            db.templateExerciseDao().getTemplateExercisesByTemplateId(templateId)
+            db.templateExerciseDao().getExercisesForTemplate(templateId)
         }
 
     suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)

@@ -76,19 +76,16 @@ class SyncManager(
 
     suspend fun syncAll(): Result<SyncState> =
         withContext(ioDispatcher) {
-            // Check cooldown period to prevent rapid successive syncs
-            val currentTime = System.currentTimeMillis()
-            val timeSinceLastSync = currentTime - lastSyncTime
-            if (timeSinceLastSync < syncCooldownMs) {
-                val remainingCooldown = (syncCooldownMs - timeSinceLastSync) / 1000
-                CloudLogger.info("SyncManager", "Sync skipped - cooldown active (${remainingCooldown}s remaining)")
-                return@withContext Result.success(SyncState.Skipped("Sync cooldown active - ${remainingCooldown}s remaining"))
-            }
-
             CloudLogger.info("SyncManager", "syncAll: Attempting to acquire sync mutex...")
-            // Use mutex to prevent concurrent sync operations
-            // Multiple sync requests will queue and execute sequentially
             syncMutex.withLock {
+                val currentTime = System.currentTimeMillis()
+                val timeSinceLastSync = currentTime - lastSyncTime
+                if (timeSinceLastSync < syncCooldownMs) {
+                    val remainingCooldown = (syncCooldownMs - timeSinceLastSync) / 1000
+                    CloudLogger.info("SyncManager", "Sync skipped - cooldown active (${remainingCooldown}s remaining)")
+                    return@withContext Result.success(SyncState.Skipped("Sync cooldown active - ${remainingCooldown}s remaining"))
+                }
+
                 CloudLogger.info("SyncManager", "syncAll: Mutex acquired, starting sync")
                 val userId = authManager.getCurrentUserId()
                 CloudLogger.info("SyncManager", "syncAll started for userId: $userId")
@@ -136,27 +133,27 @@ class SyncManager(
                                 },
                                 onFailure = { error ->
                                     CloudLogger.error("SyncManager", "Upload failed: ${error.message}", error)
-                                    Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                                    Result.failure(error)
                                 },
                             )
                         },
                         onFailure = { error ->
                             CloudLogger.error("SyncManager", "Download failed: ${error.message}", error)
-                            Result.success(SyncState.Error("Download failed: ${error.message}"))
+                            Result.failure(error)
                         },
                     )
                 } catch (e: com.google.firebase.FirebaseException) {
                     CloudLogger.error("SyncManager", "Sync failed with Firebase exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
-                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                    Result.failure(e)
                 } catch (e: android.database.sqlite.SQLiteException) {
                     CloudLogger.error("SyncManager", "Sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
-                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                    Result.failure(e)
                 } catch (e: Exception) {
                     CloudLogger.error("SyncManager", "Sync failed with unexpected exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
-                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                    Result.failure(e)
                 } finally {
                     CloudLogger.info("SyncManager", "syncAll: Releasing sync mutex")
                 }
@@ -220,34 +217,18 @@ class SyncManager(
 
     private suspend fun uploadExerciseLogs(userId: String) {
         val workouts = database.workoutDao().getAllWorkouts(userId)
-        val userWorkouts = workouts
-
-        val exerciseLogs = mutableListOf<com.github.radupana.featherweight.data.ExerciseLog>()
-        userWorkouts.forEach { workout ->
-            val logs = database.exerciseLogDao().getExerciseLogsForWorkout(workout.id)
-            exerciseLogs.addAll(logs)
-        }
-
+        val workoutIds = workouts.map { it.id }
+        val exerciseLogs = database.exerciseLogDao().getExerciseLogsForWorkouts(workoutIds)
         val firestoreLogs = exerciseLogs.map { SyncConverters.toFirestoreExerciseLog(it) }
         firestoreRepository.uploadExerciseLogs(userId, firestoreLogs).getOrThrow()
     }
 
     private suspend fun uploadSetLogs(userId: String) {
         val workouts = database.workoutDao().getAllWorkouts(userId)
-        val userWorkouts = workouts
-
-        val exerciseLogs = mutableListOf<com.github.radupana.featherweight.data.ExerciseLog>()
-        userWorkouts.forEach { workout ->
-            val logs = database.exerciseLogDao().getExerciseLogsForWorkout(workout.id)
-            exerciseLogs.addAll(logs)
-        }
-
-        val setLogs = mutableListOf<com.github.radupana.featherweight.data.SetLog>()
-        exerciseLogs.forEach { exerciseLog ->
-            val sets = database.setLogDao().getSetLogsForExercise(exerciseLog.id)
-            setLogs.addAll(sets)
-        }
-
+        val workoutIds = workouts.map { it.id }
+        val exerciseLogs = database.exerciseLogDao().getExerciseLogsForWorkouts(workoutIds)
+        val exerciseLogIds = exerciseLogs.map { it.id }
+        val setLogs = database.setLogDao().getSetLogsForExercises(exerciseLogIds)
         val firestoreLogs = setLogs.map { SyncConverters.toFirestoreSetLog(it) }
         firestoreRepository.uploadSetLogs(userId, firestoreLogs).getOrThrow()
     }
@@ -260,29 +241,18 @@ class SyncManager(
 
     private suspend fun uploadTemplateExercises(userId: String) {
         val templates = database.workoutTemplateDao().getTemplates(userId)
-        val templateExercises = mutableListOf<com.github.radupana.featherweight.data.TemplateExercise>()
-        templates.forEach { template ->
-            val exercises = database.templateExerciseDao().getExercisesForTemplate(template.id)
-            templateExercises.addAll(exercises)
-        }
+        val templateIds = templates.map { it.id }
+        val templateExercises = database.templateExerciseDao().getExercisesForTemplates(templateIds)
         val firestoreExercises = templateExercises.map { SyncConverters.toFirestoreTemplateExercise(it) }
         firestoreRepository.uploadTemplateExercises(userId, firestoreExercises).getOrThrow()
     }
 
     private suspend fun uploadTemplateSets(userId: String) {
         val templates = database.workoutTemplateDao().getTemplates(userId)
-        val templateExercises = mutableListOf<com.github.radupana.featherweight.data.TemplateExercise>()
-        templates.forEach { template ->
-            val exercises = database.templateExerciseDao().getExercisesForTemplate(template.id)
-            templateExercises.addAll(exercises)
-        }
-
-        val templateSets = mutableListOf<com.github.radupana.featherweight.data.TemplateSet>()
-        templateExercises.forEach { exercise ->
-            val sets = database.templateSetDao().getSetsForTemplateExercise(exercise.id)
-            templateSets.addAll(sets)
-        }
-
+        val templateIds = templates.map { it.id }
+        val templateExercises = database.templateExerciseDao().getExercisesForTemplates(templateIds)
+        val exerciseIds = templateExercises.map { it.id }
+        val templateSets = database.templateSetDao().getSetsForTemplateExercises(exerciseIds)
         val firestoreSets = templateSets.map { SyncConverters.toFirestoreTemplateSet(it) }
         firestoreRepository.uploadTemplateSets(userId, firestoreSets).getOrThrow()
     }
@@ -1020,17 +990,17 @@ class SyncManager(
                         },
                         onFailure = { error ->
                             CloudLogger.error("SyncManager", "System exercise sync failed: ${error.message}", error)
-                            Result.success(SyncState.Error("System exercise sync failed: ${error.message}"))
+                            Result.failure(error)
                         },
                     )
                 } catch (e: com.google.firebase.FirebaseException) {
                     CloudLogger.error("SyncManager", "System exercise sync failed with Firebase exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "System exercise sync failed", e)
-                    Result.success(SyncState.Error("System exercise sync failed: ${e.message}"))
+                    Result.failure(e)
                 } catch (e: android.database.sqlite.SQLiteException) {
                     CloudLogger.error("SyncManager", "System exercise sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "System exercise sync failed", e)
-                    Result.success(SyncState.Error("System exercise sync failed: ${e.message}"))
+                    Result.failure(e)
                 }
             } // End of mutex lock
         }
@@ -1058,23 +1028,23 @@ class SyncManager(
                                 },
                                 onFailure = { error ->
                                     CloudLogger.error("SyncManager", "User data upload failed: ${error.message}", error)
-                                    Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                                    Result.failure(error)
                                 },
                             )
                         },
                         onFailure = { error ->
                             CloudLogger.error("SyncManager", "User data download failed: ${error.message}", error)
-                            Result.success(SyncState.Error("Download failed: ${error.message}"))
+                            Result.failure(error)
                         },
                     )
                 } catch (e: com.google.firebase.FirebaseException) {
                     CloudLogger.error("SyncManager", "User data sync failed with Firebase exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "User data sync failed", e)
-                    Result.success(SyncState.Error("User data sync failed: ${e.message}"))
+                    Result.failure(e)
                 } catch (e: android.database.sqlite.SQLiteException) {
                     CloudLogger.error("SyncManager", "User data sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "User data sync failed", e)
-                    Result.success(SyncState.Error("User data sync failed: ${e.message}"))
+                    Result.failure(e)
                 }
             } // End of mutex lock
         }

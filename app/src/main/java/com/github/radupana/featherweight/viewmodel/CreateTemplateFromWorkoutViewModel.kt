@@ -31,31 +31,17 @@ class CreateTemplateFromWorkoutViewModel(
     private var isInitialized = false
 
     fun initialize(workoutId: String) {
-        android.util.Log.i("CreateTemplateVM", "Initializing with workoutId: $workoutId")
-        android.util.Log.i("CreateTemplateVM", "Previous saveSuccess state: ${_saveSuccess.value}")
-        android.util.Log.i("CreateTemplateVM", "Previous isInitialized state: $isInitialized")
-
         this.workoutId = workoutId
-        // Reset states for new template creation
         _saveSuccess.value = false
         _templateName.value = ""
         _templateDescription.value = ""
         _isSaving.value = false
         isInitialized = true
-
-        android.util.Log.i("CreateTemplateVM", "Reset all states for new template creation")
-        android.util.Log.i("CreateTemplateVM", "New saveSuccess state: ${_saveSuccess.value}")
-        android.util.Log.i("CreateTemplateVM", "isInitialized set to: $isInitialized")
     }
 
-    fun isReadyForNavigation(): Boolean {
-        val ready = isInitialized && _saveSuccess.value
-        android.util.Log.i("CreateTemplateVM", "isReadyForNavigation check - isInitialized: $isInitialized, saveSuccess: ${_saveSuccess.value}, ready: $ready")
-        return ready
-    }
+    fun isReadyForNavigation(): Boolean = isInitialized && _saveSuccess.value
 
     fun consumeNavigationEvent() {
-        android.util.Log.i("CreateTemplateVM", "consumeNavigationEvent called - resetting saveSuccess and isInitialized")
         _saveSuccess.value = false
         isInitialized = false
     }
@@ -69,31 +55,19 @@ class CreateTemplateFromWorkoutViewModel(
     }
 
     fun saveTemplate() {
-        android.util.Log.i("CreateTemplateVM", "saveTemplate called - name: '${_templateName.value}', workoutId: $workoutId, isInitialized: $isInitialized")
-        if (_templateName.value.isBlank()) {
-            android.util.Log.w("CreateTemplateVM", "Template name is blank, returning")
-            return
-        }
+        if (_templateName.value.isBlank()) return
 
-        if (!isInitialized) {
-            android.util.Log.e("CreateTemplateVM", "saveTemplate called but ViewModel not initialized! This shouldn't happen")
-            return
-        }
+        if (!isInitialized) return
 
         viewModelScope.launch {
             _isSaving.value = true
-            android.util.Log.i("CreateTemplateVM", "Starting template creation for workoutId: $workoutId with name: '${_templateName.value.trim()}'")
             try {
-                val templateId =
-                    templateRepository.createTemplateFromWorkout(
-                        workoutId = workoutId,
-                        templateName = _templateName.value.trim(),
-                        templateDescription = _templateDescription.value.trim().takeIf { it.isNotEmpty() },
-                    )
-                android.util.Log.i("CreateTemplateVM", "Template created successfully with ID: $templateId")
-                android.util.Log.i("CreateTemplateVM", "Setting saveSuccess to true (was: ${_saveSuccess.value})")
+                templateRepository.createTemplateFromWorkout(
+                    workoutId = workoutId,
+                    templateName = _templateName.value.trim(),
+                    templateDescription = _templateDescription.value.trim().takeIf { it.isNotEmpty() },
+                )
                 _saveSuccess.value = true
-                android.util.Log.i("CreateTemplateVM", "saveSuccess is now: ${_saveSuccess.value}, isInitialized: $isInitialized")
             } catch (e: IllegalArgumentException) {
                 ExceptionLogger.logException("CreateTemplateVM", "Failed to create template for workoutId: $workoutId", e)
                 _saveSuccess.value = false
@@ -105,7 +79,6 @@ class CreateTemplateFromWorkoutViewModel(
                 _saveSuccess.value = false
             } finally {
                 _isSaving.value = false
-                android.util.Log.i("CreateTemplateVM", "saveTemplate complete - success: ${_saveSuccess.value}, isInitialized: $isInitialized")
             }
         }
     }

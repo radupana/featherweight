@@ -1,24 +1,25 @@
 package com.github.radupana.featherweight.util
 
-import com.google.common.truth.Truth.assertThat
+import io.mockk.every
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import io.mockk.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 
 class ExceptionLoggerTest {
-    private val standardOut = System.out
-    private val outputStreamCaptor = ByteArrayOutputStream()
-
     @Before
     fun setUp() {
-        System.setOut(PrintStream(outputStreamCaptor))
+        mockkObject(CloudLogger)
+        every { CloudLogger.debug(any(), any(), any<Throwable>()) } returns Unit
+        every { CloudLogger.warn(any(), any(), any<Throwable>()) } returns Unit
+        every { CloudLogger.error(any(), any(), any<Throwable>()) } returns Unit
     }
 
     @After
     fun tearDown() {
-        System.setOut(standardOut)
+        unmockkObject(CloudLogger)
     }
 
     @Test
@@ -27,9 +28,9 @@ class ExceptionLoggerTest {
 
         ExceptionLogger.logException("TestTag", "Error occurred", exception)
 
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("[TestTag] Error occurred: Test error")
-        assertThat(output).contains("RuntimeException")
+        verify {
+            CloudLogger.error("TestTag", "Error occurred: Test error", exception)
+        }
     }
 
     @Test
@@ -43,9 +44,9 @@ class ExceptionLoggerTest {
             ExceptionLogger.LogLevel.DEBUG,
         )
 
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("[TestTag] Debug message: Invalid argument")
-        assertThat(output).contains("IllegalArgumentException")
+        verify {
+            CloudLogger.debug("TestTag", "Debug message: Invalid argument", exception)
+        }
     }
 
     @Test
@@ -59,9 +60,9 @@ class ExceptionLoggerTest {
             ExceptionLogger.LogLevel.WARNING,
         )
 
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("[TestTag] Warning message: Bad state")
-        assertThat(output).contains("IllegalStateException")
+        verify {
+            CloudLogger.warn("TestTag", "Warning message: Bad state", exception)
+        }
     }
 
     @Test
@@ -70,9 +71,9 @@ class ExceptionLoggerTest {
 
         ExceptionLogger.logNonCritical("TestTag", "Minor issue", exception)
 
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("[TestTag] Minor issue: Non-critical error")
-        assertThat(output).contains("RuntimeException")
+        verify {
+            CloudLogger.debug("TestTag", "Minor issue: Non-critical error", exception)
+        }
     }
 
     @Test
@@ -81,17 +82,8 @@ class ExceptionLoggerTest {
 
         ExceptionLogger.logException("TestTag", "Error with null message", exception)
 
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("[TestTag] Error with null message: null")
-    }
-
-    @Test
-    fun `logException prints stack trace`() {
-        val exception = RuntimeException("Test error")
-
-        ExceptionLogger.logException("TestTag", "Error", exception)
-
-        val output = outputStreamCaptor.toString()
-        assertThat(output).contains("at com.github.radupana.featherweight.util.ExceptionLoggerTest")
+        verify {
+            CloudLogger.error("TestTag", "Error with null message: null", exception)
+        }
     }
 }
