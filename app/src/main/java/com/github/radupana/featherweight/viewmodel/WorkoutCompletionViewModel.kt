@@ -62,11 +62,10 @@ class WorkoutCompletionViewModel(
                 val exercises = repository.getExercisesForWorkout(workoutId)
                 val sets = repository.getSetsForWorkout(workoutId)
                 val personalRecords = repository.getPersonalRecordsForWorkout(workoutId)
-                val deviations = repository.getDeviationsForWorkout(workoutId)
 
                 loadExerciseNames()
 
-                val summary = calculateSummary(workout, exercises, sets, personalRecords, deviations)
+                val summary = calculateSummary(workout, exercises, sets, personalRecords)
 
                 _uiState.value =
                     _uiState.value.copy(
@@ -111,7 +110,6 @@ class WorkoutCompletionViewModel(
         exercises: List<ExerciseLog>,
         sets: List<SetLog>,
         personalRecords: List<PersonalRecord>,
-        deviations: List<com.github.radupana.featherweight.data.programme.WorkoutDeviation>,
     ): CompletionSummary {
         val completedSets = sets.filter { it.isCompleted }
 
@@ -207,7 +205,6 @@ class WorkoutCompletionViewModel(
             heaviestSet = heaviestSet,
             volumeLeader = volumeLeader,
             averageIntensity = averageIntensity,
-            deviations = deviations,
         )
     }
 
@@ -253,7 +250,6 @@ data class CompletionSummary(
     val heaviestSet: SetInfo?,
     val volumeLeader: ExerciseVolume?,
     val averageIntensity: Float?,
-    val deviations: List<com.github.radupana.featherweight.data.programme.WorkoutDeviation> = emptyList(),
 )
 
 data class SetInfo(
