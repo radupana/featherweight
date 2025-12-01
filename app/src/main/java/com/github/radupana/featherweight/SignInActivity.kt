@@ -4,10 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +45,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.lifecycleScope
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.di.ServiceLocator
@@ -55,9 +59,9 @@ import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.LogSanitizer
 import com.github.radupana.featherweight.util.MigrationStateManager
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
 
@@ -93,7 +97,6 @@ class SignInActivity : ComponentActivity() {
     private fun handleSuccessfulSignIn() {
         val userId = authManager.getCurrentUserId()
         if (userId != null && userId != "local") {
-            // Check for local data migration in background coroutine
             lifecycleScope.launch {
                 if (migrationStateManager.shouldAttemptMigration()) {
                     val hasLocalData = migrationService.hasLocalData()
@@ -105,10 +108,8 @@ class SignInActivity : ComponentActivity() {
                 }
             }
 
-            // Navigate immediately - don't wait for sync
             navigateToMain()
 
-            // Start sync in background AFTER navigation
             lifecycleScope.launch {
                 syncDataInBackground(userId)
             }
@@ -120,7 +121,6 @@ class SignInActivity : ComponentActivity() {
     private suspend fun syncDataInBackground(userId: String) {
         CloudLogger.info("SignInActivity", "Starting background sync for user: $userId")
 
-        // Update sync state to show syncing in progress
         val syncViewModel = ServiceLocator.getSyncViewModel(this)
         syncViewModel.startBackgroundSync()
 
@@ -138,7 +138,6 @@ class SignInActivity : ComponentActivity() {
         } catch (e: com.google.firebase.FirebaseException) {
             CloudLogger.error("SignInActivity", "Background sync failed", e)
             syncViewModel.onSyncFailed(e.message ?: "Sync failed")
-            // Sync failures are non-critical - user can still use the app with cached data
         } catch (e: android.database.sqlite.SQLiteException) {
             CloudLogger.error("SignInActivity", "Background sync failed - database error", e)
             syncViewModel.onSyncFailed(e.message ?: "Sync failed")
@@ -153,19 +152,12 @@ class SignInActivity : ComponentActivity() {
         if (migrationSuccess) {
             CloudLogger.info("SignInActivity", "Migration successful")
             migrationStateManager.markMigrationCompleted(userId)
-
-            // Clean up local data after successful migration
             migrationService.cleanupLocalData()
-
-            // Note: Sync is handled by syncDataInBackground() which calls syncAll()
-            // We don't need a separate syncUserData() call here to avoid duplication
             CloudLogger.info("SignInActivity", "Migration completed, sync will be handled by syncAll()")
         } else {
             CloudLogger.error("SignInActivity", "Migration failed, will retry on next sign-in")
             if (migrationStateManager.getMigrationAttempts() >= MigrationStateManager.MAX_MIGRATION_ATTEMPTS) {
                 CloudLogger.error("SignInActivity", "Max migration attempts reached")
-                // Don't show toast from background - it could crash
-                // User will see the issue when they check their data
             }
         }
     }
@@ -173,7 +165,6 @@ class SignInActivity : ComponentActivity() {
     private fun navigateToMain() {
         authManager.setFirstLaunchComplete()
 
-        // Check if email verification is required
         val currentUser =
             com.google.firebase.auth.FirebaseAuth
                 .getInstance()
@@ -182,10 +173,8 @@ class SignInActivity : ComponentActivity() {
             !currentUser.isEmailVerified &&
             currentUser.providerData.any { it.providerId == "password" }
         ) {
-            // User signed in with email/password but not verified
             startActivity(Intent(this, EmailVerificationActivity::class.java))
         } else {
-            // User is verified or signed in with Google
             startActivity(Intent(this, MainActivity::class.java))
         }
         finish()
@@ -205,56 +194,7 @@ fun SignInScreen(
     var isSignUpMode by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    val launcher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult(),
-        ) { result ->
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                account?.idToken?.let { token ->
-                    val credential = GoogleAuthProvider.getCredential(token, null)
-                    scope.launch {
-                        isLoading = true
-                        firebaseAuth.signInWithCredential(credential).fold(
-                            onSuccess = { user ->
-                                CloudLogger.info("SignInActivity", "Google sign-in successful, userId: ${user.uid}")
-                                // Clear any existing user data before switching users
-                                val currentUserId = authManager.getCurrentUserId()
-                                if (currentUserId != null && currentUserId != user.uid) {
-                                    CloudLogger.info(
-                                        "SignInActivity",
-                                        "Switching from user $currentUserId to ${user.uid}, clearing old data",
-                                    )
-                                    authManager.clearUserData()
-                                }
-                                authManager.setCurrentUserId(user.uid)
-                                CloudLogger.info("SignInActivity", "User ID saved, calling onSignInSuccess")
-                                onSignInSuccess()
-                            },
-                            onFailure = { exception ->
-                                Toast
-                                    .makeText(
-                                        context,
-                                        "Google sign-in failed: ${exception.message}",
-                                        Toast.LENGTH_LONG,
-                                    ).show()
-                            },
-                        )
-                        isLoading = false
-                    }
-                }
-            } catch (e: ApiException) {
-                CloudLogger.error("SignInActivity", "Google sign-in failed", e)
-                Toast
-                    .makeText(
-                        context,
-                        "Google sign-in failed",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-            }
-        }
+    val credentialManager = remember { CredentialManager.create(context) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -405,15 +345,99 @@ fun SignInScreen(
 
             GoogleSignInButton(
                 onClick = {
-                    CloudLogger.info("SignInActivity", "User initiated Google sign-in")
-                    val gso =
-                        GoogleSignInOptions
-                            .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                            .requestIdToken(context.getString(R.string.default_web_client_id))
-                            .requestEmail()
-                            .build()
-                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                    launcher.launch(googleSignInClient.signInIntent)
+                    scope.launch {
+                        isLoading = true
+                        CloudLogger.info("SignInActivity", "User initiated Google sign-in")
+
+                        try {
+                            val googleIdOption =
+                                GetGoogleIdOption
+                                    .Builder()
+                                    .setFilterByAuthorizedAccounts(false)
+                                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                                    .build()
+
+                            val request =
+                                GetCredentialRequest
+                                    .Builder()
+                                    .addCredentialOption(googleIdOption)
+                                    .build()
+
+                            val result = credentialManager.getCredential(context, request)
+                            val credential = result.credential
+
+                            if (credential is CustomCredential &&
+                                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                            ) {
+                                val googleIdTokenCredential =
+                                    GoogleIdTokenCredential.createFrom(credential.data)
+                                val idToken = googleIdTokenCredential.idToken
+                                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+
+                                firebaseAuth.signInWithCredential(firebaseCredential).fold(
+                                    onSuccess = { user ->
+                                        CloudLogger.info("SignInActivity", "Google sign-in successful, userId: ${user.uid}")
+                                        val currentUserId = authManager.getCurrentUserId()
+                                        if (currentUserId != null && currentUserId != user.uid) {
+                                            CloudLogger.info(
+                                                "SignInActivity",
+                                                "Switching from user $currentUserId to ${user.uid}, clearing old data",
+                                            )
+                                            authManager.clearUserData()
+                                        }
+                                        authManager.setCurrentUserId(user.uid)
+                                        CloudLogger.info("SignInActivity", "User ID saved, calling onSignInSuccess")
+                                        onSignInSuccess()
+                                    },
+                                    onFailure = { exception ->
+                                        CloudLogger.error("SignInActivity", "Firebase sign-in failed", exception)
+                                        Toast
+                                            .makeText(
+                                                context,
+                                                "Google sign-in failed: ${exception.message}",
+                                                Toast.LENGTH_LONG,
+                                            ).show()
+                                    },
+                                )
+                            } else {
+                                CloudLogger.error("SignInActivity", "Unexpected credential type: ${credential.type}")
+                                Toast
+                                    .makeText(
+                                        context,
+                                        "Unexpected credential type",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                            }
+                        } catch (e: GetCredentialCancellationException) {
+                            CloudLogger.info("SignInActivity", "Google sign-in cancelled by user: ${e.message}")
+                        } catch (e: NoCredentialException) {
+                            CloudLogger.info("SignInActivity", "No Google account available: ${e.message}")
+                            Toast
+                                .makeText(
+                                    context,
+                                    "No Google account found on device",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        } catch (e: GoogleIdTokenParsingException) {
+                            CloudLogger.error("SignInActivity", "Invalid Google ID token", e)
+                            Toast
+                                .makeText(
+                                    context,
+                                    "Invalid Google credentials",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        } catch (e: GetCredentialException) {
+                            CloudLogger.error("SignInActivity", "Google sign-in failed", e)
+                            Toast
+                                .makeText(
+                                    context,
+                                    "Google sign-in failed",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        }
+
+                        isLoading = false
+                    }
                 },
                 enabled = !isLoading,
             )

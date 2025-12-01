@@ -2,6 +2,7 @@
 agp = "8.13.1"
 androidDatabaseSqlcipher = "4.5.4"
 compose = "2.9.0"
+credentials = "1.5.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
 firebaseAppcheckDebug = "19.0.1"
@@ -9,6 +10,7 @@ firebaseAppcheckPlayintegrity = "19.0.1"
 firebaseBom = "34.6.0"
 firebaseAppdistributionApi = "16.0.0-beta15"
 firebaseAppdistribution = "16.0.0-beta17"
+googleid = "1.1.1"
 gson = "2.13.2"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
@@ -45,17 +47,16 @@ workRuntimeKtx = "2.11.0"
 
 
 [libraries]
-android-database-sqlcipher = { module = "net.zetetic:android-database-sqlcipher", version.ref = "androidDatabaseSqlcipher" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-core-testing = { module = "androidx.arch.core:core-testing", version.ref = "coreTesting" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
-androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
-androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "sqliteKtx" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 compose = { module = "com.kizitonwose.calendar:compose", version.ref = "compose" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "coreKtxVersion" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug", version.ref = "firebaseAppcheckDebug" }
@@ -64,7 +65,7 @@ firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-functions = { module = "com.google.firebase:firebase-functions" }
-google-auth = { module = "com.google.android.gms:play-services-auth", version = "21.4.0" }
+google-identity-googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 firebase-performance = { module = "com.google.firebase:firebase-perf" }
