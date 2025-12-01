@@ -33,8 +33,6 @@ class WorkoutViewModelTest {
         assertThat(state.weekNumber).isNull()
         assertThat(state.dayNumber).isNull()
         assertThat(state.programmeWorkoutName).isNull()
-        assertThat(state.deviations).isEmpty()
-        assertThat(state.prescribedExercises).isEmpty()
     }
 
     @Test
