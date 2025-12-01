@@ -337,7 +337,7 @@ private fun FormatTipItem(
     ) {
         Icon(
             icon,
-            contentDescription = null,
+            contentDescription = text,
             tint =
                 if (isPrimary) {
                     MaterialTheme.colorScheme.primary
@@ -439,7 +439,7 @@ private fun ProgrammeEditHintCard() {
         ) {
             Icon(
                 Icons.Default.Edit,
-                contentDescription = null,
+                contentDescription = "Edit hint",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
@@ -513,7 +513,7 @@ private fun ProgrammeStatItem(
         ) {
             Icon(
                 icon,
-                contentDescription = null,
+                contentDescription = label,
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -661,7 +661,7 @@ private fun UnmatchedExercisesCard(
         ) {
             Icon(
                 Icons.Default.Info,
-                contentDescription = null,
+                contentDescription = "Unmatched exercises warning",
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(24.dp),
             )

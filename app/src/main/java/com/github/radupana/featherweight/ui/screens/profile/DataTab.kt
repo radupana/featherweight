@@ -95,7 +95,7 @@ fun DataTab(
                         } else {
                             Icon(
                                 Icons.Filled.Sync,
-                                contentDescription = null,
+                                contentDescription = "Sync data",
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -131,7 +131,7 @@ fun DataTab(
                 ) {
                     Icon(
                         Icons.Filled.Download,
-                        contentDescription = null,
+                        contentDescription = "Export workout data",
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))

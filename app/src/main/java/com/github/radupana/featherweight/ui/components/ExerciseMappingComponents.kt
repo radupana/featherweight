@@ -71,7 +71,7 @@ fun UnmatchedExerciseCard(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Warning,
-                    contentDescription = null,
+                    contentDescription = "Unmatched exercise",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.tertiary,
                 )
@@ -119,7 +119,7 @@ fun MappingStatusCard(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
-                    contentDescription = null,
+                    contentDescription = "Exercise mapped",
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -176,7 +176,7 @@ fun ExerciseSearchSection(
             label = { Text("Search existing exercises") },
             placeholder = { Text("Type to search...") },
             leadingIcon = {
-                Icon(Icons.Filled.Search, contentDescription = null)
+                Icon(Icons.Filled.Search, contentDescription = "Search")
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {

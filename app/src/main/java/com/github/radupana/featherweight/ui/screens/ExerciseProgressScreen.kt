@@ -579,7 +579,7 @@ private fun PlateauInterventionCard(
             ) {
                 Icon(
                     Icons.Default.Warning,
-                    contentDescription = null,
+                    contentDescription = "Plateau warning",
                     tint = FeatherweightColors.warning(),
                 )
                 Text(
@@ -627,7 +627,7 @@ private fun FrequencyCard(
             ) {
                 Icon(
                     Icons.Default.CalendarMonth,
-                    contentDescription = null,
+                    contentDescription = "Weekly frequency",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.secondary,
                 )
@@ -678,7 +678,7 @@ private fun StatusCard(
                 ) {
                     Icon(
                         Icons.Default.Analytics,
-                        contentDescription = null,
+                        contentDescription = "Progress status",
                         modifier = Modifier.size(20.dp),
                         tint = getStatusIconColor(data.progressStatus),
                     )
@@ -840,7 +840,7 @@ private fun MostWeightLiftedCard(
             ) {
                 Icon(
                     Icons.Default.FitnessCenter,
-                    contentDescription = null,
+                    contentDescription = "Most weight lifted",
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.tertiary,
                 )

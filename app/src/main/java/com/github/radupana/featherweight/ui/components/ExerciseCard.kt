@@ -100,7 +100,7 @@ fun ExerciseCard(
                 icon = {
                     Icon(
                         Icons.Filled.Warning,
-                        contentDescription = null,
+                        contentDescription = "Delete warning",
                         tint = MaterialTheme.colorScheme.error,
                     )
                 },
@@ -412,7 +412,7 @@ fun ExerciseCard(
                             ) {
                                 Icon(
                                     Icons.Filled.Add,
-                                    contentDescription = null,
+                                    contentDescription = "Add set",
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -426,7 +426,7 @@ fun ExerciseCard(
                                 ) {
                                     Icon(
                                         Icons.Filled.ContentCopy,
-                                        contentDescription = null,
+                                        contentDescription = "Copy last set",
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))

@@ -220,7 +220,7 @@ private fun ParseRequestHeader(
             )
             Icon(
                 imageVector = statusIcon,
-                contentDescription = null,
+                contentDescription = "Processing status",
                 tint = statusColor,
                 modifier =
                     Modifier
@@ -230,7 +230,7 @@ private fun ParseRequestHeader(
         } else {
             Icon(
                 imageVector = statusIcon,
-                contentDescription = null,
+                contentDescription = "Processing status",
                 tint = statusColor,
                 modifier = Modifier.size(20.dp),
             )

@@ -40,6 +40,7 @@ class FirestoreRepository {
     private val firestore = FirebaseFirestore.getInstance("featherweight-v2")
 
     companion object {
+        private const val TAG = "FirestoreRepository"
         private const val USERS_COLLECTION = "users"
         private const val WORKOUTS_COLLECTION = "workouts"
         private const val EXERCISE_LOGS_COLLECTION = "exerciseLogs"
@@ -691,7 +692,15 @@ class FirestoreRepository {
                             val idField = T::class.java.getDeclaredField("id")
                             idField.isAccessible = true
                             idField.get(item) as? String
-                        } catch (e: Exception) {
+                        } catch (
+                            @Suppress("SwallowedException") e: NoSuchFieldException,
+                        ) {
+                            CloudLogger.debug(TAG, "No id field found in ${T::class.java.simpleName}")
+                            null
+                        } catch (
+                            @Suppress("SwallowedException") e: IllegalAccessException,
+                        ) {
+                            CloudLogger.warn(TAG, "Cannot access id field", e)
                             null
                         }
 
@@ -859,7 +868,9 @@ class FirestoreRepository {
 
     suspend fun downloadPersonalRecords(userId: String): Result<List<FirestorePersonalRecord>> = downloadBatchedData(userDocument(userId).collection(PERSONAL_RECORDS_COLLECTION))
 
-    suspend fun downloadUserExerciseUsages(userId: String): Result<List<com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_USAGE_COLLECTION))
+    suspend fun downloadUserExerciseUsages(
+        userId: String,
+    ): Result<List<com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_USAGE_COLLECTION))
 
     suspend fun downloadExerciseSwapHistory(userId: String): Result<List<FirestoreExerciseSwapHistory>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SWAP_HISTORY_COLLECTION))
 

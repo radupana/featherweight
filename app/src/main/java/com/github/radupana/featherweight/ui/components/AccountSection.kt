@@ -93,7 +93,7 @@ fun AccountSection(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.Login,
-                        contentDescription = null,
+                        contentDescription = "Sign in",
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.size(8.dp))
@@ -173,7 +173,7 @@ fun AccountSection(
                     ) {
                         Icon(
                             imageVector = Icons.Default.VerifiedUser,
-                            contentDescription = null,
+                            contentDescription = "Send verification email",
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.size(8.dp))
@@ -188,7 +188,7 @@ fun AccountSection(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = null,
+                            contentDescription = "Change password",
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.size(8.dp))
@@ -202,7 +202,7 @@ fun AccountSection(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.ExitToApp,
-                        contentDescription = null,
+                        contentDescription = "Sign out",
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.size(8.dp))

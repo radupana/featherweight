@@ -149,7 +149,7 @@ fun WorkoutTemplateSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.FitnessCenter,
-                                contentDescription = null,
+                                contentDescription = "No templates",
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             )
@@ -337,7 +337,7 @@ private fun TemplateCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = null,
+                        contentDescription = "Exercise count",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -374,7 +374,7 @@ private fun TemplateCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
+                    contentDescription = "Start workout",
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))

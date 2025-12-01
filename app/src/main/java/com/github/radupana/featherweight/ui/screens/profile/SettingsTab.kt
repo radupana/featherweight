@@ -205,7 +205,7 @@ private fun LegalLinkItem(
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
+            contentDescription = "Navigate",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

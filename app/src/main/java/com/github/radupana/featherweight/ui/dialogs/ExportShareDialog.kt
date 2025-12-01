@@ -85,7 +85,7 @@ fun ExportShareDialog(
     AlertDialog(
         onDismissRequest = { if (!savingFile) onDismiss() },
         icon = {
-            Icon(Icons.Default.Share, contentDescription = null)
+            Icon(Icons.Default.Share, contentDescription = "Export complete")
         },
         title = {
             Text(
@@ -157,7 +157,7 @@ fun ExportShareDialog(
                     ) {
                         Icon(
                             Icons.Default.Share,
-                            contentDescription = null,
+                            contentDescription = "Share file",
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -174,7 +174,7 @@ fun ExportShareDialog(
                     ) {
                         Icon(
                             Icons.Default.ContentCopy,
-                            contentDescription = null,
+                            contentDescription = "Copy to clipboard",
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -196,7 +196,7 @@ fun ExportShareDialog(
                         } else {
                             Icon(
                                 Icons.Default.Save,
-                                contentDescription = null,
+                                contentDescription = "Save to device",
                                 modifier = Modifier.size(18.dp),
                             )
                         }

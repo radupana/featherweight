@@ -234,7 +234,7 @@ fun TrainingAnalysisCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = null,
+                                    contentDescription = "Analyze again",
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -274,7 +274,7 @@ fun TrainingAnalysisCard(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Warning,
-                                                contentDescription = null,
+                                                contentDescription = "Warning",
                                                 tint = FeatherweightColors.warning(),
                                                 modifier = Modifier.size(20.dp),
                                             )

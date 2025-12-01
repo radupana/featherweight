@@ -143,7 +143,9 @@ open class ProgrammeTextParser(
                     success = false,
                     error = userFriendlyError,
                 )
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 CloudLogger.error(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
                 CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
                 CloudLogger.error(TAG, "Error message: ${e.message}")

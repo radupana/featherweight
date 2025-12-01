@@ -213,7 +213,7 @@ private fun MappingActionButtons(
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
-                contentDescription = null,
+                contentDescription = "Create custom exercise",
                 modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
