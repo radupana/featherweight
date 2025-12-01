@@ -1,53 +1,52 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.ui.theme.CardColors
-import com.github.radupana.featherweight.ui.theme.seamlessGradient
 import com.github.radupana.featherweight.util.WeightFormatter
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val DELETE_ICON_SIZE_DP = 48
+private const val SWIPE_THRESHOLD_FRACTION = 0.3f
+private const val ICON_VISIBILITY_THRESHOLD = 0.5f
+
 @Composable
 @Suppress("LongParameterList")
 fun CleanSetRow(
@@ -60,92 +59,97 @@ fun CleanSetRow(
     onDeleteSet: () -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
-    parentCoordinates: LayoutCoordinates? = null,
 ) {
-    val dismissState = createSetRowDismissState(onDeleteSet)
+    val density = LocalDensity.current
+    val maxSwipePx = with(density) { DELETE_ICON_SIZE_DP.dp.toPx() }
 
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            SetRowDeleteBackground(dismissState)
-        },
-        enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = !readOnly,
+    // Use mutableFloatStateOf for drag (no coroutine needed), Animatable for snap animation
+    var isDragging by remember { mutableStateOf(false) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val animatedOffset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    // Use drag offset while dragging, animated offset otherwise
+    val currentOffset = if (isDragging) dragOffset else animatedOffset.value
+    val revealedWidth = (-currentOffset).coerceIn(0f, maxSwipePx)
+    val revealedWidthDp = with(density) { revealedWidth.toDp() }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(
+                    if (!readOnly) {
+                        Modifier.pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragStart = {
+                                    isDragging = true
+                                    dragOffset = animatedOffset.value
+                                },
+                                onDragEnd = {
+                                    isDragging = false
+                                    val shouldReveal = dragOffset < -maxSwipePx * SWIPE_THRESHOLD_FRACTION
+                                    scope.launch {
+                                        animatedOffset.snapTo(dragOffset)
+                                        animatedOffset.animateTo(if (shouldReveal) -maxSwipePx else 0f)
+                                    }
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                    scope.launch {
+                                        animatedOffset.snapTo(dragOffset)
+                                        animatedOffset.animateTo(0f)
+                                    }
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    dragOffset = (dragOffset + dragAmount).coerceIn(-maxSwipePx, 0f)
+                                },
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
+        verticalAlignment = Alignment.Top,
     ) {
-        SetRowContent(
-            set = set,
-            setNumber = setNumber,
-            oneRMEstimate = oneRMEstimate,
-            showTargetValues = isProgrammeWorkout,
-            onUpdateSet = onUpdateSet,
-            onToggleCompleted = onToggleCompleted,
-            canMarkComplete = canMarkComplete,
-            readOnly = readOnly,
-            parentCoordinates = parentCoordinates,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun createSetRowDismissState(onDeleteSet: () -> Unit): SwipeToDismissBoxState =
-    rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance ->
-            totalDistance * 0.33f
-        },
-    ).also { state ->
-        LaunchedEffect(state.currentValue) {
-            if (state.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                onDeleteSet()
-                state.snapTo(SwipeToDismissBoxValue.Settled)
-            }
+        // Row content takes remaining space, shrinks as delete icon is revealed
+        Box(modifier = Modifier.weight(1f)) {
+            SetRowContent(
+                set = set,
+                setNumber = setNumber,
+                oneRMEstimate = oneRMEstimate,
+                showTargetValues = isProgrammeWorkout,
+                onUpdateSet = onUpdateSet,
+                onToggleCompleted = onToggleCompleted,
+                canMarkComplete = canMarkComplete,
+                readOnly = readOnly,
+            )
         }
-    }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SetRowDeleteBackground(dismissState: SwipeToDismissBoxState) {
-    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-        val progress = dismissState.progress.coerceIn(0f, 1f)
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            val minWidth = 48.dp
-            val maxAdditionalWidth = 160.dp
-            val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
-
-            Surface(
+        // Delete icon - grows from 0 width as user swipes
+        if (!readOnly && revealedWidth > 0f) {
+            Box(
                 modifier =
                     Modifier
-                        .width(currentWidth)
-                        .fillMaxHeight()
-                        .padding(vertical = 2.dp),
-                color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                shape =
-                    RoundedCornerShape(
-                        topStart = 8.dp,
-                        bottomStart = 8.dp,
-                        topEnd = 0.dp,
-                        bottomEnd = 0.dp,
-                    ),
+                        .width(revealedWidthDp)
+                        .height(DELETE_ICON_SIZE_DP.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Delete",
-                        tint =
-                            MaterialTheme.colorScheme.onError.copy(
-                                alpha = 0.6f + (0.4f * progress),
-                            ),
-                        modifier =
-                            Modifier
-                                .padding(end = 12.dp)
-                                .size((20 + (4 * progress)).dp),
-                    )
+                // Only show icon when enough space is revealed
+                if (revealedWidth > maxSwipePx * ICON_VISIBILITY_THRESHOLD) {
+                    IconButton(
+                        onClick = {
+                            scope.launch { animatedOffset.animateTo(0f) }
+                            onDeleteSet()
+                        },
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete set",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             }
         }
@@ -163,15 +167,9 @@ private fun SetRowContent(
     onToggleCompleted: (Boolean) -> Unit,
     canMarkComplete: Boolean,
     readOnly: Boolean,
-    parentCoordinates: LayoutCoordinates?,
 ) {
-    val gradientColors = listOf(CardColors.gradientTop, CardColors.gradientBottom)
-
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .seamlessGradient(parentCoordinates, gradientColors),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
             modifier =
