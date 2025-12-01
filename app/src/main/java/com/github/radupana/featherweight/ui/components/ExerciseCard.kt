@@ -49,7 +49,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,7 +75,6 @@ fun ExerciseCard(
 ) {
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
     val completedSets = sets.count { it.isCompleted }
-    var cardCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     GlassCard(
         modifier =
@@ -91,7 +89,6 @@ fun ExerciseCard(
                         Modifier
                     },
                 ),
-        onCoordinatesAvailable = { cardCoordinates = it },
     ) {
         // Delete confirmation dialog
         if (showDeleteExerciseDialog) {
@@ -392,7 +389,6 @@ fun ExerciseCard(
                                 },
                                 canMarkComplete = set.actualReps > 0 && set.actualWeight > 0,
                                 readOnly = !viewModel.canEditWorkout(),
-                                parentCoordinates = cardCoordinates,
                             )
                         }
                     }
