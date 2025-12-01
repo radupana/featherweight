@@ -88,7 +88,7 @@ fun SwapModeHeader(
             ) {
                 Icon(
                     Icons.Filled.Info,
-                    contentDescription = null,
+                    contentDescription = "Swap warning",
                     tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
@@ -516,7 +516,7 @@ private fun SwapCountBadge(count: Int) {
         ) {
             Icon(
                 Icons.Filled.SwapHoriz,
-                contentDescription = null,
+                contentDescription = "Swap count",
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(12.dp),
             )
@@ -624,7 +624,7 @@ private fun NoResultsContent(
             OutlinedButton(onClick = onCreateExercise) {
                 Icon(
                     Icons.Filled.Add,
-                    contentDescription = null,
+                    contentDescription = "Create exercise",
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))

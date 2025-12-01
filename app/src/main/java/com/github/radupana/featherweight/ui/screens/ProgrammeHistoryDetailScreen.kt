@@ -365,7 +365,7 @@ fun ProgrammeDetailsContent(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Notes,
-                                contentDescription = null,
+                                contentDescription = "Completion notes",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -757,7 +757,7 @@ fun ProgrammeInsightsSection(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.TrendingUp,
-                                contentDescription = null,
+                                contentDescription = "Performance analysis",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp),
                             )

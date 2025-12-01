@@ -142,7 +142,7 @@ fun InsightsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = null,
+                            contentDescription = "Sign in required",
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
@@ -240,7 +240,7 @@ private fun HighlightsSection(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.EmojiEvents,
-                            contentDescription = null,
+                            contentDescription = "Recent personal records",
                             tint = FeatherweightColors.gold(),
                             modifier = Modifier.size(24.dp),
                         )
@@ -309,7 +309,7 @@ private fun HighlightsSection(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.FitnessCenter,
-                        contentDescription = null,
+                        contentDescription = "Workouts this week",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp),
                     )
@@ -470,7 +470,7 @@ private fun EmptyExercisesState() {
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                contentDescription = null,
+                contentDescription = "No exercise data",
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

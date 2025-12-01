@@ -75,6 +75,52 @@ export function validateInput(request: ParseProgramRequest): void {
   if (detectInjectionAttempt(request.rawText)) {
     throw new HttpsError("invalid-argument", "Invalid content detected");
   }
+
+  // Validate userMaxes if provided
+  if (request.userMaxes !== undefined) {
+    if (typeof request.userMaxes !== "object" || request.userMaxes === null) {
+      throw new HttpsError(
+        "invalid-argument",
+        "userMaxes must be an object mapping exercise names to 1RM values"
+      );
+    }
+
+    const entries = Object.entries(request.userMaxes);
+
+    if (entries.length > 50) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Too many userMaxes entries (max 50)"
+      );
+    }
+
+    for (const [exercise, max] of entries) {
+      if (typeof exercise !== "string" || exercise.length === 0) {
+        throw new HttpsError(
+          "invalid-argument",
+          "userMaxes keys must be non-empty strings"
+        );
+      }
+      if (exercise.length > 200) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Exercise name too long (max 200 characters)"
+        );
+      }
+      if (typeof max !== "number" || !Number.isFinite(max)) {
+        throw new HttpsError(
+          "invalid-argument",
+          `userMaxes value for "${exercise}" must be a valid number`
+        );
+      }
+      if (max <= 0 || max > 1000) {
+        throw new HttpsError(
+          "invalid-argument",
+          `userMaxes value for "${exercise}" must be between 0 and 1000 kg`
+        );
+      }
+    }
+  }
 }
 
 /**

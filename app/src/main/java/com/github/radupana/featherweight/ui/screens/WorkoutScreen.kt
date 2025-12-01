@@ -623,7 +623,7 @@ private fun WorkoutHeader(
                             ) {
                                 Icon(
                                     Icons.Filled.FitnessCenter,
-                                    contentDescription = null,
+                                    contentDescription = "Programme workout",
                                     modifier = Modifier.size(12.dp),
                                     tint = MaterialTheme.colorScheme.primary,
                                 )
@@ -765,7 +765,7 @@ private fun CompletedWorkoutMenuDialog(
                         horizontalArrangement = Arrangement.Start,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                        Icon(Icons.Filled.ContentCopy, contentDescription = "Save as template")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Save as Template")
                     }
@@ -779,7 +779,7 @@ private fun CompletedWorkoutMenuDialog(
                         horizontalArrangement = Arrangement.Start,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Filled.FileDownload, contentDescription = null)
+                        Icon(Icons.Filled.FileDownload, contentDescription = "Export workout")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Export Workout")
                     }
@@ -820,7 +820,7 @@ private fun WorkoutMenuDialog(
                                 horizontalArrangement = Arrangement.Start,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                                Icon(Icons.Filled.CheckCircle, contentDescription = "Complete all sets")
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Mark all populated sets done")
                             }
@@ -836,7 +836,7 @@ private fun WorkoutMenuDialog(
                             horizontalArrangement = Arrangement.Start,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.Edit, contentDescription = null)
+                            Icon(Icons.Filled.Edit, contentDescription = "Edit workout name")
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Edit Workout Name")
                         }
@@ -853,7 +853,7 @@ private fun WorkoutMenuDialog(
                         ) {
                             Icon(
                                 Icons.Filled.Delete,
-                                contentDescription = null,
+                                contentDescription = "Delete workout",
                                 tint = MaterialTheme.colorScheme.error,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -1139,7 +1139,7 @@ private fun WorkoutActionButtons(
         ) {
             Icon(
                 Icons.Filled.Add,
-                contentDescription = null,
+                contentDescription = "Add exercise",
                 modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -1171,7 +1171,7 @@ private fun WorkoutActionButtons(
             ) {
                 Icon(
                     if (showSaved) Icons.Filled.CheckCircle else Icons.Filled.Check,
-                    contentDescription = null,
+                    contentDescription = "Save template",
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1188,7 +1188,7 @@ private fun WorkoutActionButtons(
             ) {
                 Icon(
                     Icons.Filled.CheckCircle,
-                    contentDescription = null,
+                    contentDescription = "Complete workout",
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))

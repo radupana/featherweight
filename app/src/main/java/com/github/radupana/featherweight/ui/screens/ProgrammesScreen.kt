@@ -196,7 +196,7 @@ fun ProgrammesScreen(
                                     } else {
                                         Icon(
                                             imageVector = Icons.Filled.CheckCircle,
-                                            contentDescription = null,
+                                            contentDescription = "Review pending programme",
                                             modifier = Modifier.size(32.dp),
                                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                         )
@@ -620,7 +620,7 @@ private fun ActiveProgrammeCard(
                     ) {
                         Icon(
                             Icons.Filled.PlayArrow,
-                            contentDescription = null,
+                            contentDescription = "Start workout",
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))

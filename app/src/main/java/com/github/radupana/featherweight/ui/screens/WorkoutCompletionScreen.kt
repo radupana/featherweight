@@ -190,7 +190,7 @@ private fun PrimaryStatsCard(summary: CompletionSummary) {
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = null,
+                    contentDescription = "Workout complete",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp),
                 )

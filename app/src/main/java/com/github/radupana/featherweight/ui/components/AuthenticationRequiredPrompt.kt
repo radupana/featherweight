@@ -53,7 +53,7 @@ fun AuthenticationRequiredPrompt(
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = null,
+                    contentDescription = "Sign in required",
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )

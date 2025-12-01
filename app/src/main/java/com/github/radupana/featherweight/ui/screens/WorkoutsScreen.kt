@@ -155,7 +155,7 @@ fun WorkoutsScreen(
                                 }
                             },
                         ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                            Icon(Icons.Filled.PlayArrow, contentDescription = "Continue workout")
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Continue")
                         }
@@ -211,7 +211,7 @@ fun WorkoutsScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.FitnessCenter, contentDescription = null)
+                            Icon(Icons.Filled.FitnessCenter, contentDescription = "Start programme workout")
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Start Workout")
                         }
@@ -245,7 +245,7 @@ fun WorkoutsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Icon(Icons.Filled.Add, contentDescription = "Start freestyle workout")
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Start Freestyle Workout")
                 }
@@ -271,7 +271,7 @@ fun WorkoutsScreen(
                     onClick = onNavigateToTemplateSelection,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Filled.FitnessCenter, contentDescription = null)
+                    Icon(Icons.Filled.FitnessCenter, contentDescription = "Browse templates")
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Browse Templates")
                 }

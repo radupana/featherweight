@@ -92,7 +92,7 @@ fun ExportWorkoutsDialog(
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
-                        Icon(Icons.Default.DateRange, contentDescription = null)
+                        Icon(Icons.Default.DateRange, contentDescription = "Select start date")
                     }
                 }
 
@@ -120,7 +120,7 @@ fun ExportWorkoutsDialog(
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
-                        Icon(Icons.Default.DateRange, contentDescription = null)
+                        Icon(Icons.Default.DateRange, contentDescription = "Select end date")
                     }
                 }
 
@@ -189,7 +189,7 @@ fun ExportWorkoutsDialog(
                     ) {
                         Icon(
                             Icons.Default.Info,
-                            contentDescription = null,
+                            contentDescription = "Export information",
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Column {

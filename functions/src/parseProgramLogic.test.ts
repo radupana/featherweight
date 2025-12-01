@@ -89,6 +89,171 @@ describe("parseProgramLogic", () => {
 
       expect(() => validateInput(request)).toThrow("Invalid content detected");
     });
+
+    it("should accept valid userMaxes", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": 150,
+          "Bench Press": 100,
+        },
+      };
+
+      expect(() => validateInput(request)).not.toThrow();
+    });
+
+    it("should accept request without userMaxes", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+      };
+
+      expect(() => validateInput(request)).not.toThrow();
+    });
+
+    it("should reject userMaxes that is not an object", () => {
+      const request = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: "not an object" as unknown as Record<string, number>,
+      };
+
+      expect(() => validateInput(request)).toThrow("userMaxes must be an object");
+    });
+
+    it("should reject null userMaxes", () => {
+      const request = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: null as unknown as Record<string, number>,
+      };
+
+      expect(() => validateInput(request)).toThrow("userMaxes must be an object");
+    });
+
+    it("should reject userMaxes with too many entries", () => {
+      const userMaxes: Record<string, number> = {};
+      for (let i = 0; i < 51; i++) {
+        userMaxes[`Exercise ${i}`] = 100;
+      }
+
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes,
+      };
+
+      expect(() => validateInput(request)).toThrow("Too many userMaxes entries");
+    });
+
+    it("should accept userMaxes with exactly 50 entries", () => {
+      const userMaxes: Record<string, number> = {};
+      for (let i = 0; i < 50; i++) {
+        userMaxes[`Exercise ${i}`] = 100;
+      }
+
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes,
+      };
+
+      expect(() => validateInput(request)).not.toThrow();
+    });
+
+    it("should reject userMaxes with empty exercise name", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "": 100,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("userMaxes keys must be non-empty strings");
+    });
+
+    it("should reject userMaxes with exercise name too long", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          ["a".repeat(201)]: 100,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("Exercise name too long");
+    });
+
+    it("should reject userMaxes with non-numeric value", () => {
+      const request = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": "100" as unknown as number,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be a valid number");
+    });
+
+    it("should reject userMaxes with NaN value", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": NaN,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be a valid number");
+    });
+
+    it("should reject userMaxes with Infinity value", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": Infinity,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be a valid number");
+    });
+
+    it("should reject userMaxes with value <= 0", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": 0,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be between 0 and 1000");
+    });
+
+    it("should reject userMaxes with negative value", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": -50,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be between 0 and 1000");
+    });
+
+    it("should reject userMaxes with value > 1000", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": 1001,
+        },
+      };
+
+      expect(() => validateInput(request)).toThrow("must be between 0 and 1000");
+    });
+
+    it("should accept userMaxes with value exactly 1000", () => {
+      const request: ParseProgramRequest = {
+        rawText: "Squat 3x5 @ 100kg",
+        userMaxes: {
+          "Squat": 1000,
+        },
+      };
+
+      expect(() => validateInput(request)).not.toThrow();
+    });
   });
 
   describe("detectInjectionAttempt", () => {

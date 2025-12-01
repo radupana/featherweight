@@ -351,7 +351,7 @@ private fun PerformanceAnalysisCard(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.TrendingUp,
-                        contentDescription = null,
+                        contentDescription = "Performance analysis",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp),
                     )
@@ -508,7 +508,7 @@ private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.
                 ) {
                     Icon(
                         Icons.Default.Star,
-                        contentDescription = null,
+                        contentDescription = "Most consistent day",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp),
                     )
@@ -527,7 +527,7 @@ private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.
                 ) {
                     Icon(
                         Icons.Default.SelfImprovement,
-                        contentDescription = null,
+                        contentDescription = "Average rest days",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp),
                     )

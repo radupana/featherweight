@@ -395,15 +395,19 @@ class ExerciseSelectorViewModel(
                 } else {
                     _currentSwapExerciseName.value = null
                 }
-            } catch (e: android.database.sqlite.SQLiteException) {
-                ExceptionLogger.logException(TAG, "Database error loading swap suggestions", e)
-                throw IllegalStateException("Database error loading swap suggestions", e)
-            } catch (e: IllegalArgumentException) {
-                ExceptionLogger.logException(TAG, "Invalid exercise ID for swap suggestions", e)
-                throw IllegalStateException("Invalid exercise ID for swap suggestions", e)
-            } catch (e: SecurityException) {
-                ExceptionLogger.logException(TAG, "Permission error loading swap suggestions", e)
-                throw IllegalStateException("Permission error loading swap suggestions", e)
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                when (e) {
+                    is android.database.sqlite.SQLiteException,
+                    is IllegalArgumentException,
+                    is SecurityException,
+                    -> {
+                        ExceptionLogger.logException(TAG, "Error loading swap suggestions", e)
+                        throw IllegalStateException("Error loading swap suggestions: ${e.message}", e)
+                    }
+                    else -> throw e
+                }
             }
         }
     }
