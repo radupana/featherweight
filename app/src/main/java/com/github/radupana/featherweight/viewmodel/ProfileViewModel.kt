@@ -1,6 +1,8 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
@@ -578,18 +580,14 @@ class ProfileViewModel(
     fun signOut() {
         viewModelScope.launch {
             try {
-                // Clear ONLY local data from database BEFORE signing out
-                // This ensures no data leakage to next user
-                // Firestore data is preserved for multi-device sync
                 repository.clearLocalUserDataOnly()
 
-                // Sign out from Firebase
                 firebaseAuth.signOut()
 
-                // Clear authentication data from SharedPreferences
+                clearGoogleCredentialState()
+
                 authManager.clearUserData()
 
-                // Reset migration state so it can run again on next sign-in
                 migrationStateManager.resetMigrationState()
 
                 _uiState.value =
@@ -769,6 +767,16 @@ class ProfileViewModel(
                         )
                 }
             }
+        }
+    }
+
+    private suspend fun clearGoogleCredentialState() {
+        try {
+            val credentialManager = CredentialManager.create(getApplication())
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            CloudLogger.info(TAG, "Google credential state cleared")
+        } catch (e: androidx.credentials.exceptions.ClearCredentialException) {
+            CloudLogger.warn(TAG, "Failed to clear Google credential state: ${e.message}")
         }
     }
 }
