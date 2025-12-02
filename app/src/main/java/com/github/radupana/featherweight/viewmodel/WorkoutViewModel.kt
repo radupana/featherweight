@@ -2421,4 +2421,75 @@ class WorkoutViewModel(
             }
         }
     }
+
+    // ===== VOICE INPUT INTEGRATION =====
+
+    /**
+     * Adds an exercise from voice input with pre-populated sets
+     */
+    fun addVoiceParsedExercise(
+        exerciseId: String,
+        sets: List<VoiceParsedSetData>,
+    ) {
+        if (!canEditWorkout()) return
+
+        val currentId = _currentWorkoutId.value ?: return
+        viewModelScope.launch {
+            try {
+                val exercise =
+                    repository.getExerciseById(exerciseId) ?: run {
+                        CloudLogger.error(TAG, "Exercise not found: $exerciseId")
+                        return@launch
+                    }
+
+                val exerciseLogId =
+                    repository.insertExerciseLogWithExerciseReference(
+                        workoutId = currentId,
+                        exercise = exercise,
+                        exerciseOrder = selectedWorkoutExercises.value.size,
+                        notes = null,
+                    )
+
+                CloudLogger.info(
+                    TAG,
+                    "Voice exercise added - exercise: ${exercise.name}, sets: ${sets.size}",
+                )
+
+                sets.forEachIndexed { index, setData ->
+                    val setLog =
+                        SetLog(
+                            exerciseLogId = exerciseLogId,
+                            setOrder = index + 1,
+                            targetReps = setData.reps,
+                            targetWeight = setData.weight,
+                            actualReps = setData.reps,
+                            actualWeight = setData.weight,
+                            targetRpe = setData.rpe,
+                            actualRpe = setData.rpe,
+                            isCompleted = false,
+                        )
+                    repository.insertSetLog(setLog)
+                }
+
+                loadExercisesForWorkout(currentId)
+                loadExerciseHistory(exerciseId)
+                loadInProgressWorkouts()
+
+                val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+                currentExpanded.add(exerciseLogId)
+                _expandedExerciseIds.value = currentExpanded
+            } catch (e: Exception) {
+                ExceptionLogger.logException(TAG, "Failed to add voice exercise", e)
+            }
+        }
+    }
 }
+
+/**
+ * Data class for voice-parsed set data
+ */
+data class VoiceParsedSetData(
+    val reps: Int,
+    val weight: Float,
+    val rpe: Float? = null,
+)
