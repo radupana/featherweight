@@ -717,9 +717,9 @@ class FeatherweightRepository(
                                         targetReps = targetReps,
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
-                                        actualReps = 0,
-                                        actualWeight = 0f,
-                                        actualRpe = null,
+                                        actualReps = targetReps,
+                                        actualWeight = targetWeight,
+                                        actualRpe = targetRpe,
                                     )
                                 CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
                                 setLogDao.insertSetLog(setLog)
@@ -738,9 +738,9 @@ class FeatherweightRepository(
                                         targetReps = reps.min,
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
-                                        actualReps = 0,
-                                        actualWeight = 0f,
-                                        actualRpe = null,
+                                        actualReps = reps.min,
+                                        actualWeight = targetWeight,
+                                        actualRpe = targetRpe,
                                     )
                                 setLogDao.insertSetLog(setLog)
                             }
@@ -756,9 +756,8 @@ class FeatherweightRepository(
                                         setOrder = setIndex + 1,
                                         targetReps = reps.value,
                                         targetWeight = targetWeight,
-                                        actualReps = 0,
-                                        actualWeight = 0f,
-                                        actualRpe = null,
+                                        actualReps = reps.value,
+                                        actualWeight = targetWeight,
                                     )
                                 setLogDao.insertSetLog(setLog)
                             }
@@ -789,9 +788,9 @@ class FeatherweightRepository(
                                         targetReps = targetReps,
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
-                                        actualReps = 0,
-                                        actualWeight = 0f,
-                                        actualRpe = null,
+                                        actualReps = targetReps,
+                                        actualWeight = targetWeight,
+                                        actualRpe = targetRpe,
                                     )
                                 CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
                                 setLogDao.insertSetLog(setLog)

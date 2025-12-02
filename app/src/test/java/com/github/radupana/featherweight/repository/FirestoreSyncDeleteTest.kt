@@ -27,7 +27,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -84,8 +84,8 @@ class FirestoreSyncDeleteTest {
         every { database.workoutDeviationDao() } returns workoutDeviationDao
         every { database.exerciseDao() } returns exerciseDao
 
-        // Default: user is authenticated
-        every { authManager.getCurrentUserId() } returns testUserId
+        // Default: user is "local" to skip Firestore sync (avoids hangs in tests)
+        every { authManager.getCurrentUserId() } returns "local"
 
         repository = FeatherweightRepository(application, database, authManager)
     }
@@ -100,7 +100,7 @@ class FirestoreSyncDeleteTest {
 
     @Test
     fun `deleteSetLog syncs deletion to Firestore when user is authenticated`() =
-        runBlocking {
+        runTest {
             val setId = "set-123"
 
             coEvery { setLogDao.deleteSetLog(setId) } just Runs
@@ -112,7 +112,7 @@ class FirestoreSyncDeleteTest {
 
     @Test
     fun `deleteSetLog does not sync to Firestore when user is local`() =
-        runBlocking {
+        runTest {
             val setId = "set-123"
             every { authManager.getCurrentUserId() } returns "local"
 
@@ -128,7 +128,7 @@ class FirestoreSyncDeleteTest {
 
     @Test
     fun `deleteExerciseLog syncs deletion to Firestore when user is authenticated`() =
-        runBlocking {
+        runTest {
             val exerciseLogId = "exercise-log-123"
 
             repository.deleteExerciseLog(exerciseLogId)
@@ -141,7 +141,7 @@ class FirestoreSyncDeleteTest {
 
     @Test
     fun `deleteProgramme with deleteWorkouts collects all IDs for Firestore deletion`() =
-        runBlocking {
+        runTest {
             val programme = createProgramme(id = "prog-123", isActive = false)
             val weeks =
                 listOf(
@@ -194,7 +194,7 @@ class FirestoreSyncDeleteTest {
 
     @Test
     fun `deleteProgramme without deleteWorkouts only updates status`() =
-        runBlocking {
+        runTest {
             val programme = createProgramme(id = "prog-123", isActive = false)
 
             coEvery { programmeDao.updateProgramme(any()) } just Runs

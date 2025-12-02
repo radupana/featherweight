@@ -387,7 +387,7 @@ fun ExerciseCard(
                                 onDeleteSet = {
                                     viewModel.deleteSet(set.id)
                                 },
-                                canMarkComplete = set.actualReps > 0 && set.actualWeight > 0,
+                                canMarkComplete = set.actualReps > 0 && set.actualWeight >= 0,
                                 readOnly = !viewModel.canEditWorkout(),
                             )
                         }
