@@ -59,8 +59,6 @@ data class WorkoutState(
     val shouldShowPRCelebration: Boolean = false,
     val templateWeekIndex: Int? = null,
     val templateWorkoutIndex: Int? = null,
-    val deviations: List<com.github.radupana.featherweight.data.programme.WorkoutDeviation> = emptyList(),
-    val prescribedExercises: List<com.github.radupana.featherweight.data.programme.ExerciseStructure> = emptyList(),
 )
 
 data class InProgressWorkout(
@@ -361,26 +359,6 @@ class WorkoutViewModel(
                 stopWorkoutTimer()
                 skipRestTimer()
 
-                val deviations = repository.getDeviationsForWorkout(workoutId)
-
-                val prescribedExercises =
-                    if (workout.isProgrammeWorkout &&
-                        workout.programmeId != null &&
-                        workout.weekNumber != null &&
-                        workout.dayNumber != null
-                    ) {
-                        val programme = repository.getProgrammeById(workout.programmeId)
-                        programme
-                            ?.getImmutableProgrammeSnapshot()
-                            ?.weeks
-                            ?.find { it.weekNumber == workout.weekNumber }
-                            ?.workouts
-                            ?.find { it.dayNumber == workout.dayNumber }
-                            ?.exercises ?: emptyList()
-                    } else {
-                        emptyList()
-                    }
-
                 CloudLogger.info(TAG, "Setting _currentWorkoutId to: $workoutId")
                 _currentWorkoutId.value = workoutId
                 _workoutState.value =
@@ -402,8 +380,6 @@ class WorkoutViewModel(
                         programmeWorkoutName = workout.programmeWorkoutName,
                         weekNumber = workout.weekNumber,
                         dayNumber = workout.dayNumber,
-                        deviations = deviations,
-                        prescribedExercises = prescribedExercises,
                     )
 
                 _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
