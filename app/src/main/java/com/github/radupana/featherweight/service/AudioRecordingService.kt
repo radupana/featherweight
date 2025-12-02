@@ -19,6 +19,12 @@ interface AudioRecorder {
     fun getAmplitude(): Int
 
     fun isRecording(): Boolean
+
+    /**
+     * Clean up orphaned audio files from previous sessions.
+     * Call this on app startup to prevent cache buildup from crashed recordings.
+     */
+    fun cleanupOrphanedFiles()
 }
 
 sealed class AudioRecordingState {
@@ -46,6 +52,9 @@ class AudioRecordingService(
         private const val AUDIO_FILE_SUFFIX = ".m4a"
         private const val SAMPLE_RATE = 44100
         private const val BIT_RATE = 128000
+
+        /** Max age for orphaned audio files before cleanup (1 hour) */
+        private const val ORPHAN_FILE_MAX_AGE_MS = 60 * 60 * 1000L
     }
 
     private var mediaRecorder: MediaRecorder? = null
@@ -173,5 +182,27 @@ class AudioRecordingService(
             }
         }
         outputFile = null
+    }
+
+    override fun cleanupOrphanedFiles() {
+        val cacheDir = context.cacheDir
+        val now = System.currentTimeMillis()
+        var deletedCount = 0
+
+        cacheDir
+            .listFiles()
+            ?.filter { file ->
+                file.name.startsWith(AUDIO_FILE_PREFIX) &&
+                    file.name.endsWith(AUDIO_FILE_SUFFIX) &&
+                    (now - file.lastModified()) > ORPHAN_FILE_MAX_AGE_MS
+            }?.forEach { file ->
+                if (file.delete()) {
+                    deletedCount++
+                }
+            }
+
+        if (deletedCount > 0) {
+            CloudLogger.info(TAG, "Cleaned up $deletedCount orphaned audio files")
+        }
     }
 }

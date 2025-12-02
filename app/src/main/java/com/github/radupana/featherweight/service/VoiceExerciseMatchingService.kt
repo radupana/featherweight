@@ -26,7 +26,18 @@ interface VoiceExerciseMatcher {
 
 class VoiceExerciseMatchingService : VoiceExerciseMatcher {
     companion object {
+        /**
+         * Minimum score for automatic exercise matching without user confirmation.
+         * Score is calculated by ExerciseSearchUtil using fuzzy string matching:
+         * - Exact name match: 1000 points
+         * - Exact alias match: 900 points
+         * - Partial matches: scaled based on similarity ratio
+         * A threshold of 500 ensures high confidence matches (e.g., "bench" → "Barbell Bench Press")
+         * while requiring confirmation for ambiguous matches (e.g., "curls" which could be bicep/hammer).
+         */
         const val AUTO_MATCH_THRESHOLD = 500
+
+        /** Maximum number of exercise suggestions to show in the selection dialog */
         const val MAX_SUGGESTIONS = 5
     }
 

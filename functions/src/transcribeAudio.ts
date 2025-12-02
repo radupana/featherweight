@@ -292,32 +292,75 @@ export const transcribeAudio = onCall<TranscribeAudioRequest>(
         type: mimeType,
       });
 
-      const transcription = await openai.audio.transcriptions.create({
-        file: audioFile,
-        model: "whisper-1",
-        prompt: WHISPER_PROMPT,
-        response_format: "json",
-      });
+      // Retry logic for transient OpenAI errors (403, rate limits, etc.)
+      const maxRetries = 3;
+      let lastError: Error | null = null;
 
-      // 6. Log success
-      await log.write(log.entry({
-        severity: "INFO",
-        labels: {
-          type: "transcribe_success",
-          userId,
-        },
-      }, {
-        textLength: transcription.text.length,
-        remaining: quotaResult.remaining,
-      }));
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const transcription = await openai.audio.transcriptions.create({
+            file: audioFile,
+            model: "whisper-1",
+            prompt: WHISPER_PROMPT,
+            response_format: "json",
+          });
 
-      // 7. Return result
-      return {
-        text: transcription.text,
-        quota: {
-          remaining: quotaResult.remaining,
-        },
-      };
+          // 6. Log success
+          await log.write(log.entry({
+            severity: "INFO",
+            labels: {
+              type: "transcribe_success",
+              userId,
+            },
+          }, {
+            textLength: transcription.text.length,
+            remaining: quotaResult.remaining,
+            attempt,
+          }));
+
+          // 7. Return result
+          return {
+            text: transcription.text,
+            quota: {
+              remaining: quotaResult.remaining,
+            },
+          };
+        } catch (retryError) {
+          lastError = retryError instanceof Error ? retryError : new Error(String(retryError));
+          const errorMessage = lastError.message;
+
+          // Log retry attempt
+          await log.write(log.entry({
+            severity: "WARNING",
+            labels: {
+              type: "transcribe_retry",
+              userId,
+            },
+          }, {
+            attempt,
+            maxRetries,
+            error: errorMessage,
+          }));
+
+          // Only retry on transient errors (403, 429, 5xx)
+          const isRetryable = errorMessage.includes("403") ||
+                             errorMessage.includes("429") ||
+                             errorMessage.includes("500") ||
+                             errorMessage.includes("502") ||
+                             errorMessage.includes("503");
+
+          if (!isRetryable || attempt === maxRetries) {
+            throw lastError;
+          }
+
+          // Exponential backoff: 1s, 2s, 4s
+          const delayMs = Math.pow(2, attempt - 1) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+
+      // Should never reach here, but TypeScript needs this
+      throw lastError || new Error("Transcription failed after retries");
     } catch (error) {
       await log.write(log.entry({
         severity: "ERROR",

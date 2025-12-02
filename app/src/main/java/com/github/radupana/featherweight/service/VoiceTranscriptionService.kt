@@ -19,6 +19,12 @@ class VoiceTranscriptionService(
     companion object {
         private const val TAG = "VoiceTranscriptionService"
         private const val FUNCTION_NAME = "transcribeAudio"
+
+        /** Maximum recommended file size (5MB). Larger files may cause memory pressure. */
+        private const val RECOMMENDED_MAX_FILE_SIZE = 5 * 1024 * 1024L
+
+        /** Absolute maximum file size (25MB - Whisper API limit) */
+        private const val ABSOLUTE_MAX_FILE_SIZE = 25 * 1024 * 1024L
     }
 
     override suspend fun transcribe(audioFile: File): Result<String> =
@@ -30,6 +36,18 @@ class VoiceTranscriptionService(
                 return@withContext Result.failure(
                     IllegalArgumentException("Audio file does not exist"),
                 )
+            }
+
+            val fileSize = audioFile.length()
+            if (fileSize > ABSOLUTE_MAX_FILE_SIZE) {
+                CloudLogger.error(TAG, "Audio file too large: $fileSize bytes (max: $ABSOLUTE_MAX_FILE_SIZE)")
+                return@withContext Result.failure(
+                    IllegalArgumentException("Audio file too large. Please record a shorter message."),
+                )
+            }
+
+            if (fileSize > RECOMMENDED_MAX_FILE_SIZE) {
+                CloudLogger.warn(TAG, "Large audio file: $fileSize bytes. May cause memory pressure.")
             }
 
             try {

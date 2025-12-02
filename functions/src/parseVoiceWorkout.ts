@@ -195,8 +195,9 @@ export const parseVoiceWorkout = onCall<ParseVoiceWorkoutRequest>(
       const openai = new OpenAI({apiKey});
       const prompt = buildPrompt(request.data.transcription, preferredUnit);
 
+      const model = "gpt-5-nano";
       const completion = await openai.chat.completions.create({
-        model: "gpt-5-nano",
+        model,
         messages: [
           {
             role: "system",
@@ -227,6 +228,7 @@ export const parseVoiceWorkout = onCall<ParseVoiceWorkoutRequest>(
           userId,
         },
       }, {
+        model,
         exerciseCount,
         overallConfidence: parsed.overallConfidence,
       }));

@@ -49,6 +49,11 @@ class VoiceInputViewModel(
         private const val TAG = "VoiceInputViewModel"
     }
 
+    init {
+        // Clean up any orphaned audio files from previous crashed sessions
+        audioRecorder.cleanupOrphanedFiles()
+    }
+
     private val _voiceInputState = MutableStateFlow<VoiceInputState>(VoiceInputState.Idle)
     val voiceInputState: StateFlow<VoiceInputState> = _voiceInputState
 
@@ -59,6 +64,14 @@ class VoiceInputViewModel(
 
     private val mutableAmplitude = MutableStateFlow(0)
     val amplitude: StateFlow<Int> = mutableAmplitude
+
+    /**
+     * Tracks which voice exercise index is pending selection from the exercise selector screen.
+     * When non-null, the next exercise selection should update this voice exercise instead of
+     * adding a new exercise to the workout.
+     */
+    private val _pendingVoiceExerciseIndex = MutableStateFlow<Int?>(null)
+    val pendingVoiceExerciseIndex: StateFlow<Int?> = _pendingVoiceExerciseIndex
 
     private var amplitudePollingJob: Job? = null
     private var currentAudioFile: File? = null
@@ -169,11 +182,45 @@ class VoiceInputViewModel(
         _confirmableExercises.value.isNotEmpty() &&
             _confirmableExercises.value.all { it.selectedExerciseId != null }
 
+    /**
+     * Sets the pending voice exercise index before navigating to exercise selector.
+     * Call this when user clicks "Search all exercises..." from the voice confirmation dialog.
+     */
+    fun setPendingVoiceExerciseIndex(index: Int) {
+        _pendingVoiceExerciseIndex.value = index
+        CloudLogger.debug(TAG, "Set pending voice exercise index: $index")
+    }
+
+    /**
+     * Called when user selects an exercise from the exercise selector screen
+     * while in voice input mode. Updates the confirmable exercise and confirms it.
+     */
+    fun handleExerciseSelectedFromSearch(
+        exerciseId: String,
+        exerciseName: String,
+    ) {
+        val index = _pendingVoiceExerciseIndex.value
+        if (index != null && index in _confirmableExercises.value.indices) {
+            selectExerciseForParsed(index, exerciseId, exerciseName)
+            confirmExercise(index)
+            CloudLogger.info(TAG, "Updated voice exercise at index $index to: $exerciseName")
+        }
+        _pendingVoiceExerciseIndex.value = null
+    }
+
+    /**
+     * Clears the pending voice exercise index (e.g., when user cancels).
+     */
+    fun clearPendingVoiceExerciseIndex() {
+        _pendingVoiceExerciseIndex.value = null
+    }
+
     fun dismiss() {
         currentAudioFile?.delete()
         currentAudioFile = null
         _voiceInputState.value = VoiceInputState.Idle
         _confirmableExercises.value = emptyList()
+        _pendingVoiceExerciseIndex.value = null
     }
 
     private fun processRecording(audioFile: File) {
@@ -256,6 +303,13 @@ class VoiceInputViewModel(
         CloudLogger.info(TAG, "Parsed ${parsed.exercises.size} exercises")
     }
 
+    /**
+     * Lazily loads exercises when recording starts.
+     * This gives ample time for the DB query to complete before exercises are needed
+     * in processParseResult() (after transcription + parsing complete).
+     * Preloading in init would cause unnecessary DB queries if the user opens
+     * the voice modal but doesn't record anything.
+     */
     private suspend fun loadExercisesIfNeeded() {
         if (allExercises.value.isEmpty()) {
             allExercises.value = repository.getAllExercisesWithAliases()
@@ -268,6 +322,10 @@ class VoiceInputViewModel(
             viewModelScope.launch {
                 while (audioRecorder.isRecording()) {
                     mutableAmplitude.value = audioRecorder.getAmplitude()
+                    // 100ms polling interval provides smooth visual feedback for the pulsing
+                    // microphone animation (10fps) while keeping CPU overhead minimal.
+                    // MediaRecorder.getMaxAmplitude() returns the max amplitude since the last
+                    // call, so this interval also determines the sampling window.
                     kotlinx.coroutines.delay(100)
                 }
             }

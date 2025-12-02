@@ -440,7 +440,9 @@ fun WorkoutScreen(
                     selectedExerciseIndexForDialog = -1
                 },
                 onSearchExercises = {
-                    // Navigate to exercise selection screen
+                    // Set the pending index before navigating so MainActivity knows
+                    // to update the voice exercise instead of adding a new one
+                    voiceInputViewModel.setPendingVoiceExerciseIndex(selectedExerciseIndexForDialog)
                     showExerciseSelectionDialog = false
                     selectedExerciseIndexForDialog = -1
                     onSelectExercise()
