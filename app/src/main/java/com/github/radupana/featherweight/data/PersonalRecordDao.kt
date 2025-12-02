@@ -135,4 +135,13 @@ interface PersonalRecordDao {
 
     @Query("DELETE FROM personal_records WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)
+
+    @Query("DELETE FROM personal_records WHERE sourceSetId = :setId")
+    suspend fun deletePRsBySourceSetId(setId: String)
+
+    @Query("SELECT * FROM personal_records WHERE sourceSetId = :setId")
+    suspend fun getPRsBySourceSetId(setId: String): List<PersonalRecord>
+
+    @Query("SELECT COUNT(*) FROM personal_records WHERE sourceSetId = :setId")
+    suspend fun countPRsBySourceSetId(setId: String): Int
 }

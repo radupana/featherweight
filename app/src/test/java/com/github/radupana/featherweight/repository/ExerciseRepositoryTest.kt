@@ -514,9 +514,8 @@ class ExerciseRepositoryTest {
         }
 
     @Test
-    fun `insertExerciseLogWithExerciseReference_incrementsUsageForAuthenticatedUser`() =
+    fun `insertExerciseLogWithExerciseReference_doesNotIncrementUsage`() =
         runTest {
-            // Arrange
             val userId = "user123"
             repository =
                 ExerciseRepository(
@@ -528,10 +527,7 @@ class ExerciseRepositoryTest {
                 )
 
             coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
 
-            // Act
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "1",
@@ -540,58 +536,15 @@ class ExerciseRepositoryTest {
                     notes = null,
                 )
 
-            // Assert
-            assertThat(result).isNotEmpty() // Auto-generated ID
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = userId,
-                    exerciseId = mockVariation.id,
-                    timestamp = any(),
-                )
+            assertThat(result).isNotEmpty()
+            coVerify(exactly = 0) {
+                userExerciseUsageDao.incrementUsageCount(any(), any(), any())
             }
         }
 
     @Test
-    fun `insertExerciseLogWithExerciseReference_incrementsUsageForUnauthenticatedUser`() =
+    fun `insertExerciseLogWithExerciseReference_byId_doesNotIncrementUsage`() =
         runTest {
-            // Arrange
-            repository =
-                ExerciseRepository(
-                    db,
-                    authManager =
-                        mockk {
-                            every { getCurrentUserId() } returns null
-                        },
-                )
-
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
-
-            // Act
-            val result =
-                repository.insertExerciseLogWithExerciseReference(
-                    workoutId = "1",
-                    exerciseVariation = mockVariation,
-                    exerciseOrder = 1,
-                    notes = null,
-                )
-
-            // Assert
-            assertThat(result).isNotEmpty() // Auto-generated ID
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = "local",
-                    exerciseId = mockVariation.id,
-                    timestamp = any(),
-                )
-            }
-        }
-
-    @Test
-    fun `insertExerciseLogWithExerciseReference_byId_incrementsUsageForAuthenticatedUser`() =
-        runTest {
-            // Arrange
             val userId = "user456"
             repository =
                 ExerciseRepository(
@@ -603,10 +556,7 @@ class ExerciseRepositoryTest {
                 )
 
             coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
 
-            // Act
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "2",
@@ -614,78 +564,9 @@ class ExerciseRepositoryTest {
                     order = 2,
                 )
 
-            // Assert - returns the generated ID
             assertThat(result).isNotNull()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = userId,
-                    exerciseId = "5",
-                    timestamp = any(),
-                )
-            }
-        }
-
-    @Test
-    fun `insertExerciseLogWithExerciseReference_byId_incrementsUsageForUnauthenticatedUser`() =
-        runTest {
-            // Arrange
-            val mockAuthManager = mockk<AuthenticationManager>(relaxed = true)
-            every { mockAuthManager.getCurrentUserId() } returns "local"
-            repository = ExerciseRepository(db, mockAuthManager)
-
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
-
-            // Act
-            val result =
-                repository.insertExerciseLogWithExerciseReference(
-                    workoutId = "3",
-                    exerciseId = "10",
-                    order = 3,
-                )
-
-            // Assert - returns the generated ID
-            assertThat(result).isNotNull()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = "local",
-                    exerciseId = "10",
-                    timestamp = any(),
-                )
-            }
-        }
-
-    @Test
-    fun `insertExerciseLog_handlesUsageTrackingException`() =
-        runTest {
-            // Arrange
-            val mockAuthManager = mockk<AuthenticationManager>(relaxed = true)
-            every { mockAuthManager.getCurrentUserId() } returns "local"
-            repository = ExerciseRepository(db, mockAuthManager)
-
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery {
+            coVerify(exactly = 0) {
                 userExerciseUsageDao.incrementUsageCount(any(), any(), any())
-            } throws android.database.sqlite.SQLiteException("Database error")
-
-            // Act
-            val result =
-                repository.insertExerciseLogWithExerciseReference(
-                    workoutId = "4",
-                    exerciseId = "15",
-                    order = 4,
-                )
-
-            // Assert - should still return the ID even if usage tracking fails
-            assertThat(result).isNotNull()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = "local",
-                    exerciseId = "15",
-                    timestamp = any(),
-                )
             }
         }
 

@@ -51,6 +51,8 @@ data class FirestoreSetLog(
     val notes: String? = null,
     val isCompleted: Boolean = false,
     val completedAt: String? = null,
+    val triggeredUsageIncrement: Boolean = false,
+    val previous1RMEstimate: Float? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
@@ -161,6 +163,7 @@ data class FirestorePersonalRecord(
     val estimated1RM: Float? = null,
     val notes: String? = null,
     val workoutId: String? = null,
+    val sourceSetId: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 

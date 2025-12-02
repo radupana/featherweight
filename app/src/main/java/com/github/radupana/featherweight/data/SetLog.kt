@@ -28,17 +28,16 @@ data class SetLog(
     val userId: String? = null,
     val exerciseLogId: String,
     val setOrder: Int,
-    // Target (what programme says to do) - nullable for freestyle workouts
     val targetReps: Int? = null,
     val targetWeight: Float? = null,
     val targetRpe: Float? = null,
-    // Actual performance (what user actually did) - THE SOURCE OF TRUTH
     val actualReps: Int = 0,
     val actualWeight: Float = 0f,
     val actualRpe: Float? = null,
-    // Metadata
     val tag: String? = null,
     val notes: String? = null,
     val isCompleted: Boolean = false,
     val completedAt: String? = null,
+    val triggeredUsageIncrement: Boolean = false,
+    val previous1RMEstimate: Float? = null,
 )

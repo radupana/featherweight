@@ -9,6 +9,7 @@ import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,6 +28,7 @@ class OneRMRepository(
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
 ) {
     companion object {
         private const val TAG = "OneRMRepository"
@@ -125,28 +127,63 @@ class OneRMRepository(
         return exerciseMax?.oneRMEstimate
     }
 
-    suspend fun deleteAllMaxesForExercise(exerciseId: String) {
-        val userId = authManager.getCurrentUserId() ?: "local"
-        oneRMDao.deleteAllForExercise(exerciseId, userId)
-    }
+    suspend fun deleteAllMaxesForExercise(exerciseId: String) =
+        withContext(ioDispatcher) {
+            val userId = authManager.getCurrentUserId() ?: "local"
+            CloudLogger.info(TAG, "deleteAllMaxesForExercise called - exerciseId: $exerciseId, userId: $userId")
+
+            // Get IDs for Firestore deletion BEFORE deleting from Room
+            val maxesToDelete = oneRMDao.getAllMaxesForExercise(exerciseId, userId)
+            val maxIds = maxesToDelete.map { it.id }
+
+            // Delete from Room first
+            oneRMDao.deleteAllForExercise(exerciseId, userId)
+            CloudLogger.info(TAG, "Successfully deleted ${maxIds.size} exercise maxes from Room - exerciseId: $exerciseId")
+
+            // Then sync deletion to Firestore
+            if (userId != "local" && maxIds.isNotEmpty()) {
+                CloudLogger.info(TAG, "Deleting ${maxIds.size} exercise maxes from Firestore - exerciseId: $exerciseId")
+                val result = firestoreRepository.deleteExerciseMaxes(userId, maxIds)
+                if (result.isSuccess) {
+                    CloudLogger.info(TAG, "Successfully deleted exercise maxes from Firestore - exerciseId: $exerciseId")
+                } else {
+                    CloudLogger.error(
+                        TAG,
+                        "Failed to delete exercise maxes from Firestore - exerciseId: $exerciseId",
+                        result.exceptionOrNull(),
+                    )
+                }
+            }
+        }
 
     suspend fun updateOrInsertOneRM(oneRMRecord: ExerciseMaxTracking) =
         withContext(ioDispatcher) {
             val userId = authManager.getCurrentUserId() ?: "local"
             val roundedEstimate = WeightFormatter.roundToNearestQuarter(oneRMRecord.oneRMEstimate)
-            val roundedRecord = oneRMRecord.copy(oneRMEstimate = roundedEstimate)
+            // Ensure the record uses the current auth userId to avoid userId mismatches
+            val roundedRecord = oneRMRecord.copy(oneRMEstimate = roundedEstimate, userId = userId)
 
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseId, userId)
             val exercise = db.exerciseDao().getExerciseById(oneRMRecord.exerciseId)
             val exerciseName = exercise?.name ?: "Unknown"
 
+            CloudLogger.debug(
+                TAG,
+                "updateOrInsertOneRM - exerciseId: ${oneRMRecord.exerciseId}, " +
+                    "authUserId: $userId, recordUserId: ${oneRMRecord.userId}, " +
+                    "incomingSourceSetId: ${oneRMRecord.sourceSetId}, " +
+                    "existingRecord: ${existing?.id}, existingSourceSetId: ${existing?.sourceSetId}",
+            )
+
             if (existing != null) {
                 if (roundedEstimate > existing.oneRMEstimate) {
+                    val recordToUpdate = roundedRecord.copy(id = existing.id)
                     CloudLogger.info(
                         TAG,
-                        "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${roundedEstimate}kg",
+                        "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${roundedEstimate}kg, " +
+                            "sourceSetId: ${recordToUpdate.sourceSetId}, recordId: ${recordToUpdate.id}",
                     )
-                    oneRMDao.update(roundedRecord.copy(id = existing.id))
+                    oneRMDao.update(recordToUpdate)
                 } else {
                     CloudLogger.debug(
                         TAG,
@@ -156,9 +193,18 @@ class OneRMRepository(
             } else {
                 CloudLogger.info(
                     TAG,
-                    "First 1RM recorded for $exerciseName: ${roundedEstimate}kg",
+                    "First 1RM recorded for $exerciseName: ${roundedEstimate}kg, " +
+                        "sourceSetId: ${roundedRecord.sourceSetId}, recordId: ${roundedRecord.id}",
                 )
                 oneRMDao.insert(roundedRecord)
+
+                // Verify the insert worked correctly
+                val verifyRecord = oneRMDao.getBySourceSetId(roundedRecord.sourceSetId ?: "")
+                CloudLogger.debug(
+                    TAG,
+                    "Verification after insert - sourceSetId: ${roundedRecord.sourceSetId}, " +
+                        "foundRecord: ${verifyRecord?.id}, foundSourceSetId: ${verifyRecord?.sourceSetId}",
+                )
             }
         }
 

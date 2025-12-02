@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
@@ -13,15 +14,16 @@ enum class PRType {
 @Entity(
     tableName = "personal_records",
     indices = [
-        androidx.room.Index(value = ["exerciseId"]),
-        androidx.room.Index("userId"),
-        androidx.room.Index("recordDate"),
+        Index(value = ["exerciseId"]),
+        Index("userId"),
+        Index("recordDate"),
+        Index("sourceSetId"),
     ],
 )
 data class PersonalRecord(
     @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseId: String, // References exercises table
+    val exerciseId: String,
     val weight: Float,
     val reps: Int,
     val rpe: Float? = null,
@@ -35,4 +37,5 @@ data class PersonalRecord(
     val estimated1RM: Float? = null,
     val notes: String? = null,
     val workoutId: String? = null,
+    val sourceSetId: String? = null,
 )

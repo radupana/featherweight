@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.repository
 
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -19,13 +18,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.runs
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDateTime
 
 class UserExerciseUsageRepositoryTest {
     private lateinit var repository: ExerciseRepository
@@ -35,31 +31,21 @@ class UserExerciseUsageRepositoryTest {
     private lateinit var authManager: AuthenticationManager
     private lateinit var mockVariation: Exercise
 
-    private val testUserId = "test-user-id"
+    private val testUserId = "test-user-123"
 
     @Before
-    fun setup() {
-        // Mock Android Log
-        mockkStatic(Log::class)
-        every { Log.i(any<String>(), any<String>()) } returns 0
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any()) } returns 0
-
-        // Setup mocks
+    fun setUp() {
         db = mockk()
         exerciseLogDao = mockk()
         userExerciseUsageDao = mockk()
         authManager = mockk()
 
-        // Setup other required DAOs
         val exerciseDao = mockk<ExerciseDao>()
         val setLogDao = mockk<SetLogDao>()
         val exerciseSwapHistoryDao = mockk<ExerciseSwapHistoryDao>()
         val exerciseAliasDao = mockk<ExerciseAliasDao>()
         val exerciseMuscleDao = mockk<ExerciseMuscleDao>()
 
-        // Setup database mock
         every { db.exerciseDao() } returns exerciseDao
         every { db.exerciseLogDao() } returns exerciseLogDao
         every { db.setLogDao() } returns setLogDao
@@ -68,12 +54,10 @@ class UserExerciseUsageRepositoryTest {
         every { db.exerciseMuscleDao() } returns exerciseMuscleDao
         every { db.userExerciseUsageDao() } returns userExerciseUsageDao
 
-        // Setup auth manager
         every { authManager.getCurrentUserId() } returns testUserId
 
         repository = ExerciseRepository(db, authManager)
 
-        // Setup test data
         mockVariation =
             Exercise(
                 id = "1",
@@ -88,14 +72,10 @@ class UserExerciseUsageRepositoryTest {
     }
 
     @Test
-    fun `insertExerciseLogWithExerciseReference increments usage count for authenticated user`() =
+    fun `insertExerciseLogWithExerciseReference does not increment usage count`() =
         runTest {
-            // Arrange
             coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
 
-            // Act
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "1",
@@ -103,29 +83,53 @@ class UserExerciseUsageRepositoryTest {
                     exerciseOrder = 1,
                 )
 
-            // Assert
             assertThat(result).isNotEmpty()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = testUserId,
-                    exerciseId = "1",
-                    timestamp = any(),
-                )
+            coVerify(exactly = 0) {
+                userExerciseUsageDao.incrementUsageCount(any(), any(), any())
             }
         }
 
     @Test
-    fun `insertExerciseLogWithExerciseReference increments usage for unauthenticated user with local userId`() =
+    fun `insertExerciseLogWithExerciseReference by ID does not increment usage count`() =
         runTest {
-            // Arrange
+            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
+
+            val result =
+                repository.insertExerciseLogWithExerciseReference(
+                    workoutId = "1",
+                    exerciseId = "1",
+                    order = 1,
+                )
+
+            assertThat(result).isNotEmpty()
+            coVerify(exactly = 0) {
+                userExerciseUsageDao.incrementUsageCount(any(), any(), any())
+            }
+        }
+
+    @Test
+    fun `insertExerciseLogWithExerciseReference returns valid ID for authenticated user`() =
+        runTest {
+            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
+
+            val result =
+                repository.insertExerciseLogWithExerciseReference(
+                    workoutId = "1",
+                    exerciseVariation = mockVariation,
+                    exerciseOrder = 1,
+                )
+
+            assertThat(result).isNotEmpty()
+        }
+
+    @Test
+    fun `insertExerciseLogWithExerciseReference returns valid ID for unauthenticated user`() =
+        runTest {
             val mockAuthManager = mockk<AuthenticationManager>(relaxed = true)
             every { mockAuthManager.getCurrentUserId() } returns null
             val unauthRepository = ExerciseRepository(db, mockAuthManager)
             coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
 
-            // Act
             val result =
                 unauthRepository.insertExerciseLogWithExerciseReference(
                     workoutId = "1",
@@ -133,97 +137,6 @@ class UserExerciseUsageRepositoryTest {
                     exerciseOrder = 1,
                 )
 
-            // Assert
             assertThat(result).isNotEmpty()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = "local",
-                    exerciseId = "1",
-                    timestamp = any(),
-                )
-            }
-        }
-
-    @Test
-    fun `insertExerciseLogWithExerciseReference handles usage increment error gracefully`() =
-        runTest {
-            // Arrange
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery {
-                userExerciseUsageDao.incrementUsageCount(any(), any(), any())
-            } throws android.database.sqlite.SQLiteException("Database error")
-
-            // Act
-            val result =
-                repository.insertExerciseLogWithExerciseReference(
-                    workoutId = "1",
-                    exerciseVariation = mockVariation,
-                    exerciseOrder = 1,
-                )
-
-            // Assert - Should still return the exercise log ID even if usage tracking fails
-            assertThat(result).isNotEmpty()
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = testUserId,
-                    exerciseId = "1",
-                    timestamp = any(),
-                )
-            }
-        }
-
-    @Test
-    fun `insertExerciseLogWithExerciseReference passes correct timestamp to usage tracking`() =
-        runTest {
-            // Arrange
-            val timestampSlot = slot<LocalDateTime>()
-            val beforeTime = LocalDateTime.now()
-
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery {
-                userExerciseUsageDao.incrementUsageCount(any(), any(), capture(timestampSlot))
-            } just runs
-
-            // Act
-            repository.insertExerciseLogWithExerciseReference(
-                workoutId = "1",
-                exerciseVariation = mockVariation,
-                exerciseOrder = 1,
-            )
-
-            val afterTime = LocalDateTime.now()
-
-            // Assert - Timestamp should be between before and after test execution
-            assertThat(timestampSlot.captured).isNotNull()
-            assertThat(timestampSlot.captured.isAfter(beforeTime.minusSeconds(1))).isTrue()
-            assertThat(timestampSlot.captured.isBefore(afterTime.plusSeconds(1))).isTrue()
-        }
-
-    @Test
-    fun `insertExerciseLogWithExerciseReference correctly identifies custom exercises`() =
-        runTest {
-            // Arrange - Custom exercise detection is handled in FeatherweightRepository
-            // This test verifies ExerciseRepository behavior which always uses isCustom=false
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
-            coEvery { userExerciseUsageDao.incrementUsageCount(any(), any(), any()) } just runs
-
-            // Act
-            repository.insertExerciseLogWithExerciseReference(
-                workoutId = "1",
-                exerciseVariation = mockVariation,
-                exerciseOrder = 1,
-            )
-
-            // Assert
-            coVerify {
-                userExerciseUsageDao.incrementUsageCount(
-                    userId = testUserId,
-                    exerciseId = "1",
-                    timestamp = any(),
-                )
-            }
         }
 }

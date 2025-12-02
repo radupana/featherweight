@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.fixtures.WorkoutFixtures
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.github.radupana.featherweight.testutil.LogMock
 import com.google.common.truth.Truth.assertThat
@@ -38,13 +39,14 @@ class PRDetectionServiceTest {
     private val personalRecordDao: PersonalRecordDao = mockk(relaxed = true)
     private val setLogDao: SetLogDao = mockk(relaxed = true)
     private val exerciseDao: ExerciseDao = mockk(relaxed = true)
+    private val firestoreRepository: FirestoreRepository = mockk(relaxed = true)
 
     private lateinit var service: PRDetectionService
 
     @Before
     fun setUp() {
         LogMock.setup()
-        service = PRDetectionService(personalRecordDao, setLogDao, exerciseDao)
+        service = PRDetectionService(personalRecordDao, setLogDao, exerciseDao, firestoreRepository)
     }
 
     // ========== checkForPR Tests ==========

@@ -1345,30 +1345,30 @@ class WorkoutViewModel(
         setId: String,
         completed: Boolean,
     ) {
-        // Validation
         if (!validateSetCompletion(setId, completed)) return
 
-        // Update set state
+        val setBeforeUpdate = _selectedExerciseSets.value.find { it.id == setId }
+        val wasCompleted = setBeforeUpdate?.isCompleted == true
+        val exerciseLog =
+            setBeforeUpdate?.let {
+                _selectedWorkoutExercises.value.find { ex -> ex.id == it.exerciseLogId }
+            }
+
         val timestamp = if (completed) LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) else null
         val updatedSets = updateSetState(setId, completed, timestamp)
 
-        // Update workout status if needed
         updateWorkoutStatusIfNeeded(setId, completed)
-
-        // Persist to database
         repository.markSetCompleted(setId, completed, timestamp)
 
-        // Handle post-completion actions
         if (completed) {
             handleSetCompletion(setId, updatedSets)
+        } else if (wasCompleted && exerciseLog != null) {
+            handleSetUncompletion(setId, exerciseLog.exerciseId, updatedSets)
         }
 
         loadInProgressWorkouts()
     }
 
-    /**
-     * Completes multiple sets in a batch, checking for PRs once at the end
-     */
     private suspend fun completeSetsInBatch(
         setsToComplete: List<SetLog>,
     ) {
@@ -1377,26 +1377,27 @@ class WorkoutViewModel(
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         val completedSetIds = mutableListOf<String>()
 
-        // Step 1: Update all sets in local state and database
+        val previous1RMs = mutableMapOf<String, Float?>()
         for (set in setsToComplete) {
-            // Validate
+            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }
+            exerciseLog?.exerciseId?.let { exerciseId ->
+                if (!previous1RMs.containsKey(exerciseId)) {
+                    previous1RMs[exerciseId] = _oneRMEstimates.value[exerciseId]
+                }
+            }
+        }
+
+        for (set in setsToComplete) {
             if (!validateSetCompletion(set.id, true)) continue
-
-            // Update local state
             updateSetState(set.id, true, timestamp)
-
-            // Persist to database
             repository.markSetCompleted(set.id, true, timestamp)
-
             completedSetIds.add(set.id)
         }
 
         if (completedSetIds.isEmpty()) return
 
-        // Step 2: Update workout status once
         updateWorkoutStatusIfNeeded(completedSetIds.first(), true)
 
-        // Step 3: Start timers once (use the last set's RPE for rest timer)
         val lastCompletedSet = setsToComplete.lastOrNull()
         if (lastCompletedSet != null) {
             val exerciseLog = _selectedWorkoutExercises.value.find { it.id == lastCompletedSet.exerciseLogId }
@@ -1416,32 +1417,39 @@ class WorkoutViewModel(
             }
         }
 
-        // Step 4: Group sets by exercise for batch 1RM processing
         val completedSets =
             completedSetIds.mapNotNull { setId ->
                 _selectedExerciseSets.value.find { it.id == setId }
             }
 
-        // Group sets by exercise using the batch service
         val setsByExercise =
             batchCompletionService.groupSetsByExercise(completedSets) { set ->
                 _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }?.exerciseId
             }
 
-        // Step 5: Process 1RM updates - one per exercise with the best set
+        val firstCompletedPerExercise = mutableMapOf<String, String>()
         for ((exerciseId, exerciseSets) in setsByExercise) {
-            // Get exercise variation to determine scaling type for this exercise
+            val exerciseLogId = exerciseSets.firstOrNull()?.exerciseLogId ?: continue
+            val allExerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }
+            val previouslyCompletedCount =
+                allExerciseSets.count {
+                    it.isCompleted && it.id !in completedSetIds
+                }
+            if (previouslyCompletedCount == 0) {
+                firstCompletedPerExercise[exerciseId] = exerciseSets.first().id
+                repository.incrementExerciseUsageCount(exerciseId)
+            }
+        }
+
+        for ((exerciseId, exerciseSets) in setsByExercise) {
             val exerciseVariation = repository.getExerciseById(exerciseId)
             val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
 
-            // Find the best set for 1RM update
             val bestSet =
                 batchCompletionService.findBestSetForOneRM(exerciseSets) { set ->
-                    // Calculate estimated 1RM for this set
                     oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType)
                 }
 
-            // Update 1RM with the best set only
             if (bestSet != null) {
                 val currentEstimate = _oneRMEstimates.value[exerciseId]
                 val newEstimate =
@@ -1464,7 +1472,6 @@ class WorkoutViewModel(
             }
         }
 
-        // Step 6: Check for PRs for each completed set
         val allPRs = mutableListOf<PersonalRecord>()
         val exerciseIds = mutableSetOf<String>()
 
@@ -1474,14 +1481,11 @@ class WorkoutViewModel(
 
             exerciseIds.add(exerciseLog.exerciseId)
 
-            // Collect PRs
             val setPRs = repository.checkForPR(completedSet, exerciseLog.exerciseId)
             allPRs.addAll(setPRs)
         }
 
-        // Step 7: Show PR celebration once with all PRs
         if (allPRs.isNotEmpty()) {
-            // Ensure exercise names are available
             for (exerciseId in exerciseIds) {
                 val exerciseName = repository.getExerciseById(exerciseId)?.name
                 if (exerciseName != null) {
@@ -1491,7 +1495,6 @@ class WorkoutViewModel(
                 }
             }
 
-            // Use the service to filter and keep only the best PR per exercise
             val bestPRsByExercise = batchCompletionService.filterBestPRsPerExercise(allPRs)
 
             CloudLogger.debug(TAG, "Batch completion found ${allPRs.size} PRs, showing ${bestPRsByExercise.size} best PRs")
@@ -1503,7 +1506,6 @@ class WorkoutViewModel(
                 )
         }
 
-        // Step 6: Update 1RM estimates
         for (setId in completedSetIds) {
             val completedSet = _selectedExerciseSets.value.find { it.id == setId } ?: continue
             val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId } ?: continue
@@ -1522,6 +1524,13 @@ class WorkoutViewModel(
             if (newEstimate != null) {
                 _oneRMEstimates.value = _oneRMEstimates.value + (exerciseLog.exerciseId to newEstimate)
             }
+
+            val triggeredUsage = firstCompletedPerExercise[exerciseLog.exerciseId] == setId
+            repository.updateSetCompletionTracking(
+                setId = setId,
+                triggeredUsage = triggeredUsage,
+                previous1RM = previous1RMs[exerciseLog.exerciseId],
+            )
         }
     }
 
@@ -1572,10 +1581,23 @@ class WorkoutViewModel(
         updatedSets: List<SetLog>,
     ) {
         val completedSet = _selectedExerciseSets.value.find { it.id == setId }
+        val exerciseLog =
+            completedSet?.let {
+                _selectedWorkoutExercises.value.find { ex -> ex.id == it.exerciseLogId }
+            }
+
+        val isFirstCompletedSetForExercise =
+            if (exerciseLog != null) {
+                val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLog.id }
+                exerciseSets.count { it.isCompleted } == 1
+            } else {
+                false
+            }
+
+        val previous1RM = exerciseLog?.exerciseId?.let { _oneRMEstimates.value[it] }
 
         val restDuration =
             if (completedSet != null) {
-                val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId }
                 val exerciseVariation =
                     exerciseLog?.exerciseId?.let {
                         repository.getExerciseById(it)
@@ -1598,14 +1620,65 @@ class WorkoutViewModel(
             startWorkoutTimer()
         }
 
-        // Check for PRs
         checkForPersonalRecords(setId, updatedSets)
-
-        // Update 1RM estimates
         updateOneRMEstimate(setId, updatedSets)
 
-        // Auto-collapse if all sets completed
+        if (isFirstCompletedSetForExercise && exerciseLog != null) {
+            CloudLogger.info(TAG, "First completed set for exercise ${exerciseLog.exerciseId} - incrementing usage count")
+            repository.incrementExerciseUsageCount(exerciseLog.exerciseId)
+        }
+
+        CloudLogger.debug(
+            TAG,
+            "Storing completion tracking - setId: $setId, triggeredUsage: $isFirstCompletedSetForExercise, previous1RM: $previous1RM",
+        )
+        repository.updateSetCompletionTracking(
+            setId = setId,
+            triggeredUsage = isFirstCompletedSetForExercise,
+            previous1RM = previous1RM,
+        )
+
         autoCollapseExerciseIfComplete(setId, updatedSets)
+    }
+
+    private suspend fun handleSetUncompletion(
+        setId: String,
+        exerciseId: String,
+        updatedSets: List<SetLog>,
+    ) {
+        CloudLogger.info(TAG, "Handling set uncompletion - setId: $setId, exerciseId: $exerciseId")
+
+        val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
+        val remainingCompletedSetsForExercise =
+            updatedSets.filter {
+                it.exerciseLogId == exerciseLogId && it.isCompleted && it.id != setId
+            }
+
+        val preview = repository.previewSetUndo(setId, remainingCompletedSetsForExercise)
+
+        if (preview.prCount > 0) {
+            CloudLogger.warn(TAG, "Undoing set completion will delete ${preview.prCount} PR(s)")
+        }
+
+        val result = repository.undoSetCompletion(setId, exerciseId, remainingCompletedSetsForExercise)
+
+        CloudLogger.info(
+            TAG,
+            "Set uncompletion result: PRs deleted=${result.prsDeleted}, " +
+                "1RM restored=${result.oneRMRestored}, usage decremented=${result.usageDecremented}",
+        )
+
+        if (result.oneRMRestored) {
+            loadOneRMEstimatesForCurrentExercises()
+        }
+
+        if (result.prsDeleted > 0) {
+            val remainingPRs =
+                _workoutState.value.pendingPRs.filterNot { pr ->
+                    pr.sourceSetId == setId
+                }
+            _workoutState.value = _workoutState.value.copy(pendingPRs = remainingPRs)
+        }
     }
 
     private suspend fun checkForPersonalRecords(

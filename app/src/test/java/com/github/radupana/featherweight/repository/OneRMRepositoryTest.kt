@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -35,6 +36,7 @@ class OneRMRepositoryTest {
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
     private lateinit var application: Application
     private lateinit var authManager: AuthenticationManager
+    private lateinit var firestoreRepository: FirestoreRepository
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
@@ -51,6 +53,7 @@ class OneRMRepositoryTest {
         exerciseDao = mockk()
         userExerciseUsageDao = mockk()
         authManager = mockk(relaxed = true)
+        firestoreRepository = mockk(relaxed = true)
         every { authManager.getCurrentUserId() } returns "test-user"
 
         // Setup database to return DAOs
@@ -59,7 +62,7 @@ class OneRMRepositoryTest {
         every { database.userExerciseUsageDao() } returns userExerciseUsageDao
 
         // Create repository with mocked dependencies
-        repository = OneRMRepository(application, authManager, testDispatcher, database)
+        repository = OneRMRepository(application, authManager, testDispatcher, database, firestoreRepository)
     }
 
     @Test
@@ -172,6 +175,7 @@ class OneRMRepositoryTest {
         runTest(testDispatcher) {
             // Given
             val exerciseId = "1"
+            coEvery { oneRMDao.getAllMaxesForExercise(exerciseId, "test-user") } returns emptyList()
             coEvery { oneRMDao.deleteAllForExercise(exerciseId, "test-user") } returns Unit
 
             // When
@@ -240,7 +244,7 @@ class OneRMRepositoryTest {
             coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns null
             coEvery { exerciseDao.getExerciseById(exerciseId) } returns exercise
             coEvery { oneRMDao.insert(any()) } just runs
-            coEvery { oneRMDao.insert(any()) } just runs
+            coEvery { oneRMDao.getBySourceSetId(any()) } returns null
 
             // When
             repository.updateOrInsertOneRM(newRecord)
@@ -250,7 +254,6 @@ class OneRMRepositoryTest {
             val capturedRecord = slot<ExerciseMaxTracking>()
             coVerify { oneRMDao.insert(capture(capturedRecord)) }
             assertThat(capturedRecord.captured.oneRMEstimate).isEqualTo(100f)
-            coVerify { oneRMDao.insert(any()) }
         }
 
     @Test
@@ -274,7 +277,150 @@ class OneRMRepositoryTest {
             assertThat(pendingUpdates.find { it.exerciseId == "2" }?.suggestedMax).isEqualTo(90f)
         }
 
+    @Test
+    fun `updateOrInsertOneRM should preserve sourceSetId when inserting`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val sourceSetId = "set-123"
+            val newRecord = createOneRMTrackingWithSourceSetId(exerciseId, 100f, sourceSetId)
+            val exercise = createExercise(exerciseId, "Barbell Squat")
+
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exercise
+            coEvery { oneRMDao.insert(any()) } just runs
+            coEvery { oneRMDao.getBySourceSetId(sourceSetId) } returns newRecord
+
+            // When
+            repository.updateOrInsertOneRM(newRecord)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            val capturedRecord = slot<ExerciseMaxTracking>()
+            coVerify { oneRMDao.insert(capture(capturedRecord)) }
+            assertThat(capturedRecord.captured.sourceSetId).isEqualTo(sourceSetId)
+        }
+
+    @Test
+    fun `updateOrInsertOneRM should preserve sourceSetId when updating existing record`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val sourceSetId = "set-456"
+            val existingMax = createOneRMTracking(exerciseId, 100f).copy(id = "existing-id")
+            val newRecord = createOneRMTrackingWithSourceSetId(exerciseId, 120f, sourceSetId)
+            val exercise = createExercise(exerciseId, "Barbell Deadlift")
+
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns existingMax
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exercise
+            coEvery { oneRMDao.update(any()) } just runs
+
+            // When
+            repository.updateOrInsertOneRM(newRecord)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            val capturedRecord = slot<ExerciseMaxTracking>()
+            coVerify { oneRMDao.update(capture(capturedRecord)) }
+            assertThat(capturedRecord.captured.sourceSetId).isEqualTo(sourceSetId)
+            assertThat(capturedRecord.captured.id).isEqualTo("existing-id")
+        }
+
+    @Test
+    fun `updateOrInsertOneRM should use auth userId not record userId`() =
+        runTest(testDispatcher) {
+            // Given - record has different userId than auth manager
+            val exerciseId = "1"
+            val newRecord =
+                createOneRMTracking(exerciseId, 100f).copy(
+                    userId = "different-user",
+                    sourceSetId = "set-789",
+                )
+            val exercise = createExercise(exerciseId, "Barbell Bench Press")
+
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exercise
+            coEvery { oneRMDao.insert(any()) } just runs
+            coEvery { oneRMDao.getBySourceSetId("set-789") } returns newRecord.copy(userId = "test-user")
+
+            // When
+            repository.updateOrInsertOneRM(newRecord)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then - the inserted record should use auth manager's userId, not the record's userId
+            val capturedRecord = slot<ExerciseMaxTracking>()
+            coVerify { oneRMDao.insert(capture(capturedRecord)) }
+            assertThat(capturedRecord.captured.userId).isEqualTo("test-user")
+        }
+
+    @Test
+    fun `deleteAllMaxesForExercise should sync to Firestore for authenticated user`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val maxesToDelete =
+                listOf(
+                    createOneRMTracking(exerciseId, 100f).copy(id = "max-1"),
+                    createOneRMTracking(exerciseId, 120f).copy(id = "max-2"),
+                )
+
+            coEvery { oneRMDao.getAllMaxesForExercise(exerciseId, "test-user") } returns maxesToDelete
+            coEvery { oneRMDao.deleteAllForExercise(exerciseId, "test-user") } just runs
+            coEvery { firestoreRepository.deleteExerciseMaxes("test-user", listOf("max-1", "max-2")) } returns Result.success(Unit)
+
+            // When
+            repository.deleteAllMaxesForExercise(exerciseId)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            coVerify { oneRMDao.deleteAllForExercise(exerciseId, "test-user") }
+            coVerify { firestoreRepository.deleteExerciseMaxes("test-user", listOf("max-1", "max-2")) }
+        }
+
+    @Test
+    fun `deleteAllMaxesForExercise should not sync to Firestore for local user`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            every { authManager.getCurrentUserId() } returns "local"
+
+            // Re-create repository with local user
+            repository = OneRMRepository(application, authManager, testDispatcher, database, firestoreRepository)
+
+            coEvery { oneRMDao.getAllMaxesForExercise(exerciseId, "local") } returns emptyList()
+            coEvery { oneRMDao.deleteAllForExercise(exerciseId, "local") } just runs
+
+            // When
+            repository.deleteAllMaxesForExercise(exerciseId)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            coVerify { oneRMDao.deleteAllForExercise(exerciseId, "local") }
+            coVerify(exactly = 0) { firestoreRepository.deleteExerciseMaxes(any(), any()) }
+        }
+
     // Helper functions
+    private fun createOneRMTrackingWithSourceSetId(
+        exerciseId: String,
+        oneRMEstimate: Float,
+        sourceSetId: String,
+    ) = ExerciseMaxTracking(
+        id = "0",
+        userId = "test-user",
+        exerciseId = exerciseId,
+        oneRMEstimate = oneRMEstimate,
+        context = "Test context",
+        sourceSetId = sourceSetId,
+        oneRMConfidence = 0.9f,
+        recordedAt = LocalDateTime.now(),
+        mostWeightLifted = oneRMEstimate * 0.9f,
+        mostWeightReps = 3,
+        mostWeightRpe = null,
+        mostWeightDate = LocalDateTime.now(),
+        oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+        notes = null,
+    )
+
     private fun createPendingOneRMUpdate(
         exerciseId: String,
         currentMax: Float?,

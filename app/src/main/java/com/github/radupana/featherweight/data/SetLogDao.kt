@@ -30,6 +30,25 @@ interface SetLogDao {
         completedAt: String?,
     )
 
+    @Query(
+        """
+        UPDATE set_logs
+        SET triggeredUsageIncrement = :triggered, previous1RMEstimate = :previous1RM
+        WHERE id = :setId
+        """,
+    )
+    suspend fun updateCompletionTracking(
+        setId: String,
+        triggered: Boolean,
+        previous1RM: Float?,
+    )
+
+    @Query("SELECT triggeredUsageIncrement FROM set_logs WHERE id = :setId")
+    suspend fun didSetTriggerUsageIncrement(setId: String): Boolean?
+
+    @Query("SELECT previous1RMEstimate FROM set_logs WHERE id = :setId")
+    suspend fun getPrevious1RMEstimate(setId: String): Float?
+
     @Update
     suspend fun updateSetLog(setLog: SetLog)
 

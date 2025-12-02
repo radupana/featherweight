@@ -235,6 +235,15 @@ interface ExerciseMaxTrackingDao {
     ): List<ExerciseMaxTracking>
 
     /**
+     * Get all records for a specific exercise (for Firestore sync before deletion).
+     */
+    @Query("SELECT * FROM exercise_max_history WHERE exerciseId = :exerciseId AND userId = :userId")
+    suspend fun getAllMaxesForExercise(
+        exerciseId: String,
+        userId: String,
+    ): List<ExerciseMaxTracking>
+
+    /**
      * Delete all records for a specific exercise.
      */
     @Query("DELETE FROM exercise_max_history WHERE exerciseId = :exerciseId AND userId = :userId")
@@ -357,9 +366,26 @@ interface ExerciseMaxTrackingDao {
         }
     }
 
-    /**
-     * Round all 1RM estimate values to nearest quarter.
-     */
+    @Query("DELETE FROM exercise_max_history WHERE sourceSetId = :setId")
+    suspend fun deleteBySourceSetId(setId: String): Int
+
+    @Query("SELECT * FROM exercise_max_history WHERE sourceSetId = :setId LIMIT 1")
+    suspend fun getBySourceSetId(setId: String): ExerciseMaxTracking?
+
+    @Query(
+        """
+        SELECT * FROM exercise_max_history
+        WHERE exerciseId = :exerciseId AND userId = :userId AND sourceSetId != :excludeSetId
+        ORDER BY recordedAt DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getPreviousMaxExcludingSet(
+        exerciseId: String,
+        userId: String,
+        excludeSetId: String,
+    ): ExerciseMaxTracking?
+
     @Query(
         """
         UPDATE exercise_max_history
