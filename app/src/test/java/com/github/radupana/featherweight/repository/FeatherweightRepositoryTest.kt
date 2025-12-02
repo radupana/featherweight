@@ -24,6 +24,7 @@ import com.github.radupana.featherweight.data.programme.WorkoutDeviation
 import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
 import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.common.truth.Truth.assertThat
 import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.Runs
@@ -35,7 +36,6 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -52,6 +52,7 @@ class FeatherweightRepositoryTest {
     private lateinit var setLogDao: SetLogDao
     private lateinit var workoutDeviationDao: WorkoutDeviationDao
     private lateinit var exerciseDao: ExerciseDao
+    private lateinit var authManager: AuthenticationManager
 
     @Before
     fun setup() {
@@ -75,6 +76,10 @@ class FeatherweightRepositoryTest {
         setLogDao = mockk(relaxed = true)
         workoutDeviationDao = mockk(relaxed = true)
         exerciseDao = mockk(relaxed = true)
+        authManager = mockk(relaxed = true)
+
+        // Return "local" to skip Firestore sync in tests
+        every { authManager.getCurrentUserId() } returns "local"
 
         every { database.programmeDao() } returns programmeDao
         every { database.workoutDao() } returns workoutDao
@@ -83,7 +88,7 @@ class FeatherweightRepositoryTest {
         every { database.workoutDeviationDao() } returns workoutDeviationDao
         every { database.exerciseDao() } returns exerciseDao
 
-        repository = FeatherweightRepository(application, database, mockk(relaxed = true))
+        repository = FeatherweightRepository(application, database, authManager)
     }
 
     @After
@@ -114,7 +119,7 @@ class FeatherweightRepositoryTest {
 
     @Test
     fun `deleteProgramme with deleteWorkouts true removes workouts and programme`() =
-        runBlocking {
+        runTest {
             val programme = createProgramme(id = "prog1", name = "Test Programme", isActive = false)
 
             // Mock the new methods required for Firestore sync
@@ -134,9 +139,8 @@ class FeatherweightRepositoryTest {
 
     @Test
     fun `deleteProgramme with deleteWorkouts true deactivates active programme first`() =
-        runBlocking {
+        runTest {
             val activeProgramme = createProgramme(id = "prog1", name = "Active Programme", isActive = true)
-
             // Mock the new methods required for Firestore sync
             coEvery { programmeDao.getWeeksForProgramme(any()) } returns emptyList()
             coEvery { programmeDao.getAllWorkoutsForProgramme(any()) } returns emptyList()

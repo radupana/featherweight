@@ -159,9 +159,11 @@ fun SetRow(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.fillMaxSize(),
                         ) {
+                            // Show "0" for bodyweight exercises where actualWeight is pre-populated from target
+                            val isBodyweightPrePopulated = set.actualWeight == 0f && set.targetWeight == 0f
                             Text(
                                 text =
-                                    if (set.actualWeight > 0) {
+                                    if (set.actualWeight > 0 || isBodyweightPrePopulated) {
                                         WeightFormatter.formatWeightWithUnit(set.actualWeight)
                                     } else {
                                         "—"

@@ -800,7 +800,8 @@ class WorkoutViewModel(
                 set.actualReps > 0
             } else {
                 // For exercises that require weight, check both actualReps and actualWeight
-                set.actualReps > 0 && set.actualWeight > 0
+                // Use >= 0 to support bodyweight exercises where weight can be 0
+                set.actualReps > 0 && set.actualWeight >= 0
             }
 
         return result

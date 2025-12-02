@@ -227,188 +227,28 @@ class ImportProgrammeViewModel(
         exerciseName: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
-        val nameLower = exerciseName.lowercase().trim()
         CloudLogger.debug("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
-        CloudLogger.debug("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
+        CloudLogger.debug(
+            "ImportProgrammeViewModel",
+            "Looking for: '$exerciseName' (normalized: '${exerciseName.lowercase().trim()}')",
+        )
 
-        // Try matching strategies in order of preference
         val matchedId =
-            tryExactNameMatch(nameLower, allExercises)
-                ?: tryExactAliasMatch(nameLower, allExercises)
-                ?: tryImportantWordsMatch(nameLower, allExercises)
-                ?: tryVariationMatch(nameLower, allExercises)
-                ?: tryNormalizedMatch(nameLower, allExercises)
-                ?: tryEquipmentStrippedMatch(nameLower, allExercises)
-                ?: tryAbbreviationMatch(nameLower, allExercises)
+            com.github.radupana.featherweight.util.ExerciseMatchingService
+                .findBestExerciseMatch(exerciseName, allExercises)
 
-        if (matchedId == null) {
+        if (matchedId != null) {
+            val matchedExercise = allExercises.find { it.id == matchedId }
+            CloudLogger.debug(
+                "ImportProgrammeViewModel",
+                "Match found: ${matchedExercise?.name} (ID: $matchedId)",
+            )
+        } else {
             CloudLogger.debug("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
         }
         CloudLogger.debug("ImportProgrammeViewModel", "=== EXERCISE MATCHING END ===")
         return matchedId
     }
-
-    private fun tryExactNameMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? =
-        allExercises.find { it.name.lowercase() == nameLower }?.let {
-            CloudLogger.debug("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
-            it.id
-        }
-
-    private fun tryExactAliasMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? =
-        allExercises
-            .find { exercise ->
-                exercise.aliases.any { alias -> alias.lowercase() == nameLower }
-            }?.let {
-                CloudLogger.debug("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
-                it.id
-            }
-
-    private fun tryImportantWordsMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? {
-        val inputEquipment = extractEquipment(nameLower)
-        val importantWords = nameLower.split(" ").filter { it.length > 2 }
-
-        return allExercises
-            .find { exercise ->
-                val exerciseLower = exercise.name.lowercase()
-                val exerciseEquipment = extractEquipment(exerciseLower)
-                val equipmentOk = isEquipmentCompatible(inputEquipment, exerciseEquipment)
-                equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
-            }?.let {
-                CloudLogger.debug("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
-                it.id
-            }
-    }
-
-    private fun isEquipmentCompatible(
-        inputEquipment: String?,
-        exerciseEquipment: String?,
-    ): Boolean =
-        when {
-            inputEquipment == null || exerciseEquipment == null -> true
-            inputEquipment == exerciseEquipment -> true
-            inputEquipment == "dumbbell" && exerciseEquipment == "barbell" -> false
-            inputEquipment == "barbell" && exerciseEquipment == "dumbbell" -> false
-            else -> true
-        }
-
-    private fun tryVariationMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? {
-        if (!nameLower.contains(" or ")) return null
-
-        val variations = nameLower.split(" or ")
-        for (variation in variations) {
-            val varTrimmed = variation.trim()
-            allExercises
-                .find { exercise ->
-                    exercise.name.lowercase().contains(varTrimmed)
-                }?.let { return it.id }
-        }
-        return null
-    }
-
-    private fun tryNormalizedMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? {
-        val nameWithVariations = nameLower.replace("weighted ", "").trim()
-        return allExercises
-            .find {
-                it.name.lowercase().contains(nameWithVariations)
-            }?.id
-    }
-
-    private fun tryEquipmentStrippedMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? {
-        val nameWithoutEquipment = stripEquipmentFromName(nameLower)
-
-        // Special handling for cable exercises
-        if (nameLower.startsWith("cable ")) {
-            return allExercises
-                .find { exercise ->
-                    val exName = exercise.name.lowercase()
-                    exName.startsWith("cable ") &&
-                        exName.removePrefix("cable ").trim() == nameWithoutEquipment
-                }?.id
-        }
-
-        // For non-cable exercises, try to find exercise that ends with the core movement
-        return allExercises
-            .find {
-                it.name.lowercase().endsWith(nameWithoutEquipment)
-            }?.id
-    }
-
-    private fun tryAbbreviationMatch(
-        nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
-    ): String? {
-        val normalizedName = normalizeExerciseName(nameLower)
-        return allExercises
-            .find {
-                normalizeExerciseName(it.name.lowercase()) == normalizedName
-            }?.let {
-                CloudLogger.debug("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
-                it.id
-            }
-    }
-
-    private fun stripEquipmentFromName(name: String): String =
-        name
-            .replace("barbell ", "")
-            .replace("dumbbell ", "")
-            .replace("db ", "")
-            .replace("cable ", "")
-            .replace("machine ", "")
-            .replace("smith ", "")
-            .replace("kettlebell ", "")
-            .replace("kb ", "")
-            .replace("band ", "")
-            .replace("resistance ", "")
-            .replace("paused ", "")
-            .replace("pin ", "")
-            .trim()
-
-    private fun extractEquipment(exerciseName: String): String? {
-        val name = exerciseName.lowercase()
-        return when {
-            name.startsWith("barbell ") || name.startsWith("bb ") -> "barbell"
-            name.startsWith("dumbbell ") || name.startsWith("db ") -> "dumbbell"
-            name.startsWith("cable ") -> "cable"
-            name.startsWith("machine ") -> "machine"
-            name.startsWith("smith ") -> "smith"
-            name.startsWith("kettlebell ") || name.startsWith("kb ") -> "kettlebell"
-            name.startsWith("band ") || name.startsWith("resistance ") -> "band"
-            name.startsWith("weighted ") -> "weighted"
-            else -> null
-        }
-    }
-
-    private fun normalizeExerciseName(name: String): String =
-        name
-            .replace("ohp", "overhead press")
-            .replace("rdl", "romanian deadlift")
-            .replace("sldl", "stiff leg deadlift")
-            .replace("ghr", "glute ham raise")
-            .replace("db", "dumbbell")
-            .replace("bb", "barbell")
-            .replace("kb", "kettlebell")
-            .replace("&", "and")
-            .replace("-", " ")
-            .replace("  ", " ")
-            .trim()
 
     fun clearAll() {
         _uiState.value = ImportProgrammeUiState() // Reset to initial state

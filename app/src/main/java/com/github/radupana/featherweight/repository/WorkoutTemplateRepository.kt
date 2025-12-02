@@ -171,8 +171,9 @@ class WorkoutTemplateRepository(
                             targetReps = templateSet.targetReps,
                             targetWeight = templateSet.targetWeight,
                             targetRpe = templateSet.targetRpe,
-                            actualReps = 0,
-                            actualWeight = 0f,
+                            actualReps = templateSet.targetReps,
+                            actualWeight = templateSet.targetWeight ?: 0f,
+                            actualRpe = templateSet.targetRpe,
                         )
                     setLogDao.insertSetLog(setLog)
                 }

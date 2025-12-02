@@ -62,18 +62,20 @@ class ProgrammeRPEIntegrationTest {
             coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
 
             // When creating sets from structure (simulating the repository method)
+            // Note: targetWeight is now nullable, actualWeight defaults to targetWeight ?: 0f
             val exerciseLogId = "1"
             exerciseStructure.rpeValues?.forEachIndexed { index, rpeValue ->
+                val targetWeight = exerciseStructure.weights?.getOrNull(index)
                 val setLog =
                     SetLog(
                         exerciseLogId = exerciseLogId,
                         setOrder = index + 1,
                         targetReps = 6,
-                        targetWeight = exerciseStructure.weights?.get(index) ?: 0f,
+                        targetWeight = targetWeight,
                         targetRpe = rpeValue,
-                        actualReps = 0,
-                        actualWeight = 0f,
-                        actualRpe = null,
+                        actualReps = 6,
+                        actualWeight = targetWeight ?: 0f,
+                        actualRpe = rpeValue,
                     )
                 setLogDao.insertSetLog(setLog)
             }
@@ -110,19 +112,23 @@ class ProgrammeRPEIntegrationTest {
             coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
 
             // When creating sets
+            // Note: targetWeight is now nullable, actualWeight defaults to targetWeight ?: 0f
             val exerciseLogId = "2"
             val repsList = (exerciseStructure.reps as RepsStructure.PerSet).values
             repsList.forEachIndexed { index, repsStr ->
+                val targetWeight = exerciseStructure.weights?.getOrNull(index)
+                val targetRpe = exerciseStructure.rpeValues?.getOrNull(index)
+                val targetReps = repsStr.toInt()
                 val setLog =
                     SetLog(
                         exerciseLogId = exerciseLogId,
                         setOrder = index + 1,
-                        targetReps = repsStr.toInt(),
-                        targetWeight = exerciseStructure.weights?.get(index) ?: 0f,
-                        targetRpe = exerciseStructure.rpeValues?.get(index),
-                        actualReps = 0,
-                        actualWeight = 0f,
-                        actualRpe = null,
+                        targetReps = targetReps,
+                        targetWeight = targetWeight,
+                        targetRpe = targetRpe,
+                        actualReps = targetReps,
+                        actualWeight = targetWeight ?: 0f,
+                        actualRpe = targetRpe,
                     )
                 setLogDao.insertSetLog(setLog)
             }
@@ -133,6 +139,51 @@ class ProgrammeRPEIntegrationTest {
             assertThat(capturedSetLogs[1].targetRpe).isNull()
             assertThat(capturedSetLogs[2].targetRpe).isEqualTo(8.0f)
             assertThat(capturedSetLogs[3].targetRpe).isNull()
+        }
+
+    @Test
+    fun `SetLog handles null weights list correctly - targetWeight is null, actualWeight is zero`() =
+        runTest {
+            // Given a workout structure without weights (e.g., bodyweight exercise)
+            val exerciseStructure =
+                ExerciseStructure(
+                    name = "Pull-ups",
+                    sets = 3,
+                    reps = RepsStructure.Single(10),
+                    exerciseId = "3",
+                    weights = null, // No weights specified
+                    rpeValues = listOf(7.0f, 8.0f, 9.0f),
+                )
+
+            // Capture the SetLog insertions
+            val capturedSetLogs = mutableListOf<SetLog>()
+            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
+
+            // When creating sets from structure
+            val exerciseLogId = "3"
+            repeat(exerciseStructure.sets) { index ->
+                val targetWeight = exerciseStructure.weights?.getOrNull(index)
+                val targetRpe = exerciseStructure.rpeValues?.getOrNull(index)
+                val setLog =
+                    SetLog(
+                        exerciseLogId = exerciseLogId,
+                        setOrder = index + 1,
+                        targetReps = 10,
+                        targetWeight = targetWeight, // Should be null
+                        targetRpe = targetRpe,
+                        actualReps = 10,
+                        actualWeight = targetWeight ?: 0f, // Should default to 0f
+                        actualRpe = targetRpe,
+                    )
+                setLogDao.insertSetLog(setLog)
+            }
+
+            // Then verify targetWeight is null and actualWeight is 0
+            assertThat(capturedSetLogs).hasSize(3)
+            capturedSetLogs.forEach { setLog ->
+                assertThat(setLog.targetWeight).isNull()
+                assertThat(setLog.actualWeight).isEqualTo(0f)
+            }
         }
 
     @Test

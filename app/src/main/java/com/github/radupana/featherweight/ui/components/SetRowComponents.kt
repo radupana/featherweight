@@ -276,7 +276,13 @@ private fun WeightInputField(
         var weightValue by remember(set.id) {
             mutableStateOf(
                 TextFieldValue(
-                    text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
+                    // Show "0" for bodyweight exercises where actualWeight is pre-populated from target
+                    text =
+                        if (set.actualWeight > 0 || (set.actualWeight == 0f && set.targetWeight == 0f)) {
+                            WeightFormatter.formatWeight(set.actualWeight)
+                        } else {
+                            ""
+                        },
                     selection = TextRange.Zero,
                 ),
             )
