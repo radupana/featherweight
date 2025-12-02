@@ -117,6 +117,13 @@ fun VoiceInputOverlay(
             contentAlignment = Alignment.Center,
         ) {
             when (state) {
+                is VoiceInputState.Preparing -> {
+                    ProcessingContent(
+                        message = "Preparing...",
+                        partialText = null,
+                        onCancel = onCancel,
+                    )
+                }
                 is VoiceInputState.Listening -> {
                     ListeningContent(
                         amplitude = amplitude,
@@ -662,118 +669,120 @@ fun ExerciseSelectionDialog(
         title = { Text("Select Exercise") },
         text = {
             Column {
-                // Show what was transcribed
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "Heard:",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "\"$spokenName\"",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        if (interpretedName != spokenName) {
-                            Text(
-                                text = "Interpreted as: $interpretedName",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
-                }
-
-                if (suggestions.suggestions.isNotEmpty()) {
-                    Text(
-                        text = "Top matches:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-
-                    suggestions.suggestions.take(5).forEachIndexed { index, result ->
-                        Surface(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onSelect(result.exerciseId, result.exerciseName) },
-                            color = Color.Transparent,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 10.dp),
-                            ) {
-                                // Rank indicator
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(24.dp)
-                                            .background(
-                                                color =
-                                                    if (index == 0 && result.isAutoMatch) {
-                                                        MaterialTheme.colorScheme.primary
-                                                    } else {
-                                                        MaterialTheme.colorScheme.surfaceVariant
-                                                    },
-                                                shape = CircleShape,
-                                            ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "${index + 1}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color =
-                                            if (index == 0 && result.isAutoMatch) {
-                                                MaterialTheme.colorScheme.onPrimary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = result.exerciseName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                if (index == 0 && result.isAutoMatch) {
-                                    Text(
-                                        text = "Best",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                TextButton(
-                    onClick = onSearchExercises,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                TranscriptionCard(spokenName = spokenName, interpretedName = interpretedName)
+                SuggestionsList(suggestions = suggestions, onSelect = onSelect)
+                TextButton(onClick = onSearchExercises, modifier = Modifier.fillMaxWidth()) {
                     Text("Search all exercises...")
                 }
             }
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun TranscriptionCard(
+    spokenName: String,
+    interpretedName: String,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "Heard:",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "\"$spokenName\"",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (interpretedName != spokenName) {
+                Text(
+                    text = "Interpreted as: $interpretedName",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionsList(
+    suggestions: ExerciseMatchSuggestions,
+    onSelect: (String, String) -> Unit,
+) {
+    if (suggestions.suggestions.isEmpty()) return
+
+    Text(
+        text = "Top matches:",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = 8.dp),
+    )
+
+    suggestions.suggestions.take(5).forEachIndexed { index, result ->
+        SuggestionRow(index = index, result = result, onSelect = onSelect)
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+}
+
+@Composable
+private fun SuggestionRow(
+    index: Int,
+    result: ExerciseMatchResult,
+    onSelect: (String, String) -> Unit,
+) {
+    val isTopMatch = index == 0 && result.isAutoMatch
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onSelect(result.exerciseId, result.exerciseName) },
+        color = Color.Transparent,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp)) {
+            RankIndicator(index = index, isTopMatch = isTopMatch)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = result.exerciseName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            if (isTopMatch) {
+                Text(
+                    text = "Best",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RankIndicator(
+    index: Int,
+    isTopMatch: Boolean,
+) {
+    Box(
+        modifier =
+            Modifier
+                .size(24.dp)
+                .background(
+                    color = if (isTopMatch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "${index + 1}",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isTopMatch) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }

@@ -52,9 +52,6 @@ class AudioRecordingService(
         private const val AUDIO_FILE_SUFFIX = ".m4a"
         private const val SAMPLE_RATE = 44100
         private const val BIT_RATE = 128000
-
-        /** Max age for orphaned audio files before cleanup (1 hour) */
-        private const val ORPHAN_FILE_MAX_AGE_MS = 60 * 60 * 1000L
     }
 
     private var mediaRecorder: MediaRecorder? = null
@@ -184,17 +181,22 @@ class AudioRecordingService(
         outputFile = null
     }
 
+    /**
+     * Cleans up ALL orphaned audio files from previous sessions on startup.
+     *
+     * Any voice recording file from a previous session is inherently orphaned
+     * (crashed recording, force-quit app, etc.). Rather than checking file age,
+     * we simply delete all matching files since they're no longer needed.
+     */
     override fun cleanupOrphanedFiles() {
         val cacheDir = context.cacheDir
-        val now = System.currentTimeMillis()
         var deletedCount = 0
 
         cacheDir
             .listFiles()
             ?.filter { file ->
                 file.name.startsWith(AUDIO_FILE_PREFIX) &&
-                    file.name.endsWith(AUDIO_FILE_SUFFIX) &&
-                    (now - file.lastModified()) > ORPHAN_FILE_MAX_AGE_MS
+                    file.name.endsWith(AUDIO_FILE_SUFFIX)
             }?.forEach { file ->
                 if (file.delete()) {
                     deletedCount++

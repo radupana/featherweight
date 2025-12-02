@@ -163,36 +163,74 @@ ${transcription}
 }
 
 /**
- * Call OpenAI to parse the transcription
+ * Delay helper for retry backoff
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if an error is retryable (transient OpenAI errors)
+ */
+function isRetryableError(errorMessage: string): boolean {
+  return errorMessage.includes("403") ||
+         errorMessage.includes("429") ||
+         errorMessage.includes("500") ||
+         errorMessage.includes("502") ||
+         errorMessage.includes("503");
+}
+
+/**
+ * Call OpenAI to parse the transcription with retry logic
  */
 export async function callOpenAI(
   apiKey: string,
   transcription: string,
-  preferredUnit: string
+  preferredUnit: string,
+  maxRetries: number = 3
 ): Promise<ParsedWorkoutResult> {
   const openai = new OpenAI({apiKey});
   const prompt = buildPrompt(transcription, preferredUnit);
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-5-nano",
-    messages: [
-      {
-        role: "system",
-        content: SYSTEM_PROMPT,
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    response_format: {type: "json_object"},
-    max_completion_tokens: 4000,
-  });
+  let lastError: Error | null = null;
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("No content in OpenAI response");
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5-nano",
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: {type: "json_object"},
+        max_completion_tokens: 4000,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No content in OpenAI response");
+      }
+
+      return JSON.parse(content) as ParsedWorkoutResult;
+    } catch (retryError) {
+      lastError = retryError instanceof Error ? retryError : new Error(String(retryError));
+      const errorMessage = lastError.message;
+
+      if (!isRetryableError(errorMessage) || attempt === maxRetries) {
+        throw lastError;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const delayMs = Math.pow(2, attempt - 1) * 1000;
+      await delay(delayMs);
+    }
   }
 
-  return JSON.parse(content) as ParsedWorkoutResult;
+  throw lastError || new Error("Parsing failed after retries");
 }

@@ -47,6 +47,12 @@ class VoiceInputViewModel(
 
     companion object {
         private const val TAG = "VoiceInputViewModel"
+
+        /** Maximum recording duration in milliseconds (2 minutes) */
+        private const val MAX_RECORDING_DURATION_MS = 2 * 60 * 1000L
+
+        /** Amplitude polling interval in milliseconds */
+        private const val AMPLITUDE_POLLING_INTERVAL_MS = 100L
     }
 
     init {
@@ -74,6 +80,7 @@ class VoiceInputViewModel(
     val pendingVoiceExerciseIndex: StateFlow<Int?> = _pendingVoiceExerciseIndex
 
     private var amplitudePollingJob: Job? = null
+    private var maxDurationJob: Job? = null
     private var currentAudioFile: File? = null
     private var preferredWeightUnit: WeightUnit = WeightUnit.KG
 
@@ -83,6 +90,11 @@ class VoiceInputViewModel(
 
     fun startRecording() {
         viewModelScope.launch {
+            // Show preparing state while loading exercises
+            _voiceInputState.value = VoiceInputState.Preparing
+
+            // Block on exercise loading BEFORE starting recording to prevent race condition
+            // where transcription+parsing completes before exercises are loaded
             loadExercisesIfNeeded()
 
             val result = audioRecorder.startRecording()
@@ -91,6 +103,7 @@ class VoiceInputViewModel(
                     currentAudioFile = file
                     _voiceInputState.value = VoiceInputState.Listening
                     startAmplitudePolling()
+                    startMaxDurationTimer()
                     CloudLogger.info(TAG, "Recording started")
                 },
                 onFailure = { error ->
@@ -108,6 +121,7 @@ class VoiceInputViewModel(
     fun stopRecording() {
         viewModelScope.launch {
             stopAmplitudePolling()
+            stopMaxDurationTimer()
 
             val result = audioRecorder.stopRecording()
             result.fold(
@@ -129,6 +143,7 @@ class VoiceInputViewModel(
 
     fun cancelRecording() {
         stopAmplitudePolling()
+        stopMaxDurationTimer()
         audioRecorder.cancelRecording()
         currentAudioFile?.delete()
         currentAudioFile = null
@@ -326,7 +341,7 @@ class VoiceInputViewModel(
                     // microphone animation (10fps) while keeping CPU overhead minimal.
                     // MediaRecorder.getMaxAmplitude() returns the max amplitude since the last
                     // call, so this interval also determines the sampling window.
-                    kotlinx.coroutines.delay(100)
+                    kotlinx.coroutines.delay(AMPLITUDE_POLLING_INTERVAL_MS)
                 }
             }
     }
@@ -337,9 +352,30 @@ class VoiceInputViewModel(
         mutableAmplitude.value = 0
     }
 
+    /**
+     * Starts a timer that automatically stops recording after MAX_RECORDING_DURATION_MS.
+     * This prevents excessive battery drain and ensures reasonable audio file sizes.
+     */
+    private fun startMaxDurationTimer() {
+        maxDurationJob =
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(MAX_RECORDING_DURATION_MS)
+                if (audioRecorder.isRecording()) {
+                    CloudLogger.info(TAG, "Max recording duration reached, auto-stopping")
+                    stopRecording()
+                }
+            }
+    }
+
+    private fun stopMaxDurationTimer() {
+        maxDurationJob?.cancel()
+        maxDurationJob = null
+    }
+
     override fun onCleared() {
         super.onCleared()
         stopAmplitudePolling()
+        stopMaxDurationTimer()
         if (audioRecorder.isRecording()) {
             audioRecorder.cancelRecording()
         }

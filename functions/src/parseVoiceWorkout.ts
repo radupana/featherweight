@@ -196,47 +196,91 @@ export const parseVoiceWorkout = onCall<ParseVoiceWorkoutRequest>(
       const prompt = buildPrompt(request.data.transcription, preferredUnit);
 
       const model = "gpt-5-nano";
-      const completion = await openai.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        response_format: {type: "json_object"},
-        max_completion_tokens: 4000,
-      });
 
-      const content = completion.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error("No content in OpenAI response");
+      // Retry logic for transient OpenAI errors (403, rate limits, 5xx)
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const completion = await openai.chat.completions.create({
+            model,
+            messages: [
+              {
+                role: "system",
+                content: SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            response_format: {type: "json_object"},
+            max_completion_tokens: 4000,
+          });
+
+          const content = completion.choices[0]?.message?.content;
+          if (!content) {
+            throw new Error("No content in OpenAI response");
+          }
+
+          const parsed = JSON.parse(content);
+
+          // 5. Log success
+          const exerciseCount = parsed.exercises?.length || 0;
+          await log.write(log.entry({
+            severity: "INFO",
+            labels: {
+              type: "parse_voice_success",
+              userId,
+            },
+          }, {
+            model,
+            exerciseCount,
+            overallConfidence: parsed.overallConfidence,
+            attempt,
+          }));
+
+          // 6. Return result
+          return {
+            result: parsed,
+          };
+        } catch (retryError) {
+          lastError = retryError instanceof Error ? retryError : new Error(String(retryError));
+          const errorMessage = lastError.message;
+
+          // Log retry attempt
+          await log.write(log.entry({
+            severity: "WARNING",
+            labels: {
+              type: "parse_voice_retry",
+              userId,
+            },
+          }, {
+            attempt,
+            maxRetries,
+            error: errorMessage,
+          }));
+
+          // Only retry on transient errors (403, 429, 5xx)
+          const isRetryable = errorMessage.includes("403") ||
+                             errorMessage.includes("429") ||
+                             errorMessage.includes("500") ||
+                             errorMessage.includes("502") ||
+                             errorMessage.includes("503");
+
+          if (!isRetryable || attempt === maxRetries) {
+            throw lastError;
+          }
+
+          // Exponential backoff: 1s, 2s, 4s
+          const delayMs = Math.pow(2, attempt - 1) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
       }
 
-      const parsed = JSON.parse(content);
-
-      // 5. Log success
-      const exerciseCount = parsed.exercises?.length || 0;
-      await log.write(log.entry({
-        severity: "INFO",
-        labels: {
-          type: "parse_voice_success",
-          userId,
-        },
-      }, {
-        model,
-        exerciseCount,
-        overallConfidence: parsed.overallConfidence,
-      }));
-
-      // 6. Return result
-      return {
-        result: parsed,
-      };
+      // Should never reach here, but TypeScript needs this
+      throw lastError || new Error("Parsing failed after retries");
     } catch (error) {
       await log.write(log.entry({
         severity: "ERROR",

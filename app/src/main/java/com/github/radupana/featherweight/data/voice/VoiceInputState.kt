@@ -3,6 +3,9 @@ package com.github.radupana.featherweight.data.voice
 sealed class VoiceInputState {
     data object Idle : VoiceInputState()
 
+    /** Loading exercises before recording starts */
+    data object Preparing : VoiceInputState()
+
     data object Listening : VoiceInputState()
 
     data class Transcribing(
