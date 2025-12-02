@@ -307,7 +307,7 @@ class VoiceParsingServiceTest {
 
     @Test
     fun `buildRequestBody contains correct model`() {
-        val expectedModel = "gpt-5-mini"
+        val expectedModel = "gpt-5-nano"
 
         val requestBody =
             JsonObject().apply {
@@ -321,7 +321,7 @@ class VoiceParsingServiceTest {
                 )
             }
 
-        assertThat(requestBody.get("model").asString).isEqualTo("gpt-5-mini")
+        assertThat(requestBody.get("model").asString).isEqualTo("gpt-5-nano")
         assertThat(requestBody.get("max_completion_tokens").asInt).isEqualTo(4000)
     }
 
