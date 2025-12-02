@@ -706,7 +706,7 @@ class FeatherweightRepository(
                                         CloudLogger.warn(TAG, "Invalid rep value '$repValue' for exercise '${exerciseStructure.name}', using default 10")
                                         10
                                     }
-                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetWeight = weights?.getOrNull(setIndex)
                                 val targetRpe = rpeList?.getOrNull(setIndex)
 
                                 val setLog =
@@ -718,7 +718,7 @@ class FeatherweightRepository(
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
                                         actualReps = targetReps,
-                                        actualWeight = targetWeight,
+                                        actualWeight = targetWeight ?: 0f,
                                         actualRpe = targetRpe,
                                     )
                                 CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
@@ -727,7 +727,7 @@ class FeatherweightRepository(
                         }
                         is RepsStructure.Range -> {
                             repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetWeight = weights?.getOrNull(setIndex)
                                 val targetRpe = rpeList?.getOrNull(setIndex)
 
                                 val setLog =
@@ -739,7 +739,7 @@ class FeatherweightRepository(
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
                                         actualReps = reps.min,
-                                        actualWeight = targetWeight,
+                                        actualWeight = targetWeight ?: 0f,
                                         actualRpe = targetRpe,
                                     )
                                 setLogDao.insertSetLog(setLog)
@@ -747,7 +747,7 @@ class FeatherweightRepository(
                         }
                         is RepsStructure.Single -> {
                             repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetWeight = weights?.getOrNull(setIndex)
 
                                 val setLog =
                                     SetLog(
@@ -757,7 +757,7 @@ class FeatherweightRepository(
                                         targetReps = reps.value,
                                         targetWeight = targetWeight,
                                         actualReps = reps.value,
-                                        actualWeight = targetWeight,
+                                        actualWeight = targetWeight ?: 0f,
                                     )
                                 setLogDao.insertSetLog(setLog)
                             }
@@ -777,7 +777,7 @@ class FeatherweightRepository(
                             val targetReps = (minReps + maxReps) / 2
 
                             repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetWeight = weights?.getOrNull(setIndex)
                                 val targetRpe = rpeList?.getOrNull(setIndex)
 
                                 val setLog =
@@ -789,7 +789,7 @@ class FeatherweightRepository(
                                         targetWeight = targetWeight,
                                         targetRpe = targetRpe,
                                         actualReps = targetReps,
-                                        actualWeight = targetWeight,
+                                        actualWeight = targetWeight ?: 0f,
                                         actualRpe = targetRpe,
                                     )
                                 CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")

@@ -253,4 +253,84 @@ class SetPrePopulationTest {
             assertThat(capturedSetLog.captured.actualWeight).isEqualTo(0f)
             assertThat(capturedSetLog.captured.actualRpe).isEqualTo(8f)
         }
+
+    @Test
+    fun `startWorkoutFromTemplate pre-populates multiple sets with different weights`() =
+        runTest(testDispatcher) {
+            val templateId = "template1"
+            val template =
+                WorkoutTemplate(
+                    id = templateId,
+                    userId = "test-user",
+                    name = "Multi-set Template",
+                    description = "Test",
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now(),
+                )
+
+            val templateExercise =
+                TemplateExercise(
+                    id = "tex1",
+                    userId = "test-user",
+                    templateId = templateId,
+                    exerciseId = "exercise1",
+                    exerciseOrder = 0,
+                )
+
+            val templateSets =
+                listOf(
+                    TemplateSet(
+                        id = "tset1",
+                        userId = "test-user",
+                        templateExerciseId = "tex1",
+                        setOrder = 1,
+                        targetReps = 5,
+                        targetWeight = 100f,
+                        targetRpe = 7f,
+                    ),
+                    TemplateSet(
+                        id = "tset2",
+                        userId = "test-user",
+                        templateExerciseId = "tex1",
+                        setOrder = 2,
+                        targetReps = 5,
+                        targetWeight = 100f,
+                        targetRpe = 8f,
+                    ),
+                    TemplateSet(
+                        id = "tset3",
+                        userId = "test-user",
+                        templateExerciseId = "tex1",
+                        setOrder = 3,
+                        targetReps = 5,
+                        targetWeight = 100f,
+                        targetRpe = 9f,
+                    ),
+                )
+
+            coEvery { templateDao.getTemplateById(templateId) } returns template
+            coEvery { templateExerciseDao.getExercisesForTemplate(templateId) } returns listOf(templateExercise)
+            coEvery { templateSetDao.getSetsForTemplateExercise("tex1") } returns templateSets
+
+            val capturedSetLogs = mutableListOf<SetLog>()
+            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
+
+            repository.startWorkoutFromTemplate(templateId)
+
+            assertThat(capturedSetLogs).hasSize(3)
+
+            // Verify each set has its target values pre-populated to actual values
+            capturedSetLogs.forEachIndexed { index, setLog ->
+                assertThat(setLog.targetReps).isEqualTo(5)
+                assertThat(setLog.targetWeight).isEqualTo(100f)
+                assertThat(setLog.actualReps).isEqualTo(5)
+                assertThat(setLog.actualWeight).isEqualTo(100f)
+                assertThat(setLog.setOrder).isEqualTo(index + 1)
+            }
+
+            // Verify RPE progression
+            assertThat(capturedSetLogs[0].targetRpe).isEqualTo(7f)
+            assertThat(capturedSetLogs[1].targetRpe).isEqualTo(8f)
+            assertThat(capturedSetLogs[2].targetRpe).isEqualTo(9f)
+        }
 }
