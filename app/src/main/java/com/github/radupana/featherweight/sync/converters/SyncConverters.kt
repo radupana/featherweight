@@ -204,6 +204,8 @@ object SyncConverters {
             notes = setLog.notes,
             isCompleted = setLog.isCompleted,
             completedAt = setLog.completedAt,
+            triggeredUsageIncrement = setLog.triggeredUsageIncrement,
+            previous1RMEstimate = setLog.previous1RMEstimate,
         )
 
     fun fromFirestoreSetLog(firestoreLog: FirestoreSetLog): SetLog =
@@ -222,6 +224,8 @@ object SyncConverters {
             notes = firestoreLog.notes,
             isCompleted = firestoreLog.isCompleted,
             completedAt = firestoreLog.completedAt,
+            triggeredUsageIncrement = firestoreLog.triggeredUsageIncrement,
+            previous1RMEstimate = firestoreLog.previous1RMEstimate,
         )
 
     fun toFirestoreExercise(exercise: Exercise): FirestoreExercise =
@@ -481,6 +485,7 @@ object SyncConverters {
             estimated1RM = record.estimated1RM,
             notes = record.notes,
             workoutId = record.workoutId,
+            sourceSetId = record.sourceSetId,
         )
 
     fun fromFirestorePersonalRecord(firestoreRecord: FirestorePersonalRecord): PersonalRecord =
@@ -501,6 +506,7 @@ object SyncConverters {
             estimated1RM = firestoreRecord.estimated1RM,
             notes = firestoreRecord.notes,
             workoutId = firestoreRecord.workoutId,
+            sourceSetId = firestoreRecord.sourceSetId,
         )
 
     fun toFirestoreExerciseSwapHistory(swap: ExerciseSwapHistory): FirestoreExerciseSwapHistory =

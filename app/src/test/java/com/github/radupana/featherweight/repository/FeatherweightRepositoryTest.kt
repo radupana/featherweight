@@ -35,6 +35,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -64,6 +65,7 @@ class FeatherweightRepositoryTest {
         mockkStatic(FirebaseFirestore::class)
         val firestore = mockk<FirebaseFirestore>(relaxed = true)
         every { FirebaseFirestore.getInstance() } returns firestore
+        every { FirebaseFirestore.getInstance(any<String>()) } returns firestore
 
         application = mockk(relaxed = true)
         database = mockk(relaxed = true)
@@ -112,9 +114,13 @@ class FeatherweightRepositoryTest {
 
     @Test
     fun `deleteProgramme with deleteWorkouts true removes workouts and programme`() =
-        runTest {
+        runBlocking {
             val programme = createProgramme(id = "prog1", name = "Test Programme", isActive = false)
 
+            // Mock the new methods required for Firestore sync
+            coEvery { programmeDao.getWeeksForProgramme(any()) } returns emptyList()
+            coEvery { programmeDao.getAllWorkoutsForProgramme(any()) } returns emptyList()
+            coEvery { programmeDao.getProgressForProgramme(any()) } returns null
             coEvery { workoutDao.deleteWorkoutsByProgramme(any()) } just Runs
             coEvery { programmeDao.deleteProgramme(any()) } just Runs
 
@@ -128,9 +134,13 @@ class FeatherweightRepositoryTest {
 
     @Test
     fun `deleteProgramme with deleteWorkouts true deactivates active programme first`() =
-        runTest {
+        runBlocking {
             val activeProgramme = createProgramme(id = "prog1", name = "Active Programme", isActive = true)
 
+            // Mock the new methods required for Firestore sync
+            coEvery { programmeDao.getWeeksForProgramme(any()) } returns emptyList()
+            coEvery { programmeDao.getAllWorkoutsForProgramme(any()) } returns emptyList()
+            coEvery { programmeDao.getProgressForProgramme(any()) } returns null
             coEvery { programmeDao.deactivateAllProgrammes() } just Runs
             coEvery { workoutDao.deleteWorkoutsByProgramme(any()) } just Runs
             coEvery { programmeDao.deleteProgramme(any()) } just Runs

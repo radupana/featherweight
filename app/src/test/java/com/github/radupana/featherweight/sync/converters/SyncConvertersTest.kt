@@ -242,6 +242,27 @@ class SyncConvertersTest {
     }
 
     @Test
+    fun `toFirestoreSetLog converts undo tracking fields correctly`() {
+        val setLog =
+            SetLog(
+                id = "30",
+                userId = "user123",
+                exerciseLogId = "10",
+                setOrder = 1,
+                actualReps = 5,
+                actualWeight = 100f,
+                isCompleted = true,
+                triggeredUsageIncrement = true,
+                previous1RMEstimate = 95.5f,
+            )
+
+        val result = SyncConverters.toFirestoreSetLog(setLog)
+
+        assertEquals(true, result.triggeredUsageIncrement)
+        assertEquals(95.5f, result.previous1RMEstimate)
+    }
+
+    @Test
     fun `fromFirestoreSetLog converts FirestoreSetLog correctly`() {
         val firestoreLog =
             FirestoreSetLog(
@@ -269,6 +290,27 @@ class SyncConvertersTest {
         assertNull(result.userId)
         assertNull(result.actualRpe)
         assertNull(result.completedAt)
+    }
+
+    @Test
+    fun `fromFirestoreSetLog converts undo tracking fields correctly`() {
+        val firestoreLog =
+            FirestoreSetLog(
+                id = "firebase-id",
+                localId = "35",
+                exerciseLogId = "15",
+                setOrder = 1,
+                actualReps = 5,
+                actualWeight = 100f,
+                isCompleted = true,
+                triggeredUsageIncrement = true,
+                previous1RMEstimate = 95.5f,
+            )
+
+        val result = SyncConverters.fromFirestoreSetLog(firestoreLog)
+
+        assertEquals(true, result.triggeredUsageIncrement)
+        assertEquals(95.5f, result.previous1RMEstimate)
     }
 
     @Test
@@ -430,5 +472,68 @@ class SyncConvertersTest {
                 ?.toInstant()
                 ?.epochSecond,
         )
+    }
+
+    @Test
+    fun `toFirestorePersonalRecord converts sourceSetId correctly`() {
+        val record =
+            com.github.radupana.featherweight.data.PersonalRecord(
+                id = "pr-1",
+                userId = "user123",
+                exerciseId = "exercise-1",
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = null,
+                improvementPercentage = 5.26f,
+                recordType = com.github.radupana.featherweight.data.PRType.WEIGHT,
+                sourceSetId = "set-123",
+            )
+
+        val result = SyncConverters.toFirestorePersonalRecord(record)
+
+        assertEquals("set-123", result.sourceSetId)
+    }
+
+    @Test
+    fun `fromFirestorePersonalRecord converts sourceSetId correctly`() {
+        val firestoreRecord =
+            com.github.radupana.featherweight.sync.models.FirestorePersonalRecord(
+                id = "firebase-id",
+                localId = "pr-2",
+                userId = "user456",
+                exerciseId = "exercise-2",
+                weight = 110f,
+                reps = 3,
+                recordDate = Timestamp.now(),
+                recordType = "WEIGHT",
+                sourceSetId = "set-456",
+            )
+
+        val result = SyncConverters.fromFirestorePersonalRecord(firestoreRecord)
+
+        assertEquals("set-456", result.sourceSetId)
+    }
+
+    @Test
+    fun `fromFirestorePersonalRecord handles null sourceSetId`() {
+        val firestoreRecord =
+            com.github.radupana.featherweight.sync.models.FirestorePersonalRecord(
+                id = "firebase-id",
+                localId = "pr-3",
+                userId = "user789",
+                exerciseId = "exercise-3",
+                weight = 120f,
+                reps = 1,
+                recordDate = Timestamp.now(),
+                recordType = "WEIGHT",
+                sourceSetId = null,
+            )
+
+        val result = SyncConverters.fromFirestorePersonalRecord(firestoreRecord)
+
+        assertNull(result.sourceSetId)
     }
 }

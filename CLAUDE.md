@@ -121,10 +121,9 @@ Compose, Room, and Firebase.
 
 ### Database Rules
 
-- **Version**: Keep at version 1 (no users yet)
-- **Migrations**: Use destructive migrations freely
-- **Direct Modifications**: Change Room entities directly
-- **NO USERS AND NO EXISTING DATA YET**: The app has NO USERS or DATA
+- **Migrations**: Use proper Room migrations for schema changes
+- **Version**: Increment database version with each schema change
+- **Testing**: Test migrations to ensure data integrity
 
 ## Common Commands
 

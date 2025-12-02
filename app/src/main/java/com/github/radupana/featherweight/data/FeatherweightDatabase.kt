@@ -16,6 +16,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsage
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
+import com.github.radupana.featherweight.data.migrations.MIGRATION_1_2
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.data.programme.Programme
@@ -25,7 +26,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.WorkoutDeviation
 import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
-// Removed: SQLCipher imports (DatabaseKeyManager, SupportFactory)
 
 @Database(
     entities = [
@@ -59,7 +59,7 @@ import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
         // Sync metadata
         LocalSyncMetadata::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -122,7 +122,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).build()
+                        ).addMigrations(MIGRATION_1_2)
+                        .build()
 
                 INSTANCE = instance
                 instance

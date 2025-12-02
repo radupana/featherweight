@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,6 +25,7 @@ class CustomExerciseRepository(
     private val exerciseAliasDao: ExerciseAliasDao,
     private val userExerciseUsageDao: UserExerciseUsageDao,
     private val authManager: AuthenticationManager?,
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
 ) {
     companion object {
         private const val TAG = "CustomExerciseRepo"
@@ -199,6 +201,7 @@ class CustomExerciseRepository(
     suspend fun deleteCustomExercise(exerciseId: String): Boolean =
         withContext(Dispatchers.IO) {
             val userId = authManager?.getCurrentUserId() ?: "local"
+            CloudLogger.info(TAG, "deleteCustomExercise called - exerciseId: $exerciseId, userId: $userId")
 
             try {
                 val exercise = exerciseDao.getExerciseById(exerciseId)
@@ -219,8 +222,25 @@ class CustomExerciseRepository(
                     return@withContext false
                 }
 
+                // Delete from Room first
                 exerciseDao.deleteCustomExercise(exerciseId, userId)
-                CloudLogger.debug(TAG, "Deleted custom exercise: ${exercise.name}")
+                CloudLogger.info(TAG, "Successfully deleted custom exercise from Room: ${exercise.name}")
+
+                // Then sync deletion to Firestore
+                if (userId != "local") {
+                    CloudLogger.info(TAG, "Deleting custom exercise from Firestore - exerciseId: $exerciseId")
+                    val result = firestoreRepository.deleteCustomExercise(userId, exerciseId)
+                    if (result.isSuccess) {
+                        CloudLogger.info(TAG, "Successfully deleted custom exercise from Firestore - exerciseId: $exerciseId")
+                    } else {
+                        CloudLogger.error(
+                            TAG,
+                            "Failed to delete custom exercise from Firestore - exerciseId: $exerciseId",
+                            result.exceptionOrNull(),
+                        )
+                    }
+                }
+
                 return@withContext true
             } catch (e: IllegalArgumentException) {
                 CloudLogger.error(TAG, "Failed to delete custom exercise: invalid argument", e)

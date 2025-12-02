@@ -53,6 +53,19 @@ interface UserExerciseUsageDao {
         timestamp: LocalDateTime = LocalDateTime.now(),
     )
 
+    @Query(
+        """
+        UPDATE user_exercise_usage
+        SET usageCount = MAX(0, usageCount - 1), updatedAt = :timestamp
+        WHERE userId = :userId AND exerciseId = :exerciseId
+    """,
+    )
+    suspend fun decrementUsageCount(
+        userId: String,
+        exerciseId: String,
+        timestamp: LocalDateTime = LocalDateTime.now(),
+    )
+
     @Query("DELETE FROM user_exercise_usage WHERE userId = :userId")
     suspend fun deleteAllUsageForUser(userId: String)
 

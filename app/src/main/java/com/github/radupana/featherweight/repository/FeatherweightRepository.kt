@@ -58,6 +58,7 @@ import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.DeviationCalculationService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.service.UndoSetCompletionService
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -299,9 +300,24 @@ class FeatherweightRepository(
     }
 
     suspend fun deleteSetLog(setId: String) {
+        val userId = authManager.getCurrentUserId()
+        CloudLogger.info(TAG, "deleteSetLog called - setId: $setId, userId: $userId")
+
         try {
+            // Delete from Room first
             setLogDao.deleteSetLog(setId)
-            CloudLogger.debug(TAG, "Set log deleted: $setId")
+            CloudLogger.info(TAG, "Successfully deleted set log from Room - setId: $setId")
+
+            // Then sync deletion to Firestore
+            if (userId != null && userId != "local") {
+                CloudLogger.info(TAG, "Deleting set log from Firestore - setId: $setId")
+                val result = firestoreRepository.deleteSetLog(userId, setId)
+                if (result.isSuccess) {
+                    CloudLogger.info(TAG, "Successfully deleted set log from Firestore - setId: $setId")
+                } else {
+                    CloudLogger.error(TAG, "Failed to delete set log from Firestore - setId: $setId", result.exceptionOrNull())
+                }
+            }
         } catch (e: android.database.sqlite.SQLiteException) {
             CloudLogger.error(TAG, "Failed to delete set log: $setId", e)
             throw e
@@ -496,7 +512,25 @@ class FeatherweightRepository(
     suspend fun getSetLogsForExercises(exerciseLogIds: List<String>): List<SetLog> = setLogDao.getSetLogsForExercises(exerciseLogIds)
 
     // Delete an exercise log (will cascade delete all its sets due to foreign key)
-    suspend fun deleteExerciseLog(exerciseLogId: String) = exerciseRepository.deleteExerciseLog(exerciseLogId)
+    suspend fun deleteExerciseLog(exerciseLogId: String) {
+        val userId = authManager.getCurrentUserId()
+        CloudLogger.info(TAG, "deleteExerciseLog called - exerciseLogId: $exerciseLogId, userId: $userId")
+
+        // Delete from Room first
+        exerciseRepository.deleteExerciseLog(exerciseLogId)
+        CloudLogger.info(TAG, "Successfully deleted exercise log from Room - exerciseLogId: $exerciseLogId")
+
+        // Then sync deletion to Firestore
+        if (userId != null && userId != "local") {
+            CloudLogger.info(TAG, "Deleting exercise log from Firestore - exerciseLogId: $exerciseLogId")
+            val result = firestoreRepository.deleteExerciseLog(userId, exerciseLogId)
+            if (result.isSuccess) {
+                CloudLogger.info(TAG, "Successfully deleted exercise log from Firestore - exerciseLogId: $exerciseLogId")
+            } else {
+                CloudLogger.error(TAG, "Failed to delete exercise log from Firestore - exerciseLogId: $exerciseLogId", result.exceptionOrNull())
+            }
+        }
+    }
 
     // Update exercise order
     suspend fun updateExerciseOrder(
@@ -504,8 +538,38 @@ class FeatherweightRepository(
         newOrder: Int,
     ) = exerciseRepository.updateExerciseOrder(exerciseLogId, newOrder)
 
-    // Delete an entire workout (will cascade delete all exercises and sets)
-    suspend fun deleteWorkout(workoutId: String) = workoutRepository.deleteWorkoutById(workoutId)
+    // Delete an entire workout (will cascade delete all exercises and sets from Room AND Firestore)
+    suspend fun deleteWorkout(workoutId: String) {
+        val userId = authManager.getCurrentUserId()
+        CloudLogger.info(TAG, "deleteWorkout called - workoutId: $workoutId, userId: $userId")
+
+        // First, collect IDs for Firestore deletion BEFORE deleting from Room
+        val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+        val exerciseLogIds = exerciseLogs.map { it.id }
+        val setLogIds =
+            exerciseLogs.flatMap { exerciseLog ->
+                setLogDao.getSetLogsForExercise(exerciseLog.id).map { it.id }
+            }
+
+        CloudLogger.info(TAG, "Deleting workout from Room - workoutId: $workoutId, exercises: ${exerciseLogIds.size}, sets: ${setLogIds.size}")
+
+        // Delete from Room first
+        workoutRepository.deleteWorkoutById(workoutId)
+        CloudLogger.info(TAG, "Successfully deleted workout from Room - workoutId: $workoutId")
+
+        // Then delete from Firestore if user is authenticated
+        if (userId != null && userId != "local") {
+            CloudLogger.info(TAG, "Deleting workout from Firestore - workoutId: $workoutId, userId: $userId")
+            val result = firestoreRepository.deleteWorkout(userId, workoutId, exerciseLogIds, setLogIds)
+            if (result.isSuccess) {
+                CloudLogger.info(TAG, "Successfully deleted workout from Firestore - workoutId: $workoutId")
+            } else {
+                CloudLogger.error(TAG, "Failed to delete workout from Firestore - workoutId: $workoutId", result.exceptionOrNull())
+            }
+        } else {
+            CloudLogger.debug(TAG, "Skipping Firestore deletion - user not authenticated or local user")
+        }
+    }
 
     suspend fun calculateAndSaveDeviations(workoutId: String) {
         val service =
@@ -1350,12 +1414,56 @@ class FeatherweightRepository(
         programme: Programme,
         deleteWorkouts: Boolean,
     ) = withContext(Dispatchers.IO) {
+        val userId = authManager.getCurrentUserId()
+        CloudLogger.info(
+            TAG,
+            "deleteProgramme called - programmeId: ${programme.id}, " +
+                "deleteWorkouts: $deleteWorkouts, userId: $userId",
+        )
+
         if (deleteWorkouts) {
+            // Collect IDs for Firestore deletion BEFORE deleting from Room
+            val weeks = programmeDao.getWeeksForProgramme(programme.id)
+            val weekIds = weeks.map { it.id }
+            val workouts = programmeDao.getAllWorkoutsForProgramme(programme.id)
+            val workoutIds = workouts.map { it.id }
+            val progress = programmeDao.getProgressForProgramme(programme.id)
+            val progressIds = if (progress != null) listOf(progress.id) else emptyList()
+
+            CloudLogger.info(
+                TAG,
+                "Deleting programme from Room - programmeId: ${programme.id}, " +
+                    "weeks: ${weekIds.size}, workouts: ${workoutIds.size}, progress: ${progressIds.size}",
+            )
+
             if (programme.isActive) {
                 programmeDao.deactivateAllProgrammes()
             }
             workoutDao.deleteWorkoutsByProgramme(programme.id)
             programmeDao.deleteProgramme(programme)
+            CloudLogger.info(TAG, "Successfully deleted programme from Room - programmeId: ${programme.id}")
+
+            // Then sync deletion to Firestore
+            if (userId != null && userId != "local") {
+                CloudLogger.info(TAG, "Deleting programme from Firestore - programmeId: ${programme.id}")
+                val result =
+                    firestoreRepository.deleteProgramme(
+                        userId,
+                        programme.id,
+                        weekIds,
+                        workoutIds,
+                        progressIds,
+                    )
+                if (result.isSuccess) {
+                    CloudLogger.info(TAG, "Successfully deleted programme from Firestore - programmeId: ${programme.id}")
+                } else {
+                    CloudLogger.error(
+                        TAG,
+                        "Failed to delete programme from Firestore - programmeId: ${programme.id}",
+                        result.exceptionOrNull(),
+                    )
+                }
+            }
         } else {
             val updatedProgramme =
                 programme.copy(
@@ -1364,6 +1472,8 @@ class FeatherweightRepository(
                     startedAt = programme.startedAt ?: LocalDateTime.now(),
                 )
             programmeDao.updateProgramme(updatedProgramme)
+            CloudLogger.info(TAG, "Programme cancelled (not deleted) - programmeId: ${programme.id}")
+            // Note: Cancelled programmes are updated, not deleted, so Firestore will sync on next sync
         }
     }
 
@@ -2451,4 +2561,49 @@ class FeatherweightRepository(
                 exerciseId = exerciseId,
             )
         }
+
+    private val undoSetCompletionService by lazy {
+        UndoSetCompletionService(
+            personalRecordDao,
+            db.exerciseMaxTrackingDao(),
+            userExerciseUsageDao,
+            setLogDao,
+        )
+    }
+
+    suspend fun previewSetUndo(
+        setId: String,
+        remainingCompletedSets: List<SetLog>,
+    ): UndoSetCompletionService.UndoPreview =
+        withContext(Dispatchers.IO) {
+            undoSetCompletionService.previewUndo(setId, remainingCompletedSets)
+        }
+
+    suspend fun undoSetCompletion(
+        setId: String,
+        exerciseId: String,
+        remainingCompletedSets: List<SetLog>,
+    ): UndoSetCompletionService.UndoResult =
+        withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
+            undoSetCompletionService.undoSetCompletion(setId, exerciseId, userId, remainingCompletedSets)
+        }
+
+    suspend fun decrementExerciseUsageCount(exerciseId: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                val userId = authManager.getCurrentUserId() ?: "local"
+                userExerciseUsageDao.decrementUsageCount(userId, exerciseId)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                CloudLogger.error(TAG, "Database error decrementing usage count for exercise $exerciseId", e)
+            }
+        }
+
+    suspend fun updateSetCompletionTracking(
+        setId: String,
+        triggeredUsage: Boolean,
+        previous1RM: Float?,
+    ) = withContext(Dispatchers.IO) {
+        setLogDao.updateCompletionTracking(setId, triggeredUsage, previous1RM)
+    }
 }

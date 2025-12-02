@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.WorkoutTemplate
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.TemplateSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ class WorkoutTemplateRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application),
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
 ) {
     private val templateDao = db.workoutTemplateDao()
     private val templateExerciseDao = db.templateExerciseDao()
@@ -182,7 +184,46 @@ class WorkoutTemplateRepository(
 
     suspend fun deleteTemplate(templateId: String) =
         withContext(ioDispatcher) {
-            CloudLogger.info(TAG, "deleteTemplate - id: $templateId")
+            val userId = authManager.getCurrentUserId()
+            CloudLogger.info(TAG, "deleteTemplate called - templateId: $templateId, userId: $userId")
+
+            // Collect IDs for Firestore deletion BEFORE deleting from Room
+            val templateExercises = templateExerciseDao.getExercisesForTemplate(templateId)
+            val templateExerciseIds = templateExercises.map { it.id }
+            val templateSetIds =
+                templateExercises.flatMap { exercise ->
+                    templateSetDao.getSetsForTemplateExercise(exercise.id).map { it.id }
+                }
+
+            CloudLogger.info(
+                TAG,
+                "Deleting template from Room - templateId: $templateId, " +
+                    "exercises: ${templateExerciseIds.size}, sets: ${templateSetIds.size}",
+            )
+
+            // Delete from Room first (cascade will handle exercises and sets)
             templateDao.deleteTemplate(templateId)
+            CloudLogger.info(TAG, "Successfully deleted template from Room - templateId: $templateId")
+
+            // Then sync deletion to Firestore
+            if (userId != null && userId != "local") {
+                CloudLogger.info(TAG, "Deleting template from Firestore - templateId: $templateId")
+                val result =
+                    firestoreRepository.deleteWorkoutTemplate(
+                        userId,
+                        templateId,
+                        templateExerciseIds,
+                        templateSetIds,
+                    )
+                if (result.isSuccess) {
+                    CloudLogger.info(TAG, "Successfully deleted template from Firestore - templateId: $templateId")
+                } else {
+                    CloudLogger.error(
+                        TAG,
+                        "Failed to delete template from Firestore - templateId: $templateId",
+                        result.exceptionOrNull(),
+                    )
+                }
+            }
         }
 }

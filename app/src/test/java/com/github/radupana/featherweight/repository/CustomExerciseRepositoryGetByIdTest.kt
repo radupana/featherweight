@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -42,6 +43,7 @@ class CustomExerciseRepositoryGetByIdTest {
     private lateinit var exerciseAliasDao: ExerciseAliasDao
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
     private lateinit var authManager: AuthenticationManager
+    private lateinit var firestoreRepository: FirestoreRepository
     private lateinit var repository: CustomExerciseRepository
 
     @Before
@@ -59,6 +61,7 @@ class CustomExerciseRepositoryGetByIdTest {
         exerciseAliasDao = mockk(relaxed = true)
         userExerciseUsageDao = mockk(relaxed = true)
         authManager = mockk(relaxed = true)
+        firestoreRepository = mockk(relaxed = true)
 
         repository =
             CustomExerciseRepository(
@@ -66,6 +69,7 @@ class CustomExerciseRepositoryGetByIdTest {
                 exerciseAliasDao = exerciseAliasDao,
                 userExerciseUsageDao = userExerciseUsageDao,
                 authManager = authManager,
+                firestoreRepository = firestoreRepository,
             )
     }
 

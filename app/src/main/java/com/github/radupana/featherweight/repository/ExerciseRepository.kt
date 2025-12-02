@@ -215,27 +215,7 @@ class ExerciseRepository(
                 exerciseOrder = order,
             )
 
-        val id = insertExerciseLog(exerciseLog)
-
-        // Increment usage count for this exercise (use "local" for unauthenticated users)
-        try {
-            val userId = authManager?.getCurrentUserId() ?: "local"
-            // First ensure the usage record exists
-            userExerciseUsageDao.getOrCreateUsage(
-                userId = userId,
-                exerciseId = exerciseId,
-            )
-            // Now increment the count
-            userExerciseUsageDao.incrementUsageCount(
-                userId = userId,
-                exerciseId = exerciseId,
-                timestamp = LocalDateTime.now(),
-            )
-        } catch (e: SQLiteException) {
-            CloudLogger.error(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
-        }
-
-        return id
+        return insertExerciseLog(exerciseLog)
     }
 
     suspend fun insertExerciseLogWithExerciseReference(
@@ -253,28 +233,8 @@ class ExerciseRepository(
                 notes = notes,
             )
         exerciseLogDao.insertExerciseLog(exerciseLog)
-        val id = exerciseLog.id
-
-        // Increment usage count for this exercise (use "local" for unauthenticated users)
-        try {
-            val userId = authManager?.getCurrentUserId() ?: "local"
-            // First ensure the usage record exists
-            userExerciseUsageDao.getOrCreateUsage(
-                userId = userId,
-                exerciseId = exerciseVariation.id,
-            )
-            // Now increment the count
-            userExerciseUsageDao.incrementUsageCount(
-                userId = userId,
-                exerciseId = exerciseVariation.id,
-                timestamp = LocalDateTime.now(),
-            )
-        } catch (e: SQLiteException) {
-            CloudLogger.error(TAG, "Database error incrementing usage count for exercise ${exerciseVariation.name}", e)
-        }
-
-        CloudLogger.info(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
-        return id
+        CloudLogger.info(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: ${exerciseLog.id}")
+        return exerciseLog.id
     }
 
     suspend fun updateExerciseLog(exerciseLog: ExerciseLog) = exerciseLogDao.update(exerciseLog)

@@ -906,6 +906,288 @@ class FirestoreRepository {
             Result.failure(e)
         }
 
+    /**
+     * Deletes a workout and all its associated exercise logs and set logs from Firestore.
+     * Uses batched writes for efficiency.
+     */
+    suspend fun deleteWorkout(
+        userId: String,
+        workoutId: String,
+        exerciseLogIds: List<String>,
+        setLogIds: List<String>,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting workout $workoutId from Firestore (${exerciseLogIds.size} exercises, ${setLogIds.size} sets)")
+
+            // Use batched writes - Firestore allows max 500 operations per batch
+            val allDeletes = mutableListOf<Pair<String, String>>() // collection to docId
+
+            // Add workout
+            allDeletes.add(WORKOUTS_COLLECTION to workoutId)
+
+            // Add exercise logs
+            exerciseLogIds.forEach { allDeletes.add(EXERCISE_LOGS_COLLECTION to it) }
+
+            // Add set logs
+            setLogIds.forEach { allDeletes.add(SET_LOGS_COLLECTION to it) }
+
+            // Process in batches of 500
+            allDeletes.chunked(BATCH_SIZE).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { (collection, docId) ->
+                    val docRef = userDocument(userId).collection(collection).document(docId)
+                    batch.delete(docRef)
+                }
+                batch.commit().await()
+            }
+
+            CloudLogger.info(TAG, "Successfully deleted workout $workoutId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete workout $workoutId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete workout from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete workout $workoutId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete workout from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a single set log from Firestore.
+     */
+    suspend fun deleteSetLog(
+        userId: String,
+        setLogId: String,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting set log $setLogId from Firestore")
+            userDocument(userId)
+                .collection(SET_LOGS_COLLECTION)
+                .document(setLogId)
+                .delete()
+                .await()
+            CloudLogger.info(TAG, "Successfully deleted set log $setLogId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete set log $setLogId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete set log from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete set log $setLogId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete set log from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a single exercise log from Firestore.
+     */
+    suspend fun deleteExerciseLog(
+        userId: String,
+        exerciseLogId: String,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting exercise log $exerciseLogId from Firestore")
+            userDocument(userId)
+                .collection(EXERCISE_LOGS_COLLECTION)
+                .document(exerciseLogId)
+                .delete()
+                .await()
+            CloudLogger.info(TAG, "Successfully deleted exercise log $exerciseLogId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete exercise log $exerciseLogId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise log from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete exercise log $exerciseLogId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise log from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a workout template and all associated template exercises and sets from Firestore.
+     */
+    suspend fun deleteWorkoutTemplate(
+        userId: String,
+        templateId: String,
+        templateExerciseIds: List<String>,
+        templateSetIds: List<String>,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(
+                TAG,
+                "Deleting template $templateId from Firestore " +
+                    "(${templateExerciseIds.size} exercises, ${templateSetIds.size} sets)",
+            )
+
+            val allDeletes = mutableListOf<Pair<String, String>>()
+            allDeletes.add(WORKOUT_TEMPLATES_COLLECTION to templateId)
+            templateExerciseIds.forEach { allDeletes.add(TEMPLATE_EXERCISES_COLLECTION to it) }
+            templateSetIds.forEach { allDeletes.add(TEMPLATE_SETS_COLLECTION to it) }
+
+            allDeletes.chunked(BATCH_SIZE).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { (collection, docId) ->
+                    val docRef = userDocument(userId).collection(collection).document(docId)
+                    batch.delete(docRef)
+                }
+                batch.commit().await()
+            }
+
+            CloudLogger.info(TAG, "Successfully deleted template $templateId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete template $templateId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete template from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete template $templateId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete template from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a programme and all associated weeks, workouts, and progress from Firestore.
+     */
+    suspend fun deleteProgramme(
+        userId: String,
+        programmeId: String,
+        weekIds: List<String>,
+        workoutIds: List<String>,
+        progressIds: List<String>,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(
+                TAG,
+                "Deleting programme $programmeId from Firestore " +
+                    "(${weekIds.size} weeks, ${workoutIds.size} workouts, ${progressIds.size} progress)",
+            )
+
+            val allDeletes = mutableListOf<Pair<String, String>>()
+            allDeletes.add(PROGRAMMES_COLLECTION to programmeId)
+            weekIds.forEach { allDeletes.add(PROGRAMME_WEEKS_COLLECTION to it) }
+            workoutIds.forEach { allDeletes.add(PROGRAMME_WORKOUTS_COLLECTION to it) }
+            progressIds.forEach { allDeletes.add(PROGRAMME_PROGRESS_COLLECTION to it) }
+
+            allDeletes.chunked(BATCH_SIZE).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { (collection, docId) ->
+                    val docRef = userDocument(userId).collection(collection).document(docId)
+                    batch.delete(docRef)
+                }
+                batch.commit().await()
+            }
+
+            CloudLogger.info(TAG, "Successfully deleted programme $programmeId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete programme $programmeId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete programme from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete programme $programmeId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete programme from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes exercise max tracking records for a specific exercise from Firestore.
+     */
+    suspend fun deleteExerciseMaxes(
+        userId: String,
+        exerciseMaxIds: List<String>,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting ${exerciseMaxIds.size} exercise max records from Firestore")
+
+            exerciseMaxIds.chunked(BATCH_SIZE).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { maxId ->
+                    val docRef = userDocument(userId).collection(USER_EXERCISE_MAXES_COLLECTION).document(maxId)
+                    batch.delete(docRef)
+                }
+                batch.commit().await()
+            }
+
+            CloudLogger.info(TAG, "Successfully deleted ${exerciseMaxIds.size} exercise max records from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete exercise maxes from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise maxes from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete exercise maxes from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise maxes from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes exercise max tracking record by sourceSetId from Firestore.
+     * This is used when undoing a set completion that created a 1RM record.
+     */
+    suspend fun deleteExerciseMaxBySourceSetId(
+        userId: String,
+        exerciseId: String,
+        sourceSetId: String,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting exercise max for exercise $exerciseId with sourceSetId $sourceSetId from Firestore")
+
+            val querySnapshot =
+                userDocument(userId)
+                    .collection(USER_EXERCISE_MAXES_COLLECTION)
+                    .whereEqualTo("exerciseId", exerciseId)
+                    .whereEqualTo("sourceSetId", sourceSetId)
+                    .get()
+                    .await()
+
+            if (querySnapshot.documents.isEmpty()) {
+                CloudLogger.info(TAG, "No exercise max found with sourceSetId $sourceSetId")
+                Result.success(Unit)
+            } else {
+                querySnapshot.documents.forEach { doc ->
+                    doc.reference.delete().await()
+                    CloudLogger.info(TAG, "Deleted exercise max ${doc.id} from Firestore")
+                }
+                Result.success(Unit)
+            }
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete exercise max by sourceSetId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise max by sourceSetId from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete exercise max by sourceSetId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete exercise max by sourceSetId from Firestore failed", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a personal record from Firestore.
+     */
+    suspend fun deletePersonalRecord(
+        userId: String,
+        recordId: String,
+    ): Result<Unit> =
+        try {
+            CloudLogger.info(TAG, "Deleting personal record $recordId from Firestore")
+            userDocument(userId)
+                .collection(PERSONAL_RECORDS_COLLECTION)
+                .document(recordId)
+                .delete()
+                .await()
+            CloudLogger.info(TAG, "Successfully deleted personal record $recordId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error(TAG, "Failed to delete personal record $recordId from Firestore - Firebase error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete personal record from Firestore failed", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            CloudLogger.error(TAG, "Failed to delete personal record $recordId from Firestore - network error", e)
+            ExceptionLogger.logNonCritical(TAG, "Delete personal record from Firestore failed", e)
+            Result.failure(e)
+        }
+
     private suspend inline fun <reified T : Any> downloadBatchedData(
         collection: com.google.firebase.firestore.CollectionReference,
     ): Result<List<T>> =
