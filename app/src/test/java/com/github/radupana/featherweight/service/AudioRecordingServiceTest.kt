@@ -32,6 +32,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = 100
 
                 override fun isRecording(): Boolean = recordingStarted && !recordingStopped
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         val result = mockRecorder.startRecording()
@@ -67,6 +69,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = if (recording) 50 else 0
 
                 override fun isRecording(): Boolean = recording
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         mockRecorder.startRecording()
@@ -100,6 +104,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = if (recording) 100 else 0
 
                 override fun isRecording(): Boolean = recording
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         mockRecorder.startRecording()
@@ -133,6 +139,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = if (recording) 100 else 0
 
                 override fun isRecording(): Boolean = recording
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         assertEquals(0, mockRecorder.getAmplitude())
@@ -154,6 +162,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = 0
 
                 override fun isRecording(): Boolean = false
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         val result = mockRecorder.startRecording()
@@ -187,6 +197,8 @@ class AudioRecordingServiceTest {
                 override fun getAmplitude(): Int = if (recording) 50 else 0
 
                 override fun isRecording(): Boolean = recording
+
+                override fun cleanupOrphanedFiles() = Unit
             }
 
         val result = mockRecorder.stopRecording()
