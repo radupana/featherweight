@@ -200,3 +200,7 @@ export {parseProgram} from "./parseProgram";
 
 // Export the analyzeTraining function
 export {analyzeTraining} from "./analyzeTraining";
+
+// Export voice input functions
+export {transcribeAudio} from "./transcribeAudio";
+export {parseVoiceWorkout} from "./parseVoiceWorkout";

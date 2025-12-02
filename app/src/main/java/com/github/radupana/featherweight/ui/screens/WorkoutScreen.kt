@@ -1,5 +1,9 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,15 +58,18 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -72,12 +79,19 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.data.voice.VoiceInputState
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.ExerciseCard
+import com.github.radupana.featherweight.ui.components.ExerciseSelectionDialog
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
+import com.github.radupana.featherweight.ui.components.VoiceInputButton
+import com.github.radupana.featherweight.ui.components.VoiceInputConfirmationSheet
+import com.github.radupana.featherweight.ui.components.VoiceInputOverlay
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
+import com.github.radupana.featherweight.viewmodel.VoiceInputViewModel
+import com.github.radupana.featherweight.viewmodel.VoiceParsedSetData
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.delay
@@ -97,8 +111,42 @@ fun WorkoutScreen(
     onSaveAsTemplate: (String) -> Unit = {},
     onExportWorkout: (String) -> Unit = {},
     viewModel: WorkoutViewModel = viewModel(),
+    voiceInputViewModel: VoiceInputViewModel = viewModel(),
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
+
+    // Voice input state
+    val voiceInputState by voiceInputViewModel.voiceInputState.collectAsState()
+    val voiceAmplitude by voiceInputViewModel.amplitude.collectAsState()
+    val confirmableExercises by voiceInputViewModel.confirmableExercises.collectAsState()
+    var showExerciseSelectionDialog by remember { mutableStateOf(false) }
+    var selectedExerciseIndexForDialog by remember { mutableIntStateOf(-1) }
+
+    // Microphone permission handling
+    val context = LocalContext.current
+    val micPermissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted ->
+                if (isGranted) {
+                    voiceInputViewModel.startRecording()
+                }
+            },
+        )
+
+    val startVoiceInput: () -> Unit = {
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                voiceInputViewModel.startRecording()
+            }
+            else -> {
+                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
 
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
@@ -229,6 +277,8 @@ fun WorkoutScreen(
                                 viewModel.saveTemplateChanges()
                                 onTemplateSaved()
                             },
+                            onVoiceInput = startVoiceInput,
+                            showVoiceInput = workoutState.mode != WorkoutMode.TEMPLATE_EDIT,
                             modifier = Modifier.padding(16.dp),
                         )
                     }
@@ -250,6 +300,7 @@ fun WorkoutScreen(
                     onSelectExercise = onSelectExercise,
                     onCompleteWorkout = { showCompleteWorkoutDialog = true },
                     onTemplateSaved = onTemplateSaved,
+                    onVoiceInput = startVoiceInput,
                     viewModel = viewModel,
                     modifier = Modifier.weight(1f),
                 )
@@ -298,6 +349,111 @@ fun WorkoutScreen(
         onCurrentNotesChange = { currentNotes = it },
         onShouldNavigateAfterCompletionChange = { shouldNavigateAfterCompletion = it },
     )
+
+    // Voice Input Overlay (shown during recording/processing)
+    VoiceInputOverlay(
+        state = voiceInputState,
+        amplitude = voiceAmplitude,
+        onStopRecording = { voiceInputViewModel.stopRecording() },
+        onCancel = { voiceInputViewModel.cancelRecording() },
+        onRetry = { voiceInputViewModel.retry() },
+        modifier = Modifier.fillMaxSize(),
+    )
+
+    // Voice Input: Auto-add high-confidence exercises without confirmation
+    // Only show confirmation sheet if at least one exercise needs manual confirmation
+    val allExercisesAutoMatched =
+        confirmableExercises.isNotEmpty() &&
+            confirmableExercises.all { it.isConfirmed && it.selectedExerciseId != null }
+
+    LaunchedEffect(voiceInputState, confirmableExercises) {
+        if (voiceInputState is VoiceInputState.Ready && allExercisesAutoMatched) {
+            // All exercises are high-confidence matches - add them directly
+            confirmableExercises.forEach { exercise ->
+                viewModel.addVoiceParsedExercise(
+                    exerciseId = exercise.selectedExerciseId!!,
+                    sets =
+                        exercise.parsedData.sets.map { set ->
+                            VoiceParsedSetData(
+                                reps = set.reps,
+                                weight = set.weight,
+                                rpe = set.rpe,
+                            )
+                        },
+                )
+            }
+            voiceInputViewModel.dismiss()
+        }
+    }
+
+    // Voice Input Confirmation Sheet (shown when exercises need manual confirmation)
+    if (voiceInputState is VoiceInputState.Ready && confirmableExercises.isNotEmpty() && !allExercisesAutoMatched) {
+        val readyState = voiceInputState as VoiceInputState.Ready
+        VoiceInputConfirmationSheet(
+            confirmableExercises = confirmableExercises,
+            transcription = readyState.result.transcription,
+            onExerciseConfirm = { index, exerciseId, exerciseName ->
+                voiceInputViewModel.selectExerciseForParsed(index, exerciseId, exerciseName)
+                voiceInputViewModel.confirmExercise(index)
+            },
+            onExerciseSelect = { index ->
+                selectedExerciseIndexForDialog = index
+                showExerciseSelectionDialog = true
+            },
+            onConfirmAll = {
+                // Add all confirmed exercises to the workout
+                confirmableExercises.filter { it.selectedExerciseId != null }.forEach { exercise ->
+                    viewModel.addVoiceParsedExercise(
+                        exerciseId = exercise.selectedExerciseId!!,
+                        sets =
+                            exercise.parsedData.sets.map { set ->
+                                VoiceParsedSetData(
+                                    reps = set.reps,
+                                    weight = set.weight,
+                                    rpe = set.rpe,
+                                )
+                            },
+                    )
+                }
+                voiceInputViewModel.dismiss()
+            },
+            onDismiss = { voiceInputViewModel.dismiss() },
+        )
+    }
+
+    // Exercise Selection Dialog (shown when user wants to change/select exercise)
+    if (showExerciseSelectionDialog && selectedExerciseIndexForDialog >= 0) {
+        val selectedExercise = confirmableExercises.getOrNull(selectedExerciseIndexForDialog)
+        if (selectedExercise != null) {
+            ExerciseSelectionDialog(
+                suggestions = selectedExercise.matchSuggestions,
+                spokenName = selectedExercise.parsedData.spokenName,
+                interpretedName = selectedExercise.parsedData.interpretedName,
+                onSelect = { exerciseId, exerciseName ->
+                    voiceInputViewModel.selectExerciseForParsed(
+                        selectedExerciseIndexForDialog,
+                        exerciseId,
+                        exerciseName,
+                    )
+                    voiceInputViewModel.confirmExercise(selectedExerciseIndexForDialog)
+                    showExerciseSelectionDialog = false
+                    selectedExerciseIndexForDialog = -1
+                },
+                onSearchExercises = {
+                    // Set the pending index before navigating so MainActivity knows
+                    // to update the voice exercise instead of adding a new one
+                    voiceInputViewModel.setPendingVoiceExerciseIndex(selectedExerciseIndexForDialog)
+                    showExerciseSelectionDialog = false
+                    selectedExerciseIndexForDialog = -1
+                    onSelectExercise()
+                },
+                onDismiss = {
+                    showExerciseSelectionDialog = false
+                    selectedExerciseIndexForDialog = -1
+                },
+            )
+        }
+    }
 }
 
 @Composable
@@ -988,6 +1144,7 @@ private fun ExercisesList(
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
     onTemplateSaved: () -> Unit = {},
+    onVoiceInput: () -> Unit = {},
 ) {
     val lazyListState = rememberLazyListState()
 
@@ -1067,6 +1224,8 @@ private fun ExercisesList(
                         viewModel.saveTemplateChanges()
                         onTemplateSaved()
                     },
+                    onVoiceInput = onVoiceInput,
+                    showVoiceInput = workoutState.mode != WorkoutMode.TEMPLATE_EDIT,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
             }
@@ -1082,14 +1241,25 @@ private fun WorkoutActionButtons(
     modifier: Modifier = Modifier,
     isTemplateEdit: Boolean = false,
     onSaveTemplate: () -> Unit = {},
+    onVoiceInput: () -> Unit = {},
+    showVoiceInput: Boolean = false,
 ) {
     var isSaving by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Voice Input button (only shown when not editing template)
+        if (showVoiceInput) {
+            VoiceInputButton(
+                onClick = onVoiceInput,
+                enabled = true,
+            )
+        }
+
         // Add Exercise button
         OutlinedButton(
             onClick = onAddExercise,

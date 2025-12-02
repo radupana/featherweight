@@ -161,7 +161,7 @@ For UI issues, trace backwards:
 
 ## Critical Rules
 
-1. **AI Model**: Must use `gpt-5-mini` in `AIProgrammeService.kt`
+1. **AI Model**: Must use `gpt-5-mini` and `gpt-5-nano`
 2. **Min SDK**: 26 - no version checks needed
 3. **Test Integrity**: Never skip or delete failing tests
 

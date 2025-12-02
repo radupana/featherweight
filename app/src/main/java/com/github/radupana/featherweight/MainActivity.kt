@@ -75,6 +75,7 @@ import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.VoiceInputViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -633,11 +634,19 @@ fun MainAppWithNavigation(
 
             Screen.EXERCISE_SELECTOR -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                val voiceInputViewModel: VoiceInputViewModel = viewModel()
                 val swappingExercise by workoutViewModel.swappingExercise.collectAsState()
+                val pendingVoiceIndex by voiceInputViewModel.pendingVoiceExerciseIndex.collectAsState()
 
                 ExerciseSelectorScreen(
                     onExerciseSelected = { exercise ->
-                        if (swappingExercise != null) {
+                        if (pendingVoiceIndex != null) {
+                            // Voice input mode - update the voice exercise instead of adding new
+                            voiceInputViewModel.handleExerciseSelectedFromSearch(
+                                exercise.variation.id,
+                                exercise.variation.name,
+                            )
+                        } else if (swappingExercise != null) {
                             // We're in swap mode
                             workoutViewModel.confirmExerciseSwap(exercise.variation.id)
                         } else {
@@ -647,6 +656,7 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     onBack = {
+                        voiceInputViewModel.clearPendingVoiceExerciseIndex()
                         workoutViewModel.cancelExerciseSwap()
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
