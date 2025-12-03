@@ -2,13 +2,46 @@ coverage:
   status:
     project:
       default:
-        target: auto
-        threshold: 1%
+        target: 70%
+        threshold: 5%
     patch:
       default:
-        target: auto
+        target: 80%
+        threshold: 10%
+
+  precision: 2
+  round: down
+  range: "70...100"
 
 comment:
   layout: "reach,diff,flags,files"
   behavior: default
   require_changes: true
+
+ignore:
+  - "app/src/main/java/com/github/radupana/featherweight/ui/screens/**"
+  - "app/src/main/java/com/github/radupana/featherweight/ui/components/**"
+  - "app/src/main/java/com/github/radupana/featherweight/ui/dialogs/**"
+  - "app/src/main/java/com/github/radupana/featherweight/ui/theme/**"
+  - "app/src/main/java/com/github/radupana/featherweight/di/**"
+  - "**/*Activity.kt"
+  - "**/FeatherweightApplication.kt"
+  - "**/build/**"
+  - "**/generated/**"
+
+flags:
+  viewmodel:
+    paths:
+      - app/src/main/java/com/github/radupana/featherweight/viewmodel/
+  service:
+    paths:
+      - app/src/main/java/com/github/radupana/featherweight/service/
+  repository:
+    paths:
+      - app/src/main/java/com/github/radupana/featherweight/repository/
+  database:
+    paths:
+      - app/src/main/java/com/github/radupana/featherweight/data/
+  cloud-functions:
+    paths:
+      - functions/src/

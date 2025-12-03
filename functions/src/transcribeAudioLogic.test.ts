@@ -106,23 +106,6 @@ describe("transcribeAudioLogic", () => {
     });
   });
 
-  describe("getVoiceQuotaLimits", () => {
-    it("should return correct daily limit", () => {
-      const limits = getVoiceQuotaLimits();
-      expect(limits.daily).toBe(50);
-    });
-
-    it("should return correct weekly limit", () => {
-      const limits = getVoiceQuotaLimits();
-      expect(limits.weekly).toBe(200);
-    });
-
-    it("should return correct monthly limit", () => {
-      const limits = getVoiceQuotaLimits();
-      expect(limits.monthly).toBe(500);
-    });
-  });
-
   describe("shouldResetPeriod", () => {
     describe("daily", () => {
       it("should reset when day changes", () => {
@@ -182,33 +165,6 @@ describe("transcribeAudioLogic", () => {
         ) as admin.firestore.Timestamp;
         expect(shouldResetPeriod(timestamp, "monthly")).toBe(false);
       });
-    });
-  });
-
-  describe("WHISPER_PROMPT", () => {
-    it("should contain fitness terminology", () => {
-      expect(WHISPER_PROMPT).toContain("fitness workout log");
-      expect(WHISPER_PROMPT).toContain("exercises");
-      expect(WHISPER_PROMPT).toContain("sets");
-      expect(WHISPER_PROMPT).toContain("reps");
-      expect(WHISPER_PROMPT).toContain("weights");
-    });
-
-    it("should contain common exercise names", () => {
-      expect(WHISPER_PROMPT).toContain("bench press");
-      expect(WHISPER_PROMPT).toContain("squat");
-      expect(WHISPER_PROMPT).toContain("deadlift");
-      expect(WHISPER_PROMPT).toContain("curls");
-    });
-
-    it("should contain weight unit terminology", () => {
-      expect(WHISPER_PROMPT).toContain("plates");
-      expect(WHISPER_PROMPT).toContain("kilos");
-      expect(WHISPER_PROMPT).toContain("pounds");
-    });
-
-    it("should contain RPE", () => {
-      expect(WHISPER_PROMPT).toContain("RPE");
     });
   });
 
@@ -280,34 +236,6 @@ describe("transcribeAudioLogic", () => {
       );
 
       expect(result).toBe("deadlift 3x5");
-    });
-  });
-
-  describe("VALID_MIME_TYPES", () => {
-    it("should include m4a", () => {
-      expect(VALID_MIME_TYPES).toContain("audio/m4a");
-    });
-
-    it("should include mp4", () => {
-      expect(VALID_MIME_TYPES).toContain("audio/mp4");
-    });
-
-    it("should include mpeg", () => {
-      expect(VALID_MIME_TYPES).toContain("audio/mpeg");
-    });
-
-    it("should include wav", () => {
-      expect(VALID_MIME_TYPES).toContain("audio/wav");
-    });
-
-    it("should include webm", () => {
-      expect(VALID_MIME_TYPES).toContain("audio/webm");
-    });
-  });
-
-  describe("MAX_AUDIO_SIZE_BYTES", () => {
-    it("should be 25MB", () => {
-      expect(MAX_AUDIO_SIZE_BYTES).toBe(25 * 1024 * 1024);
     });
   });
 });

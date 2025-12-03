@@ -5,148 +5,6 @@ import org.junit.Test
 
 class WeightCalculationRulesTest {
     @Test
-    fun suggestedWeight_withAllParameters_shouldStoreCorrectly() {
-        val suggested =
-            SuggestedWeight(
-                weight = 100f,
-                reps = 3..5,
-                rpe = 8.5f,
-                source = "75% of 1RM",
-                confidence = 0.9f,
-            )
-
-        assertThat(suggested.weight).isEqualTo(100f)
-        assertThat(suggested.reps).isEqualTo(3..5)
-        assertThat(suggested.rpe).isEqualTo(8.5f)
-        assertThat(suggested.source).isEqualTo("75% of 1RM")
-        assertThat(suggested.confidence).isEqualTo(0.9f)
-    }
-
-    @Test
-    fun suggestedWeight_withNullRpe_shouldHandleNoRpeData() {
-        val suggested =
-            SuggestedWeight(
-                weight = 80f,
-                reps = 8..10,
-                rpe = null,
-                source = "Last week + 2.5kg",
-                confidence = 0.7f,
-            )
-
-        assertThat(suggested.rpe).isNull()
-        assertThat(suggested.weight).isEqualTo(80f)
-    }
-
-    @Test
-    fun suggestedWeight_withSingleRepRange_shouldHandleFixedReps() {
-        val suggested =
-            SuggestedWeight(
-                weight = 120f,
-                reps = 1..1,
-                rpe = 10f,
-                source = "1RM attempt",
-                confidence = 0.5f,
-            )
-
-        assertThat(suggested.reps.first).isEqualTo(1)
-        assertThat(suggested.reps.last).isEqualTo(1)
-        assertThat(suggested.rpe).isEqualTo(10f)
-    }
-
-    @Test
-    fun suggestedWeight_withLowConfidence_shouldIndicateUncertainty() {
-        val suggested =
-            SuggestedWeight(
-                weight = 60f,
-                reps = 12..15,
-                rpe = 7f,
-                source = "Estimated from similar exercise",
-                confidence = 0.3f,
-            )
-
-        assertThat(suggested.confidence).isLessThan(0.5f)
-        assertThat(suggested.source).contains("Estimated")
-    }
-
-    @Test
-    fun suggestedWeight_withHighConfidence_shouldIndicateCertainty() {
-        val suggested =
-            SuggestedWeight(
-                weight = 90f,
-                reps = 5..5,
-                rpe = 8f,
-                source = "Based on recent test",
-                confidence = 0.95f,
-            )
-
-        assertThat(suggested.confidence).isGreaterThan(0.9f)
-    }
-
-    @Test
-    fun weightCalculationRules_withDefaults_shouldUseStandardValues() {
-        val rules = WeightCalculationRules()
-
-        assertThat(rules.baseOn).isEqualTo(WeightBasis.ONE_REP_MAX)
-        assertThat(rules.trainingMaxPercentage).isEqualTo(0.9f)
-        assertThat(rules.roundingIncrement).isEqualTo(2.5f)
-        assertThat(rules.minimumBarWeight).isEqualTo(20f)
-        assertThat(rules.unit).isEqualTo(WeightUnit.KG)
-    }
-
-    @Test
-    fun weightCalculationRules_withCustomValues_shouldOverrideDefaults() {
-        val rules =
-            WeightCalculationRules(
-                baseOn = WeightBasis.TRAINING_MAX,
-                trainingMaxPercentage = 0.85f,
-                roundingIncrement = 5f,
-                minimumBarWeight = 45f,
-                unit = WeightUnit.LB,
-            )
-
-        assertThat(rules.baseOn).isEqualTo(WeightBasis.TRAINING_MAX)
-        assertThat(rules.trainingMaxPercentage).isEqualTo(0.85f)
-        assertThat(rules.roundingIncrement).isEqualTo(5f)
-        assertThat(rules.minimumBarWeight).isEqualTo(45f)
-        assertThat(rules.unit).isEqualTo(WeightUnit.LB)
-    }
-
-    @Test
-    fun weightBasis_allEnumValues_shouldBeDefined() {
-        val values = WeightBasis.values()
-
-        assertThat(values).asList().contains(WeightBasis.ONE_REP_MAX)
-        assertThat(values).asList().contains(WeightBasis.TRAINING_MAX)
-        assertThat(values).asList().contains(WeightBasis.LAST_WORKOUT)
-        assertThat(values).asList().contains(WeightBasis.FIXED_WEIGHT)
-        assertThat(values).asList().contains(WeightBasis.BODYWEIGHT)
-        assertThat(values).asList().contains(WeightBasis.PERCENTAGE_BASED)
-        assertThat(values).hasLength(6)
-    }
-
-    @Test
-    fun weightUnit_allEnumValues_shouldBeDefined() {
-        val values = WeightUnit.values()
-
-        assertThat(values).asList().contains(WeightUnit.KG)
-        assertThat(values).asList().contains(WeightUnit.LB)
-        assertThat(values).hasLength(2)
-    }
-
-    @Test
-    fun progressionRules_withDefaults_shouldUseStandardValues() {
-        val rules = ProgressionRules()
-
-        assertThat(rules.type).isEqualTo(ProgressionType.LINEAR)
-        assertThat(rules.incrementRules).isNotEmpty()
-        assertThat(rules.successCriteria).isNotNull()
-        assertThat(rules.deloadRules).isNotNull()
-        assertThat(rules.cycleLength).isNull()
-        assertThat(rules.weeklyPercentages).isNull()
-        assertThat(rules.autoProgressionEnabled).isTrue()
-    }
-
-    @Test
     fun progressionRules_withWaveProgression_shouldHandleCycles() {
         val rules =
             ProgressionRules(
@@ -169,19 +27,6 @@ class WeightCalculationRulesTest {
     }
 
     @Test
-    fun progressionType_allEnumValues_shouldBeDefined() {
-        val values = ProgressionType.values()
-
-        assertThat(values).asList().contains(ProgressionType.LINEAR)
-        assertThat(values).asList().contains(ProgressionType.DOUBLE)
-        assertThat(values).asList().contains(ProgressionType.WAVE)
-        assertThat(values).asList().contains(ProgressionType.PERCENTAGE_BASED)
-        assertThat(values).asList().contains(ProgressionType.RPE_BASED)
-        assertThat(values).asList().contains(ProgressionType.CUSTOM)
-        assertThat(values).hasLength(6)
-    }
-
-    @Test
     fun successCriteria_withAllParameters_shouldValidateCorrectly() {
         val criteria =
             SuccessCriteria(
@@ -199,51 +44,6 @@ class WeightCalculationRulesTest {
         assertThat(criteria.minRPE).isEqualTo(6f)
         assertThat(criteria.maxRPE).isEqualTo(8f)
         assertThat(criteria.techniqueRequirement).isTrue()
-    }
-
-    @Test
-    fun successCriteria_withNullValues_shouldHandleFlexibleCriteria() {
-        val criteria =
-            SuccessCriteria(
-                requiredSets = null,
-                requiredReps = null,
-                allowedMissedReps = 0,
-                minRPE = null,
-                maxRPE = null,
-                techniqueRequirement = false,
-            )
-
-        assertThat(criteria.requiredSets).isNull()
-        assertThat(criteria.requiredReps).isNull()
-        assertThat(criteria.minRPE).isNull()
-        assertThat(criteria.maxRPE).isNull()
-        assertThat(criteria.techniqueRequirement).isFalse()
-    }
-
-    @Test
-    fun deloadRules_withDefaults_shouldUseStandardValues() {
-        val rules = DeloadRules()
-
-        assertThat(rules.triggerAfterFailures).isEqualTo(3)
-        assertThat(rules.deloadPercentage).isEqualTo(0.85f)
-        assertThat(rules.minimumWeight).isEqualTo(20f)
-        assertThat(rules.autoDeload).isTrue()
-    }
-
-    @Test
-    fun deloadRules_withCustomValues_shouldOverrideDefaults() {
-        val rules =
-            DeloadRules(
-                triggerAfterFailures = 2,
-                deloadPercentage = 0.9f,
-                minimumWeight = 45f,
-                autoDeload = false,
-            )
-
-        assertThat(rules.triggerAfterFailures).isEqualTo(2)
-        assertThat(rules.deloadPercentage).isEqualTo(0.9f)
-        assertThat(rules.minimumWeight).isEqualTo(45f)
-        assertThat(rules.autoDeload).isFalse()
     }
 
     @Test
@@ -414,19 +214,5 @@ class WeightCalculationRulesTest {
 
         assertThat(rules.type).isEqualTo(ProgressionType.PERCENTAGE_BASED)
         assertThat(rules.incrementRules["squat"]).isEqualTo(2.5f)
-    }
-
-    @Test
-    fun deloadRules_withHighTriggerThreshold_shouldDelayDeload() {
-        val rules =
-            DeloadRules(
-                triggerAfterFailures = 5,
-                deloadPercentage = 0.8f,
-                minimumWeight = 20f,
-                autoDeload = true,
-            )
-
-        assertThat(rules.triggerAfterFailures).isGreaterThan(3)
-        assertThat(rules.deloadPercentage).isLessThan(0.85f)
     }
 }

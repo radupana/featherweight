@@ -18,12 +18,13 @@ import java.io.IOException
 
 class ProgrammeViewModel(
     application: Application,
+    providedRepository: FeatherweightRepository? = null,
 ) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "ProgrammeViewModel"
     }
 
-    private val repository = FeatherweightRepository(application)
+    private val repository = providedRepository ?: FeatherweightRepository(application)
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())

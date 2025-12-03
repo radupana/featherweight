@@ -9,6 +9,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseType
@@ -477,4 +478,328 @@ class FeatherweightRepositoryTest {
         movementPattern = "PUSH",
         equipment = "BARBELL",
     )
+
+    private fun createWorkout(
+        id: String,
+        status: WorkoutStatus = WorkoutStatus.NOT_STARTED,
+        isProgrammeWorkout: Boolean = false,
+        programmeId: String? = null,
+    ) = Workout(
+        id = id,
+        date = java.time.LocalDateTime.now(),
+        status = status,
+        isProgrammeWorkout = isProgrammeWorkout,
+        programmeId = programmeId,
+    )
+
+    private fun createSetLog(
+        id: String,
+        exerciseLogId: String,
+        actualWeight: Float,
+        actualReps: Int = 10,
+        targetWeight: Float? = null,
+        targetRpe: Float? = null,
+        isCompleted: Boolean = true,
+    ) = SetLog(
+        id = id,
+        exerciseLogId = exerciseLogId,
+        setOrder = 0,
+        actualWeight = actualWeight,
+        actualReps = actualReps,
+        targetWeight = targetWeight,
+        targetRpe = targetRpe,
+        isCompleted = isCompleted,
+    )
+
+    // ===== TESTS FOR completeWorkout() =====
+
+    @Test
+    fun `completeWorkout marks workout as completed when sets exist`() =
+        runTest {
+            val workoutId = "workout1"
+            val workout = createWorkout(id = workoutId, status = WorkoutStatus.IN_PROGRESS)
+            val exerciseLog = ExerciseLog(id = "ex1", workoutId = workoutId, exerciseId = "exercise1", exerciseOrder = 0)
+            val completedSets =
+                listOf(
+                    createSetLog(id = "set1", exerciseLogId = "ex1", actualWeight = 100f, isCompleted = true),
+                )
+            val workoutSlot = slot<Workout>()
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise("ex1") } returns completedSets
+            coEvery { workoutDao.updateWorkout(capture(workoutSlot)) } just Runs
+
+            repository.completeWorkout(workoutId, durationSeconds = "3600")
+
+            coVerify(exactly = 1) { workoutDao.updateWorkout(any()) }
+            assertThat(workoutSlot.captured.status).isEqualTo(WorkoutStatus.COMPLETED)
+            assertThat(workoutSlot.captured.durationSeconds).isEqualTo("3600")
+        }
+
+    @Test
+    fun `completeWorkout does nothing when workout not found`() =
+        runTest {
+            val workoutId = "nonexistent"
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns null
+
+            repository.completeWorkout(workoutId)
+
+            coVerify(exactly = 0) { workoutDao.updateWorkout(any()) }
+        }
+
+    @Test
+    fun `completeWorkout does nothing when workout already completed`() =
+        runTest {
+            val workoutId = "workout1"
+            val workout = createWorkout(id = workoutId, status = WorkoutStatus.COMPLETED)
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
+
+            repository.completeWorkout(workoutId)
+
+            coVerify(exactly = 0) { workoutDao.updateWorkout(any()) }
+        }
+
+    @Test
+    fun `completeWorkout does nothing when no sets completed`() =
+        runTest {
+            val workoutId = "workout1"
+            val workout = createWorkout(id = workoutId, status = WorkoutStatus.IN_PROGRESS)
+            val exerciseLog = ExerciseLog(id = "ex1", workoutId = workoutId, exerciseId = "exercise1", exerciseOrder = 0)
+            val incompleteSets =
+                listOf(
+                    createSetLog(id = "set1", exerciseLogId = "ex1", actualWeight = 100f, isCompleted = false),
+                )
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise("ex1") } returns incompleteSets
+
+            repository.completeWorkout(workoutId)
+
+            coVerify(exactly = 0) { workoutDao.updateWorkout(any()) }
+        }
+
+    @Test
+    fun `completeWorkout without duration sets status but no duration`() =
+        runTest {
+            val workoutId = "workout1"
+            val workout = createWorkout(id = workoutId, status = WorkoutStatus.IN_PROGRESS)
+            val exerciseLog = ExerciseLog(id = "ex1", workoutId = workoutId, exerciseId = "exercise1", exerciseOrder = 0)
+            val completedSets =
+                listOf(
+                    createSetLog(id = "set1", exerciseLogId = "ex1", actualWeight = 100f, isCompleted = true),
+                )
+            val workoutSlot = slot<Workout>()
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise("ex1") } returns completedSets
+            coEvery { workoutDao.updateWorkout(capture(workoutSlot)) } just Runs
+
+            repository.completeWorkout(workoutId)
+
+            coVerify(exactly = 1) { workoutDao.updateWorkout(any()) }
+            assertThat(workoutSlot.captured.status).isEqualTo(WorkoutStatus.COMPLETED)
+            assertThat(workoutSlot.captured.durationSeconds).isNull()
+        }
+
+    // ===== TESTS FOR deleteWorkout() =====
+
+    @Test
+    fun `deleteWorkout deletes workout and cascades to exercise logs and set logs`() =
+        runTest {
+            val workoutId = "workout1"
+            val exerciseLogs =
+                listOf(
+                    ExerciseLog(id = "ex1", workoutId = workoutId, exerciseId = "exercise1", exerciseOrder = 0),
+                    ExerciseLog(id = "ex2", workoutId = workoutId, exerciseId = "exercise2", exerciseOrder = 1),
+                )
+            val setLogsEx1 =
+                listOf(
+                    createSetLog(id = "set1", exerciseLogId = "ex1", actualWeight = 100f),
+                    createSetLog(id = "set2", exerciseLogId = "ex1", actualWeight = 100f),
+                )
+            val setLogsEx2 =
+                listOf(
+                    createSetLog(id = "set3", exerciseLogId = "ex2", actualWeight = 80f),
+                )
+
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns exerciseLogs
+            coEvery { setLogDao.getSetLogsForExercise("ex1") } returns setLogsEx1
+            coEvery { setLogDao.getSetLogsForExercise("ex2") } returns setLogsEx2
+
+            repository.deleteWorkout(workoutId)
+
+            coVerify(exactly = 1) { exerciseLogDao.getExerciseLogsForWorkout(workoutId) }
+            coVerify(exactly = 1) { setLogDao.getSetLogsForExercise("ex1") }
+            coVerify(exactly = 1) { setLogDao.getSetLogsForExercise("ex2") }
+        }
+
+    @Test
+    fun `deleteWorkout handles workout with no exercises`() =
+        runTest {
+            val workoutId = "workout1"
+
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns emptyList()
+
+            repository.deleteWorkout(workoutId)
+
+            coVerify(exactly = 1) { exerciseLogDao.getExerciseLogsForWorkout(workoutId) }
+        }
+
+    // ===== TESTS FOR insertSetLog() and updateSetLog() =====
+
+    @Test
+    fun `insertSetLog rounds weights to nearest quarter`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 82.37f,
+                    targetWeight = 80.13f,
+                    actualReps = 10,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            coEvery { setLogDao.insertSetLog(capture(setLogSlot)) } just Runs
+
+            val resultId = repository.insertSetLog(setLog)
+
+            coVerify(exactly = 1) { setLogDao.insertSetLog(any()) }
+            assertThat(resultId).isEqualTo("set1")
+            // 82.37 should round to 82.25, 80.13 should round to 80.25
+            assertThat(setLogSlot.captured.actualWeight).isEqualTo(82.25f)
+            assertThat(setLogSlot.captured.targetWeight).isEqualTo(80.25f)
+        }
+
+    @Test
+    fun `insertSetLog preserves RPE value`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 100f,
+                    actualReps = 10,
+                    targetRpe = 8.0f,
+                    actualRpe = 7.0f,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            coEvery { setLogDao.insertSetLog(capture(setLogSlot)) } just Runs
+
+            repository.insertSetLog(setLog)
+
+            assertThat(setLogSlot.captured.targetRpe).isEqualTo(8f)
+            assertThat(setLogSlot.captured.actualRpe).isEqualTo(7f)
+        }
+
+    @Test
+    fun `insertSetLog sets userId to local when auth manager returns null`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 100f,
+                    actualReps = 10,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            every { authManager.getCurrentUserId() } returns null
+            coEvery { setLogDao.insertSetLog(capture(setLogSlot)) } just Runs
+
+            repository.insertSetLog(setLog)
+
+            assertThat(setLogSlot.captured.userId).isEqualTo("local")
+        }
+
+    @Test
+    fun `updateSetLog rounds weights to nearest quarter`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 105.66f,
+                    targetWeight = 102.88f,
+                    actualReps = 8,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            coEvery { setLogDao.updateSetLog(capture(setLogSlot)) } just Runs
+
+            repository.updateSetLog(setLog)
+
+            coVerify(exactly = 1) { setLogDao.updateSetLog(any()) }
+            // 105.66 should round to 105.75, 102.88 should round to 103.0
+            assertThat(setLogSlot.captured.actualWeight).isEqualTo(105.75f)
+            assertThat(setLogSlot.captured.targetWeight).isEqualTo(103.0f)
+        }
+
+    @Test
+    fun `updateSetLog preserves existing userId when provided`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    userId = "existing-user-id",
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 100f,
+                    actualReps = 10,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            coEvery { setLogDao.updateSetLog(capture(setLogSlot)) } just Runs
+
+            repository.updateSetLog(setLog)
+
+            assertThat(setLogSlot.captured.userId).isEqualTo("existing-user-id")
+        }
+
+    @Test
+    fun `updateSetLog uses auth manager userId when setLog userId is null`() =
+        runTest {
+            val setLog =
+                SetLog(
+                    id = "set1",
+                    userId = null,
+                    exerciseLogId = "ex1",
+                    setOrder = 0,
+                    actualWeight = 100f,
+                    actualReps = 10,
+                )
+            val setLogSlot = slot<SetLog>()
+
+            every { authManager.getCurrentUserId() } returns "auth-user-id"
+            coEvery { setLogDao.updateSetLog(capture(setLogSlot)) } just Runs
+
+            repository.updateSetLog(setLog)
+
+            assertThat(setLogSlot.captured.userId).isEqualTo("auth-user-id")
+        }
+
+    // ===== TESTS FOR activateProgramme() =====
+
+    @Test
+    fun `activateProgramme does nothing when programme not found`() =
+        runTest {
+            val programmeId = "nonexistent"
+
+            coEvery { programmeDao.getProgrammeById(programmeId) } returns null
+
+            repository.activateProgramme(programmeId)
+
+            coVerify(exactly = 0) { programmeDao.setActiveProgramme(any()) }
+            coVerify(exactly = 0) { programmeDao.insertOrUpdateProgress(any()) }
+        }
 }

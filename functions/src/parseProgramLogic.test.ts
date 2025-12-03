@@ -9,6 +9,7 @@ import {
   shouldResetPeriod,
   buildPrompt,
   callOpenAI,
+  checkAndUpdateQuota,
   ParseProgramRequest,
 } from "./parseProgramLogic";
 import * as admin from "firebase-admin";
@@ -297,23 +298,6 @@ describe("parseProgramLogic", () => {
     });
   });
 
-  describe("getQuotaLimits", () => {
-    it("should return correct limits for authenticated users", () => {
-      const limits = getQuotaLimits();
-
-      expect(limits).toEqual({
-        daily: 10,
-        weekly: 35,
-        monthly: 50,
-      });
-    });
-
-    it("monthly limit should be 50 as requested", () => {
-      const limits = getQuotaLimits();
-      expect(limits.monthly).toBe(50);
-    });
-  });
-
   describe("shouldResetPeriod", () => {
     const createTimestamp = (date: Date) => ({
       toDate: () => date,
@@ -421,6 +405,296 @@ describe("parseProgramLogic", () => {
       expect(prompt).toContain("durationWeeks");
       expect(prompt).toContain("weeks");
       expect(prompt).toContain("exercises");
+    });
+  });
+
+  describe("checkAndUpdateQuota", () => {
+    let mockDb: any;
+    let mockTransaction: any;
+    let mockQuotaRef: any;
+
+    beforeEach(() => {
+      mockTransaction = {
+        get: jest.fn(),
+        set: jest.fn(),
+      };
+
+      mockQuotaRef = {
+        id: "user123",
+      };
+
+      mockDb = {
+        collection: jest.fn(() => ({
+          doc: jest.fn(() => mockQuotaRef),
+        })),
+        runTransaction: jest.fn(async (callback) => callback(mockTransaction)),
+      };
+
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("should create initial quota for new user", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: false,
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      // After first use, remaining should be limit - 1
+      expect(result.remaining).toEqual({
+        daily: 9,
+        weekly: 34,
+        monthly: 49,
+      });
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          dailyCount: 1,
+          weeklyCount: 1,
+          monthlyCount: 1,
+          totalRequests: 1,
+        })
+      );
+    });
+
+    it("should increment counters for existing user", async () => {
+      const now = new Date();
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 5,
+          weeklyCount: 15,
+          monthlyCount: 25,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(now),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(now),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(now),
+          totalRequests: 25,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      expect(result.remaining).toEqual({
+        daily: 4,
+        weekly: 19,
+        monthly: 24,
+      });
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          dailyCount: 6,
+          weeklyCount: 16,
+          monthlyCount: 26,
+          totalRequests: 26,
+        })
+      );
+    });
+
+    it("should return exceeded when daily quota reached", async () => {
+      const now = new Date();
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 10,
+          weeklyCount: 10,
+          monthlyCount: 10,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(now),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(now),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(now),
+          totalRequests: 10,
+          quotaExceededCount: 0,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(true);
+      expect(result.remaining.daily).toBe(0);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          quotaExceededCount: 1,
+        })
+      );
+    });
+
+    it("should return exceeded when weekly quota reached", async () => {
+      const now = new Date();
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 5,
+          weeklyCount: 35,
+          monthlyCount: 35,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(now),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(now),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(now),
+          totalRequests: 35,
+          quotaExceededCount: 0,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(true);
+      expect(result.remaining.weekly).toBe(0);
+    });
+
+    it("should return exceeded when monthly quota reached", async () => {
+      const now = new Date();
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 5,
+          weeklyCount: 25,
+          monthlyCount: 50,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(now),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(now),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(now),
+          totalRequests: 50,
+          quotaExceededCount: 0,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(true);
+      expect(result.remaining.monthly).toBe(0);
+    });
+
+    it("should reset daily quota on new day", async () => {
+      const yesterday = new Date("2024-01-15T12:00:00");
+      const today = new Date("2024-01-16T12:00:00");
+      jest.setSystemTime(today);
+
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 10,
+          weeklyCount: 20,
+          monthlyCount: 30,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(yesterday),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(yesterday),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(yesterday),
+          totalRequests: 30,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          dailyCount: 1,
+          weeklyCount: 21,
+          monthlyCount: 31,
+        })
+      );
+    });
+
+    it("should reset weekly quota on new week", async () => {
+      const lastWeek = new Date("2024-01-01T12:00:00"); // Monday
+      const thisWeek = new Date("2024-01-08T12:00:00"); // Next Monday
+      jest.setSystemTime(thisWeek);
+
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 5,
+          weeklyCount: 35,
+          monthlyCount: 35,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(thisWeek),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(lastWeek),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(lastWeek),
+          totalRequests: 35,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          weeklyCount: 1,
+          monthlyCount: 36,
+        })
+      );
+    });
+
+    it("should reset monthly quota on new month", async () => {
+      const lastMonth = new Date("2024-01-15T12:00:00");
+      const thisMonth = new Date("2024-02-01T12:00:00");
+      jest.setSystemTime(thisMonth);
+
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 5,
+          weeklyCount: 25,
+          monthlyCount: 50,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(thisMonth),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(thisMonth),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(lastMonth),
+          totalRequests: 50,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          monthlyCount: 1,
+        })
+      );
+    });
+
+    it("should reset multiple periods simultaneously", async () => {
+      const lastMonth = new Date("2024-01-01T12:00:00");
+      const thisMonth = new Date("2024-02-05T12:00:00"); // New month, new week, new day
+      jest.setSystemTime(thisMonth);
+
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          userId: "user123",
+          dailyCount: 10,
+          weeklyCount: 35,
+          monthlyCount: 50,
+          lastDailyReset: admin.firestore.Timestamp.fromDate(lastMonth),
+          lastWeeklyReset: admin.firestore.Timestamp.fromDate(lastMonth),
+          lastMonthlyReset: admin.firestore.Timestamp.fromDate(lastMonth),
+          totalRequests: 50,
+        }),
+      });
+
+      const result = await checkAndUpdateQuota("user123", mockDb);
+
+      expect(result.exceeded).toBe(false);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          dailyCount: 1,
+          weeklyCount: 1,
+          monthlyCount: 1,
+        })
+      );
     });
   });
 

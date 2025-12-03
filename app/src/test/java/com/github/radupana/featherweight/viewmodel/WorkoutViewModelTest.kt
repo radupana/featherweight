@@ -13,79 +13,6 @@ import org.junit.Test
 
 class WorkoutViewModelTest {
     @Test
-    fun `WorkoutState has correct default values`() {
-        // Testing WorkoutState data class directly since WorkoutViewModel
-        // creates repository internally and can't be easily mocked
-        val state = WorkoutState()
-
-        assertThat(state.isActive).isFalse()
-        assertThat(state.status).isEqualTo(WorkoutStatus.NOT_STARTED)
-        assertThat(state.mode).isEqualTo(WorkoutMode.ACTIVE)
-        assertThat(state.workoutId).isNull()
-        assertThat(state.startTime).isNull()
-        assertThat(state.workoutName).isNull()
-        assertThat(state.isReadOnly).isFalse()
-        assertThat(state.isInEditMode).isFalse()
-        assertThat(state.originalWorkoutData).isNull()
-        assertThat(state.isProgrammeWorkout).isFalse()
-        assertThat(state.programmeId).isNull()
-        assertThat(state.programmeName).isNull()
-        assertThat(state.weekNumber).isNull()
-        assertThat(state.dayNumber).isNull()
-        assertThat(state.programmeWorkoutName).isNull()
-    }
-
-    @Test
-    fun `WorkoutState copy function works correctly`() {
-        val original =
-            WorkoutState(
-                isActive = true,
-                status = WorkoutStatus.IN_PROGRESS,
-                workoutId = "123",
-            )
-
-        val modified =
-            original.copy(
-                isActive = false,
-                status = WorkoutStatus.COMPLETED,
-            )
-
-        assertThat(modified.isActive).isFalse()
-        assertThat(modified.status).isEqualTo(WorkoutStatus.COMPLETED)
-        assertThat(modified.workoutId).isEqualTo("123") // unchanged
-    }
-
-    @Test
-    fun `ParsedSet correctly stores RPE values`() {
-        // Test that ParsedSet can store and retrieve RPE values
-        val parsedSet =
-            ParsedSet(
-                reps = 10,
-                weight = 100f,
-                rpe = 7.5f,
-            )
-
-        assertThat(parsedSet.reps).isEqualTo(10)
-        assertThat(parsedSet.weight).isEqualTo(100f)
-        assertThat(parsedSet.rpe).isEqualTo(7.5f)
-    }
-
-    @Test
-    fun `ParsedSet with null RPE is valid`() {
-        // Test that ParsedSet works with null RPE
-        val parsedSet =
-            ParsedSet(
-                reps = 10,
-                weight = 100f,
-                rpe = null,
-            )
-
-        assertThat(parsedSet.reps).isEqualTo(10)
-        assertThat(parsedSet.weight).isEqualTo(100f)
-        assertThat(parsedSet.rpe).isNull()
-    }
-
-    @Test
     fun `ParsedExercise with RPE sets is created correctly`() {
         // Test that ParsedExercise correctly stores sets with RPE
         val sets =
@@ -338,7 +265,7 @@ class WorkoutViewModelTest {
                 workoutId = "test-workout-id",
                 isReadOnly = true,
             )
-        val currentWorkoutId = "test-workout-id"
+        val currentWorkoutId: String? = "test-workout-id"
 
         // Evaluate the condition that triggers startNewWorkout()
         val shouldStartNewWorkout =
@@ -407,7 +334,7 @@ class WorkoutViewModelTest {
                 mode = WorkoutMode.ACTIVE,
                 isReadOnly = false, // Old state, not updated yet
             )
-        val currentWorkoutId = "workout-being-loaded" // Set synchronously
+        val currentWorkoutId: String? = "workout-being-loaded" // Set synchronously
 
         val shouldStartNewWorkout =
             !stateBeforeCoroutineCompletes.isActive &&

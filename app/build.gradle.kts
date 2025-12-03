@@ -168,6 +168,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 
     // Mocking
     testImplementation(libs.mockk)
@@ -181,11 +182,16 @@ dependencies {
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.core.ktx)
 
+    // Android Instrumentation Testing
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.truth)
+
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
 
     // SQLCipher for database encryption
     // SQLCipher removed - using Android's built-in encryption instead
