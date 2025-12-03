@@ -53,8 +53,6 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v5
-      with:
-        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
     - name: Configure Gradle properties
       run: |
@@ -202,8 +200,6 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v5
-      with:
-        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
     - name: Configure Gradle properties
       run: |
