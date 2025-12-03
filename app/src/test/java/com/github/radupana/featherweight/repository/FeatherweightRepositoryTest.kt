@@ -33,6 +33,16 @@ import java.time.LocalDateTime
  *
  * These tests verify repository behavior with actual database operations rather than mocks,
  * catching real query issues and ensuring data integrity across operations.
+ *
+ * Firebase Integration Note:
+ * Firebase is mocked and the AuthManager returns "local" userId to skip Firestore sync.
+ * This is intentional because:
+ * 1. The repository's core logic (Room operations) is fully tested with real database
+ * 2. Firestore sync only triggers when userId != "local" (authenticated users)
+ * 3. Firebase emulator integration tests would require androidTest with emulator setup
+ *
+ * For full Firebase integration testing, consider adding instrumented tests in androidTest
+ * that use `firestore.useEmulator("10.0.2.2", 8080)` with the Firebase emulator running.
  */
 class FeatherweightRepositoryTest : BaseDaoTest() {
     private lateinit var repository: FeatherweightRepository

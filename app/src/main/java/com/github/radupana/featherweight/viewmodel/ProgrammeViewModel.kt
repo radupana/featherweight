@@ -135,10 +135,11 @@ class ProgrammeViewModel(
                         "hasProgress: ${_programmeProgress.value != null}",
                 )
 
-                // Force update the UI state to ensure loading is false
+                // Force update the UI state to ensure loading is false and clear any previous error
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,
+                        error = null,
                     )
                 hasLoadedInitialData = true
             } catch (e: SQLiteException) {

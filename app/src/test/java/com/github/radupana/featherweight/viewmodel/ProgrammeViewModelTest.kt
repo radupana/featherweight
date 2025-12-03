@@ -237,4 +237,107 @@ class ProgrammeViewModelTest {
             // (In production code, this is handled by not showing loading on refresh)
             coVerify { mockRepository.getActiveProgramme() }
         }
+
+    // ===== State Transition Tests =====
+
+    @Test
+    fun `loading state transitions to loaded with active programme`() =
+        runTest {
+            // Given: Repository returns an active programme
+            coEvery { mockRepository.getActiveProgramme() } returns testProgramme
+            coEvery { mockRepository.getAllProgrammes() } returns listOf(testProgramme)
+
+            // When: ViewModel is initialized
+            viewModel = ProgrammeViewModel(mockApplication, mockRepository)
+            advanceUntilIdle()
+
+            // Then: UI state transitions from loading to loaded with data
+            val uiState = viewModel.uiState.value
+            assertThat(uiState.isLoading).isFalse()
+            assertThat(uiState.error).isNull()
+            assertThat(viewModel.activeProgramme.value).isEqualTo(testProgramme)
+        }
+
+    @Test
+    fun `loading state transitions to loaded with no active programme`() =
+        runTest {
+            // Given: Repository returns no active programme
+            coEvery { mockRepository.getActiveProgramme() } returns null
+            coEvery { mockRepository.getAllProgrammes() } returns emptyList()
+
+            // When: ViewModel is initialized
+            viewModel = ProgrammeViewModel(mockApplication, mockRepository)
+            advanceUntilIdle()
+
+            // Then: UI state transitions to loaded with null active programme
+            val uiState = viewModel.uiState.value
+            assertThat(uiState.isLoading).isFalse()
+            assertThat(uiState.error).isNull()
+            assertThat(viewModel.activeProgramme.value).isNull()
+        }
+
+    @Test
+    fun `refresh after error clears error state on success`() =
+        runTest {
+            // Given: Initial load fails
+            coEvery { mockRepository.getActiveProgramme() } throws SQLiteException("Initial error")
+            viewModel = ProgrammeViewModel(mockApplication, mockRepository)
+            advanceUntilIdle()
+
+            // Verify error state
+            assertThat(viewModel.uiState.value.error).isNotNull()
+
+            // When: Repository now succeeds and we refresh
+            coEvery { mockRepository.getActiveProgramme() } returns testProgramme
+            coEvery { mockRepository.getAllProgrammes() } returns listOf(testProgramme)
+
+            // Set hasLoadedInitialData to true to enable refresh
+            val hasLoadedField =
+                ProgrammeViewModel::class.java.getDeclaredField("hasLoadedInitialData")
+            hasLoadedField.isAccessible = true
+            hasLoadedField.setBoolean(viewModel, true)
+
+            viewModel.refreshData()
+            advanceUntilIdle()
+
+            // Then: Error is cleared and data is loaded
+            val uiState = viewModel.uiState.value
+            assertThat(uiState.isLoading).isFalse()
+            assertThat(uiState.error).isNull()
+            assertThat(viewModel.activeProgramme.value).isEqualTo(testProgramme)
+        }
+
+    @Test
+    fun `refreshProgrammeProgress updates progress when active programme exists`() =
+        runTest {
+            // Given: ViewModel with active programme
+            coEvery { mockRepository.getActiveProgramme() } returns testProgramme
+            coEvery { mockRepository.getAllProgrammes() } returns listOf(testProgramme)
+            viewModel = ProgrammeViewModel(mockApplication, mockRepository)
+            advanceUntilIdle()
+
+            // When: Refresh programme progress
+            viewModel.refreshProgrammeProgress()
+            advanceUntilIdle()
+
+            // Then: getProgrammeWithDetails and getNextProgrammeWorkout are called
+            coVerify { mockRepository.getProgrammeWithDetails(testProgramme.id) }
+            coVerify { mockRepository.getNextProgrammeWorkout(testProgramme.id) }
+        }
+
+    @Test
+    fun `loadNextWorkoutInfo sets null when no active programme`() =
+        runTest {
+            // Given: No active programme
+            coEvery { mockRepository.getActiveProgramme() } returns null
+            viewModel = ProgrammeViewModel(mockApplication, mockRepository)
+            advanceUntilIdle()
+
+            // When: Load next workout info
+            viewModel.loadNextWorkoutInfo()
+            advanceUntilIdle()
+
+            // Then: nextWorkoutInfo is null
+            assertThat(viewModel.nextWorkoutInfo.value).isNull()
+        }
 }
