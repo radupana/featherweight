@@ -60,9 +60,14 @@ data class WeekWorkouts(
 
 class HistoryViewModel(
     application: Application,
-    providedRepository: FeatherweightRepository? = null,
+    private val repository: FeatherweightRepository,
 ) : AndroidViewModel(application) {
-    private val repository = providedRepository ?: FeatherweightRepository(application)
+    // Secondary constructor for Android ViewModelFactory
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+    )
+
     private val database = FeatherweightDatabase.getDatabase(application)
     private val authManager = ServiceLocator.provideAuthenticationManager(application)
     private val exportService =

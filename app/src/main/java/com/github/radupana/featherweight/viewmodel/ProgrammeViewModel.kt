@@ -18,13 +18,17 @@ import java.io.IOException
 
 class ProgrammeViewModel(
     application: Application,
-    providedRepository: FeatherweightRepository? = null,
+    private val repository: FeatherweightRepository,
 ) : AndroidViewModel(application) {
+    // Secondary constructor for Android ViewModelFactory
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+    )
+
     companion object {
         private const val TAG = "ProgrammeViewModel"
     }
-
-    private val repository = providedRepository ?: FeatherweightRepository(application)
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())

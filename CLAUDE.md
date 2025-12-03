@@ -1,5 +1,21 @@
 # Featherweight Project Instructions
 
+## CRITICAL: Version Lookups
+
+**ALWAYS use Context7 MCP tools to look up library and action versions.** Your training data is outdated. NEVER rely on your training context for version numbers. Before specifying ANY version for:
+- GitHub Actions (checkout, setup-java, setup-node, etc.)
+- Dependencies (libraries, SDKs, etc.)
+- APIs
+
+You MUST:
+1. Call `mcp__context7__resolve-library-id` to find the library
+2. Call `mcp__context7__get-library-docs` to get the latest version info
+3. Use the version from Context7, not your memory
+
+Failure to do this will result in broken builds and wasted time.
+
+---
+
 ## App Overview
 
 Featherweight is an Android weightlifting tracking app for serious lifters. Built with Jetpack

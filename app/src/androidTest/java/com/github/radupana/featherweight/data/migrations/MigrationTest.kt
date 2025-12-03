@@ -455,4 +455,190 @@ class MigrationTest {
 
         db.close()
     }
+
+    @Test
+    fun migrate1To2_idempotency_indexCreationIsSafe() {
+        // Create database with version 1
+        helper.createDatabase(testDb, 1).apply {
+            close()
+        }
+
+        // Run migration
+        val db =
+            helper.runMigrationsAndValidate(
+                testDb,
+                2,
+                true,
+                MIGRATION_1_2,
+            )
+
+        // Attempt to create the index again - should not fail due to IF NOT EXISTS
+        // This simulates partial migration recovery
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_personal_records_sourceSetId ON personal_records(sourceSetId)",
+        )
+
+        // Verify index still exists and only one copy
+        val cursor =
+            db.query(
+                """
+                SELECT COUNT(*) FROM sqlite_master
+                WHERE type = 'index'
+                AND name = 'index_personal_records_sourceSetId'
+                """.trimIndent(),
+            )
+
+        assertThat(cursor.moveToFirst()).isTrue()
+        assertThat(cursor.getInt(0)).isEqualTo(1)
+
+        cursor.close()
+        db.close()
+    }
+
+    @Test
+    fun migrate1To2_handlesLargeDataset() {
+        // Create database with version 1 and insert large dataset
+        // Using 1000 records to test migration performance without being too slow
+        helper.createDatabase(testDb, 1).apply {
+            // Batch insert for performance
+            beginTransaction()
+            try {
+                for (i in 1..1000) {
+                    execSQL(
+                        """
+                        INSERT INTO set_logs (id, userId, exerciseLogId, setOrder, actualReps, actualWeight, isCompleted)
+                        VALUES ('set$i', 'user1', 'exLog${i % 100}', ${i % 10}, ${5 + (i % 5)}, ${100.0 + (i % 50)}, 1)
+                        """.trimIndent(),
+                    )
+                }
+                setTransactionSuccessful()
+            } finally {
+                endTransaction()
+            }
+
+            close()
+        }
+
+        // Run migration - should complete without timeout
+        val db =
+            helper.runMigrationsAndValidate(
+                testDb,
+                2,
+                true,
+                MIGRATION_1_2,
+            )
+
+        // Verify all records migrated
+        val cursor =
+            db.query(
+                """
+                SELECT COUNT(*) FROM set_logs
+                WHERE triggeredUsageIncrement = 0
+                """.trimIndent(),
+            )
+
+        assertThat(cursor.moveToFirst()).isTrue()
+        assertThat(cursor.getInt(0)).isEqualTo(1000)
+
+        cursor.close()
+        db.close()
+    }
+
+    @Test
+    fun migrate1To2_handlesNullableColumnsCorrectly() {
+        // Test that existing records with NULL values in optional columns migrate correctly
+        helper.createDatabase(testDb, 1).apply {
+            // Insert record with all nullable columns as NULL
+            execSQL(
+                """
+                INSERT INTO set_logs (id, userId, exerciseLogId, setOrder, actualReps, actualWeight, isCompleted,
+                                     targetReps, targetWeight, targetRpe, actualRpe, tag, notes, completedAt)
+                VALUES ('set1', 'user1', 'exLog1', 1, 5, 100.0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+                """.trimIndent(),
+            )
+
+            // Insert record with values in all columns
+            execSQL(
+                """
+                INSERT INTO set_logs (id, userId, exerciseLogId, setOrder, actualReps, actualWeight, isCompleted,
+                                     targetReps, targetWeight, targetRpe, actualRpe, tag, notes, completedAt)
+                VALUES ('set2', 'user1', 'exLog1', 2, 5, 100.0, 1, 5, 100.0, 8.0, 7.5, 'PR', 'Notes', '2023-01-01T10:00:00')
+                """.trimIndent(),
+            )
+
+            close()
+        }
+
+        // Run migration
+        val db =
+            helper.runMigrationsAndValidate(
+                testDb,
+                2,
+                true,
+                MIGRATION_1_2,
+            )
+
+        // Verify both records exist with new columns
+        val cursor =
+            db.query(
+                """
+                SELECT id, triggeredUsageIncrement, previous1RMEstimate
+                FROM set_logs
+                ORDER BY id
+                """.trimIndent(),
+            )
+
+        assertThat(cursor.moveToFirst()).isTrue()
+        assertThat(cursor.getString(0)).isEqualTo("set1")
+        assertThat(cursor.getInt(1)).isEqualTo(0)
+        assertThat(cursor.isNull(2)).isTrue()
+
+        assertThat(cursor.moveToNext()).isTrue()
+        assertThat(cursor.getString(0)).isEqualTo("set2")
+        assertThat(cursor.getInt(1)).isEqualTo(0)
+        assertThat(cursor.isNull(2)).isTrue()
+
+        cursor.close()
+        db.close()
+    }
+
+    @Test
+    fun migrate1To2_emptyTablesHandledCorrectly() {
+        // Create database with version 1 with empty tables
+        helper.createDatabase(testDb, 1).apply {
+            // Don't insert any data
+            close()
+        }
+
+        // Run migration - should succeed even with empty tables
+        val db =
+            helper.runMigrationsAndValidate(
+                testDb,
+                2,
+                true,
+                MIGRATION_1_2,
+            )
+
+        // Verify tables exist and have correct schema
+        val setLogCursor = db.query("PRAGMA table_info(set_logs)")
+        val columns = mutableListOf<String>()
+        while (setLogCursor.moveToNext()) {
+            columns.add(setLogCursor.getString(1))
+        }
+        setLogCursor.close()
+
+        assertThat(columns).contains("triggeredUsageIncrement")
+        assertThat(columns).contains("previous1RMEstimate")
+
+        val prCursor = db.query("PRAGMA table_info(personal_records)")
+        val prColumns = mutableListOf<String>()
+        while (prCursor.moveToNext()) {
+            prColumns.add(prCursor.getString(1))
+        }
+        prCursor.close()
+
+        assertThat(prColumns).contains("sourceSetId")
+
+        db.close()
+    }
 }

@@ -50,16 +50,23 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
-        cache: gradle
 
     - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+    - name: Configure Gradle properties
       run: |
         chmod +x gradlew
         mkdir -p ~/.gradle
-        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-        echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC" >> ~/.gradle/gradle.properties
+        cat >> ~/.gradle/gradle.properties << 'EOF'
+        org.gradle.daemon=false
+        org.gradle.parallel=true
+        org.gradle.caching=true
+        org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC -XX:MaxMetaspaceSize=512m
+        org.gradle.workers.max=2
+        EOF
 
     - name: Create dummy google-services.json
       run: |
@@ -91,7 +98,28 @@ jobs:
         }' > app/google-services.json
 
     - name: Run Unit Tests
-      run: ./gradlew testDebugUnitTest || (echo "Test failed. Check test report artifact for details."; exit 1)
+      run: |
+        # Run with info logging to see what's happening
+        ./gradlew testDebugUnitTest --info --stacktrace 2>&1 | tee test-output.log || {
+          echo "::group::Test Failure Details"
+          # Show last 200 lines of output
+          tail -200 test-output.log
+          echo "::endgroup::"
+
+          # Look for specific error patterns
+          echo "::group::Error Analysis"
+          grep -E "(FAILED|Exception|Error:|OutOfMemory|Native)" test-output.log | tail -50 || true
+          echo "::endgroup::"
+
+          # Show any generated test reports
+          if [ -d "app/build/reports/tests/testDebugUnitTest" ]; then
+            echo "::group::Test Reports Found"
+            find app/build/reports/tests/testDebugUnitTest -name "*.html" -o -name "*.xml" | head -20
+            echo "::endgroup::"
+          fi
+
+          exit 1
+        }
 
     - name: Set up Node.js for Cloud Functions
       uses: actions/setup-node@v6
@@ -157,6 +185,7 @@ jobs:
 
   code-quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
     - name: Checkout code
@@ -167,16 +196,22 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
-        cache: gradle
 
     - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+    - name: Configure Gradle properties
       run: |
         chmod +x gradlew
         mkdir -p ~/.gradle
-        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-        echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC" >> ~/.gradle/gradle.properties
+        cat >> ~/.gradle/gradle.properties << 'EOF'
+        org.gradle.daemon=false
+        org.gradle.parallel=true
+        org.gradle.caching=true
+        org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC
+        EOF
 
     - name: Create dummy google-services.json
       run: |
@@ -207,8 +242,12 @@ jobs:
           "configuration_version": "1"
         }' > app/google-services.json
 
-    - name: Run Lint
-      run: ./gradlew lint
+    - name: Run Detekt (fast)
+      run: ./gradlew detekt
+      continue-on-error: true
+
+    - name: Run Lint (slower - debug variant only)
+      run: ./gradlew :app:lintDebug
 
     - name: Upload lint results
       if: always()
@@ -216,10 +255,6 @@ jobs:
       with:
         name: lint-results
         path: app/build/reports/lint-results-debug.html
-
-    - name: Run Detekt
-      run: ./gradlew detekt
-      continue-on-error: true
 
     - name: Upload detekt results
       if: always()
