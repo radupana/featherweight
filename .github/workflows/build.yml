@@ -150,6 +150,9 @@ jobs:
       if: always()
       run: |
         echo "Generating unit test coverage report..."
+        # Clean up Robolectric native runtime temp directory to avoid DirectoryNotEmptyException
+        # when re-running tests for coverage generation
+        rm -rf /tmp/robolectric-nativeruntime* 2>/dev/null || true
         ./gradlew createDebugUnitTestCoverageReport || echo "::warning::Failed to generate coverage report"
         if [ -f app/build/reports/coverage/test/debug/index.html ]; then
           echo "::notice title=Coverage Report::Successfully generated unit test coverage report"
