@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.data
 
 import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseInstructionDao
@@ -10,24 +10,23 @@ import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
+import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Before
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * Base class for DAO tests that provides Room in-memory database setup.
  *
- * This class:
- * - Creates an in-memory Room database before each test
- * - Allows synchronous queries for simpler testing (allowMainThreadQueries)
- * - Provides access to all DAOs
- * - Properly closes the database after each test
+ * This class uses BundledSQLiteDriver for pure JVM testing without Robolectric.
+ * This approach:
+ * - Runs on pure JVM (no Android framework needed)
+ * - Is faster than Robolectric
+ * - Works reliably in CI without native library issues
+ * - Uses the same SQLite implementation as Android
  *
  * Usage:
  * ```
- * @RunWith(RobolectricTestRunner::class)
  * class MyDaoTest : BaseDaoTest() {
  *     @Test
  *     fun `test something`() = runTest {
@@ -38,10 +37,9 @@ import org.robolectric.annotation.Config
  * }
  * ```
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28]) // Use SDK 28 for Robolectric tests
 abstract class BaseDaoTest {
     protected lateinit var database: FeatherweightDatabase
+    private lateinit var dbFile: File
 
     // Workout-related DAOs
     protected lateinit var workoutDao: WorkoutDao
@@ -76,13 +74,17 @@ abstract class BaseDaoTest {
 
     @Before
     fun setupDatabase() {
-        // Create in-memory database
+        // Create a temp file for the database (deleted after test)
+        dbFile = File.createTempFile("test_featherweight_", ".db")
+        dbFile.deleteOnExit()
+
+        // Create database using BundledSQLiteDriver (pure JVM via room-runtime-jvm)
+        // The JVM API uses the reified type parameter and doesn't need Android Context
         database =
             Room
-                .inMemoryDatabaseBuilder(
-                    ApplicationProvider.getApplicationContext(),
-                    FeatherweightDatabase::class.java,
-                ).allowMainThreadQueries() // Allow sync queries for testing
+                .databaseBuilder<FeatherweightDatabase>(name = dbFile.absolutePath)
+                .setDriver(BundledSQLiteDriver())
+                .setQueryCoroutineContext(Dispatchers.IO)
                 .build()
 
         // Initialize all DAOs
@@ -116,5 +118,9 @@ abstract class BaseDaoTest {
     @After
     fun closeDatabase() {
         database.close()
+        // Clean up temp database file
+        if (::dbFile.isInitialized && dbFile.exists()) {
+            dbFile.delete()
+        }
     }
 }

@@ -4,8 +4,6 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -14,7 +12,6 @@ import java.time.LocalDateTime
  * Primary focus: Testing the nested subquery in getConsecutiveFailures()
  * which is critical for deload decisions in programme progression.
  */
-@RunWith(RobolectricTestRunner::class)
 class ProgrammeExerciseTrackingDaoTest : BaseDaoTest() {
     // Helper Methods
 

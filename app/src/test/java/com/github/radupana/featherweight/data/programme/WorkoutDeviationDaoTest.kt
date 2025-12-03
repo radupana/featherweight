@@ -7,8 +7,6 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -21,7 +19,6 @@ import java.time.LocalDateTime
  * - Complex aggregation queries
  * - Deletion operations
  */
-@RunWith(RobolectricTestRunner::class)
 class WorkoutDeviationDaoTest : BaseDaoTest() {
     // Helper Methods
 

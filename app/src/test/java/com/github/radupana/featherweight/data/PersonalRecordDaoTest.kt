@@ -4,8 +4,6 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -14,7 +12,6 @@ import java.time.LocalDateTime
  * Primary focus: Testing the CTE query using ROW_NUMBER() in getRecentPRs()
  * which is critical for the PR history feature.
  */
-@RunWith(RobolectricTestRunner::class)
 class PersonalRecordDaoTest : BaseDaoTest() {
     // Helper Methods
 

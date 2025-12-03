@@ -43,7 +43,7 @@ uiautomator = "2.3.0"
 testRunner = "1.7.0"
 testRules = "1.7.0"
 testOrchestrator = "1.6.1"
-robolectric = "4.14"
+sqliteJdbc = "3.47.2.0"
 workRuntimeKtx = "2.11.0"
 
 
@@ -104,7 +104,11 @@ androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", 
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "testRunner" }
 androidx-test-rules = { module = "androidx.test:rules", version.ref = "testRules" }
 androidx-test-orchestrator = { module = "androidx.test:orchestrator", version.ref = "testOrchestrator" }
-robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version = "2.6.2" }
+sqlite-bundled-jvm = { module = "androidx.sqlite:sqlite-bundled-jvm", version = "2.6.2" }
+sqlite-jvm = { module = "androidx.sqlite:sqlite-jvm", version = "2.6.2" }
+room-runtime-jvm = { module = "androidx.room:room-runtime-jvm", version.ref = "room" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 

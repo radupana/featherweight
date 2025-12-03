@@ -7,8 +7,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeType
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -20,7 +18,6 @@ import java.time.LocalDateTime
  * - Uses Truth assertions
  * - Tests actual database queries (not mocked)
  */
-@RunWith(RobolectricTestRunner::class)
 class WorkoutDaoTest : BaseDaoTest() {
     // Helper Methods
 

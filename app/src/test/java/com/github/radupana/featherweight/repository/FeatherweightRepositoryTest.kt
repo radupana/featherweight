@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.repository
 
 import android.app.Application
 import android.util.Log
-import androidx.test.core.app.ApplicationProvider
 import com.github.radupana.featherweight.data.BaseDaoTest
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
@@ -64,7 +63,7 @@ class FeatherweightRepositoryTest : BaseDaoTest() {
         every { FirebaseFirestore.getInstance() } returns firestore
         every { FirebaseFirestore.getInstance(any<String>()) } returns firestore
 
-        application = ApplicationProvider.getApplicationContext()
+        application = mockk(relaxed = true)
         authManager = mockk(relaxed = true)
 
         // Return "local" to skip Firestore sync in tests

@@ -5,8 +5,6 @@ import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -19,7 +17,6 @@ import java.time.LocalDateTime
  * - User-based operations
  * - Edge cases for progress data
  */
-@RunWith(RobolectricTestRunner::class)
 class GlobalExerciseProgressDaoTest : BaseDaoTest() {
     // Helper Methods
 

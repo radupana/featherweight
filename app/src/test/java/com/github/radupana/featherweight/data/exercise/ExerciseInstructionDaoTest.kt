@@ -4,8 +4,6 @@ import com.github.radupana.featherweight.data.BaseDaoTest
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 
 /**
@@ -18,7 +16,6 @@ import java.time.LocalDateTime
  * - Foreign key constraints
  * - Batch operations
  */
-@RunWith(RobolectricTestRunner::class)
 class ExerciseInstructionDaoTest : BaseDaoTest() {
     // Helper Methods
 

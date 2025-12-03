@@ -4,8 +4,6 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -15,7 +13,6 @@ import java.time.format.DateTimeFormatter
  * Primary focus: Testing the CTE query using WITH clause in getMaxWeightSetFromLastWorkout()
  * which is critical for last workout weight calculations.
  */
-@RunWith(RobolectricTestRunner::class)
 class SetLogDaoTest : BaseDaoTest() {
     // Helper Methods
 

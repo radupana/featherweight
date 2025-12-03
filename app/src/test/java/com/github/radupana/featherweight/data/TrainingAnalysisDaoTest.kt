@@ -3,8 +3,6 @@ package com.github.radupana.featherweight.data
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -18,7 +16,6 @@ import java.time.LocalDateTime
  * - JSON field handling
  * - Latest analysis retrieval
  */
-@RunWith(RobolectricTestRunner::class)
 class TrainingAnalysisDaoTest : BaseDaoTest() {
     // Helper Methods
 

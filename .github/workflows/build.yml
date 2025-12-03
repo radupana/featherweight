@@ -97,8 +97,7 @@ jobs:
 
     - name: Run Unit Tests
       run: |
-        # Run with info logging to see what's happening
-        ./gradlew testDebugUnitTest --info --stacktrace 2>&1 | tee test-output.log || {
+        ./gradlew testDebugUnitTest --stacktrace 2>&1 | tee test-output.log || {
           echo "::group::Test Failure Details"
           # Show last 200 lines of output
           tail -200 test-output.log
