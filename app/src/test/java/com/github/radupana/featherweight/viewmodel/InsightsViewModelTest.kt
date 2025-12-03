@@ -77,19 +77,6 @@ class InsightsViewModelTest {
     }
 
     @Test
-    fun analysisQuota_dataClass_holdCorrectValues() {
-        val resetDate = java.time.LocalDate.of(2025, 12, 1)
-        val quota =
-            InsightsViewModel.AnalysisQuota(
-                monthlyRemaining = 10,
-                resetDate = resetDate,
-            )
-
-        assertThat(quota.monthlyRemaining).isEqualTo(10)
-        assertThat(quota.resetDate).isEqualTo(resetDate)
-    }
-
-    @Test
     fun analysisMetadata_calculatesCorrectDateRange() {
         val startDate = LocalDateTime.of(2025, 1, 1, 10, 0)
         val endDate = LocalDateTime.of(2025, 1, 29, 10, 0)

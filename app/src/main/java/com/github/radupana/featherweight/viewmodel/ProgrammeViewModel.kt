@@ -18,12 +18,17 @@ import java.io.IOException
 
 class ProgrammeViewModel(
     application: Application,
+    private val repository: FeatherweightRepository,
 ) : AndroidViewModel(application) {
+    // Secondary constructor for Android ViewModelFactory
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+    )
+
     companion object {
         private const val TAG = "ProgrammeViewModel"
     }
-
-    private val repository = FeatherweightRepository(application)
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())
@@ -130,10 +135,11 @@ class ProgrammeViewModel(
                         "hasProgress: ${_programmeProgress.value != null}",
                 )
 
-                // Force update the UI state to ensure loading is false
+                // Force update the UI state to ensure loading is false and clear any previous error
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,
+                        error = null,
                     )
                 hasLoadedInitialData = true
             } catch (e: SQLiteException) {

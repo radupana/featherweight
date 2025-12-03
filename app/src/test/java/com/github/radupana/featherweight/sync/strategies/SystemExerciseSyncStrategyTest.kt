@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.sync.strategies
 
 import android.text.TextUtils
 import android.util.Log
-import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
@@ -23,6 +22,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * Tests for SystemExerciseSyncStrategy.
+ *
+ * Note: These tests verify the strategy's behavioral contracts using relaxed mocks.
+ * The production code uses Android Room's withTransaction which is not available in JVM tests.
+ * We test the logic flow and error handling rather than transaction semantics.
+ */
 class SystemExerciseSyncStrategyTest {
     private lateinit var database: FeatherweightDatabase
     private lateinit var firestoreRepository: FirestoreRepository
@@ -45,8 +51,6 @@ class SystemExerciseSyncStrategyTest {
             str == null || str.isEmpty()
         }
 
-        mockkStatic("androidx.room.RoomDatabaseKt")
-
         database = mockk(relaxed = true)
         exerciseDao = mockk(relaxed = true)
         exerciseMuscleDao = mockk(relaxed = true)
@@ -58,11 +62,6 @@ class SystemExerciseSyncStrategyTest {
         every { database.exerciseAliasDao() } returns exerciseAliasDao
         every { database.exerciseInstructionDao() } returns exerciseInstructionDao
 
-        coEvery { database.withTransaction(any<suspend () -> Unit>()) } coAnswers {
-            val block = firstArg<suspend () -> Unit>()
-            block()
-        }
-
         firestoreRepository = mockk(relaxed = true)
         strategy = SystemExerciseSyncStrategy(database, firestoreRepository)
     }
@@ -71,7 +70,6 @@ class SystemExerciseSyncStrategyTest {
     fun tearDown() {
         unmockkStatic(Log::class)
         unmockkStatic(TextUtils::class)
-        unmockkStatic("androidx.room.RoomDatabaseKt")
         clearAllMocks()
     }
 

@@ -121,6 +121,10 @@ android {
             isReturnDefaultValues = true
             all {
                 it.ignoreFailures = false
+                // Increase heap for Robolectric tests - 512MB default is too small
+                it.maxHeapSize = "2g"
+                // Fork every 50 test classes to prevent memory accumulation
+                it.forkEvery = 50
             }
         }
     }
@@ -169,6 +173,12 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    // SQLite and Room for JVM unit tests (Room database testing without Robolectric)
+    // Use JVM-specific variants to avoid Android native library loading issues
+    testImplementation(libs.sqlite.jvm)
+    testImplementation(libs.sqlite.bundled.jvm)
+    testImplementation(libs.room.runtime.jvm)
+
     // Mocking
     testImplementation(libs.mockk)
     testImplementation(libs.mockk.android)
@@ -181,11 +191,16 @@ dependencies {
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.core.ktx)
 
+    // Android Instrumentation Testing
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.truth)
+
     debugImplementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
 
     // SQLCipher for database encryption
     // SQLCipher removed - using Android's built-in encryption instead

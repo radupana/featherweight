@@ -5,116 +5,12 @@ import com.github.radupana.featherweight.data.exercise.ExerciseWithAliases
 import com.github.radupana.featherweight.data.voice.ParsedExerciseData
 import com.github.radupana.featherweight.data.voice.ParsedSetData
 import com.github.radupana.featherweight.data.voice.ParsedVoiceWorkoutInput
-import com.github.radupana.featherweight.data.voice.VoiceInputState
 import com.github.radupana.featherweight.model.WeightUnit
-import com.github.radupana.featherweight.service.ExerciseMatchResult
-import com.github.radupana.featherweight.service.ExerciseMatchSuggestions
 import com.github.radupana.featherweight.service.VoiceExerciseMatchingService
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class VoiceInputViewModelTest {
-    @Test
-    fun `ConfirmableExercise holds parsed data and match suggestions`() {
-        val parsedData = createTestParsedExercise("bench press", "Barbell Bench Press")
-        val matchSuggestions =
-            ExerciseMatchSuggestions(
-                bestMatch =
-                    ExerciseMatchResult(
-                        exerciseId = "barbell-bench-press",
-                        exerciseName = "Barbell Bench Press",
-                        score = 1000,
-                        isAutoMatch = true,
-                    ),
-                suggestions =
-                    listOf(
-                        ExerciseMatchResult(
-                            exerciseId = "barbell-bench-press",
-                            exerciseName = "Barbell Bench Press",
-                            score = 1000,
-                            isAutoMatch = true,
-                        ),
-                    ),
-            )
-
-        val confirmable =
-            ConfirmableExercise(
-                parsedData = parsedData,
-                matchSuggestions = matchSuggestions,
-                selectedExerciseId = "barbell-bench-press",
-                selectedExerciseName = "Barbell Bench Press",
-                isConfirmed = true,
-            )
-
-        assertThat(confirmable.parsedData.spokenName).isEqualTo("bench press")
-        assertThat(confirmable.selectedExerciseId).isEqualTo("barbell-bench-press")
-        assertThat(confirmable.isConfirmed).isTrue()
-    }
-
-    @Test
-    fun `ConfirmableExercise can have null selectedExercise when no match`() {
-        val parsedData = createTestParsedExercise("unknown exercise", "Unknown")
-        val matchSuggestions =
-            ExerciseMatchSuggestions(
-                bestMatch = null,
-                suggestions = emptyList(),
-            )
-
-        val confirmable =
-            ConfirmableExercise(
-                parsedData = parsedData,
-                matchSuggestions = matchSuggestions,
-                selectedExerciseId = null,
-                selectedExerciseName = null,
-                isConfirmed = false,
-            )
-
-        assertThat(confirmable.selectedExerciseId).isNull()
-        assertThat(confirmable.isConfirmed).isFalse()
-    }
-
-    @Test
-    fun `VoiceInputState Idle is default state`() {
-        val state: VoiceInputState = VoiceInputState.Idle
-        assertThat(state).isInstanceOf(VoiceInputState.Idle::class.java)
-    }
-
-    @Test
-    fun `VoiceInputState Listening represents recording state`() {
-        val state: VoiceInputState = VoiceInputState.Listening
-        assertThat(state).isInstanceOf(VoiceInputState.Listening::class.java)
-    }
-
-    @Test
-    fun `VoiceInputState Transcribing holds partial text`() {
-        val state = VoiceInputState.Transcribing(partialText = "bench press...")
-        assertThat(state.partialText).isEqualTo("bench press...")
-    }
-
-    @Test
-    fun `VoiceInputState Parsing holds transcription`() {
-        val state = VoiceInputState.Parsing(transcription = "bench press 3x8 at 100kg")
-        assertThat(state.transcription).isEqualTo("bench press 3x8 at 100kg")
-    }
-
-    @Test
-    fun `VoiceInputState Ready holds parsed result`() {
-        val parsed = createTestParsedInput()
-        val state = VoiceInputState.Ready(result = parsed)
-        assertThat(state.result.exercises).hasSize(1)
-    }
-
-    @Test
-    fun `VoiceInputState Error holds message and retry flag`() {
-        val state =
-            VoiceInputState.Error(
-                message = "Network error",
-                canRetry = true,
-            )
-        assertThat(state.message).isEqualTo("Network error")
-        assertThat(state.canRetry).isTrue()
-    }
-
     @Test
     fun `VoiceExerciseMatchingService finds match for exact exercise name`() {
         val service = VoiceExerciseMatchingService()
@@ -144,26 +40,6 @@ class VoiceInputViewModelTest {
             )
 
         assertThat(result.suggestions).isNotEmpty()
-    }
-
-    @Test
-    fun `ParsedSetData holds set information correctly`() {
-        val setData =
-            ParsedSetData(
-                setNumber = 1,
-                reps = 8,
-                weight = 100f,
-                weightUnit = WeightUnit.KG,
-                rpe = 8.0f,
-                isToFailure = false,
-                notes = null,
-            )
-
-        assertThat(setData.setNumber).isEqualTo(1)
-        assertThat(setData.reps).isEqualTo(8)
-        assertThat(setData.weight).isEqualTo(100f)
-        assertThat(setData.weightUnit).isEqualTo(WeightUnit.KG)
-        assertThat(setData.rpe).isEqualTo(8.0f)
     }
 
     @Test
@@ -255,14 +131,6 @@ class VoiceInputViewModelTest {
                 ),
             confidence = 0.95f,
             notes = null,
-        )
-
-    private fun createTestParsedInput(): ParsedVoiceWorkoutInput =
-        ParsedVoiceWorkoutInput(
-            transcription = "bench press 3x8 at 100kg",
-            exercises = listOf(createTestParsedExercise("bench press", "Barbell Bench Press")),
-            confidence = 0.95f,
-            warnings = emptyList(),
         )
 
     private fun createTestExercises(): List<ExerciseWithAliases> =

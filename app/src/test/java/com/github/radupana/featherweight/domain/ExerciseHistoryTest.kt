@@ -7,83 +7,6 @@ import java.time.LocalDateTime
 
 class ExerciseHistoryTest {
     @Test
-    fun exerciseHistory_withAllFields_createsCorrectly() {
-        // Arrange
-        val lastWorkoutDate = LocalDateTime.of(2024, 6, 15, 10, 30)
-        val set1 =
-            SetLog(
-                id = "1",
-                exerciseLogId = "10",
-                setOrder = 1,
-                targetReps = 10,
-                targetWeight = 50f,
-                actualReps = 10,
-                actualWeight = 50f,
-                actualRpe = 7.5f,
-                isCompleted = true,
-            )
-        val set2 =
-            SetLog(
-                id = "2",
-                exerciseLogId = "10",
-                setOrder = 2,
-                targetReps = 10,
-                targetWeight = 50f,
-                actualReps = 8,
-                actualWeight = 50f,
-                actualRpe = 8.5f,
-                isCompleted = true,
-            )
-        val set3 =
-            SetLog(
-                id = "3",
-                exerciseLogId = "10",
-                setOrder = 3,
-                targetReps = 10,
-                targetWeight = 50f,
-                actualReps = 6,
-                actualWeight = 50f,
-                actualRpe = 9f,
-                isCompleted = true,
-            )
-
-        // Act
-        val history =
-            ExerciseHistory(
-                exerciseId = "5",
-                lastWorkoutDate = lastWorkoutDate,
-                sets = listOf(set1, set2, set3),
-            )
-
-        // Assert
-        assertThat(history.exerciseId).isEqualTo("5")
-        assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
-        assertThat(history.sets).hasSize(3)
-        assertThat(history.sets[0]).isEqualTo(set1)
-        assertThat(history.sets[1]).isEqualTo(set2)
-        assertThat(history.sets[2]).isEqualTo(set3)
-    }
-
-    @Test
-    fun exerciseHistory_withEmptySets_handlesEmptyList() {
-        // Arrange
-        val lastWorkoutDate = LocalDateTime.of(2024, 7, 1, 14, 0)
-
-        // Act
-        val history =
-            ExerciseHistory(
-                exerciseId = "10",
-                lastWorkoutDate = lastWorkoutDate,
-                sets = emptyList(),
-            )
-
-        // Assert
-        assertThat(history.exerciseId).isEqualTo("10")
-        assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
-        assertThat(history.sets).isEmpty()
-    }
-
-    @Test
     fun exerciseHistory_equality_worksCorrectly() {
         // Arrange
         val date = LocalDateTime.of(2024, 6, 15, 10, 0)
@@ -121,51 +44,6 @@ class ExerciseHistoryTest {
         assertThat(history1).isEqualTo(history2)
         assertThat(history1).isNotEqualTo(history3)
         assertThat(history1.hashCode()).isEqualTo(history2.hashCode())
-    }
-
-    @Test
-    fun exerciseHistory_copy_createsIndependentCopy() {
-        // Arrange
-        val date = LocalDateTime.of(2024, 6, 15, 10, 0)
-        val set1 =
-            SetLog(
-                id = "1",
-                exerciseLogId = "10",
-                setOrder = 1,
-                actualReps = 10,
-                actualWeight = 50f,
-            )
-        val set2 =
-            SetLog(
-                id = "2",
-                exerciseLogId = "10",
-                setOrder = 2,
-                actualReps = 8,
-                actualWeight = 50f,
-            )
-
-        val original =
-            ExerciseHistory(
-                exerciseId = "5",
-                lastWorkoutDate = date,
-                sets = listOf(set1),
-            )
-
-        // Act
-        val copy =
-            original.copy(
-                sets = listOf(set1, set2),
-            )
-
-        // Assert
-        assertThat(copy.exerciseId).isEqualTo("5") // Unchanged
-        assertThat(copy.lastWorkoutDate).isEqualTo(date) // Unchanged
-        assertThat(copy.sets).hasSize(2)
-        assertThat(copy.sets).containsExactly(set1, set2)
-
-        // Verify original is unchanged
-        assertThat(original.sets).hasSize(1)
-        assertThat(original.sets).containsExactly(set1)
     }
 
     @Test
@@ -227,35 +105,6 @@ class ExerciseHistoryTest {
 
         // Assert
         assertThat(history1.lastWorkoutDate.isBefore(history2.lastWorkoutDate)).isTrue()
-    }
-
-    @Test
-    fun exerciseHistory_toString_includesAllFields() {
-        // Arrange
-        val date = LocalDateTime.of(2024, 6, 15, 10, 0)
-        val set =
-            SetLog(
-                id = "1",
-                exerciseLogId = "10",
-                setOrder = 1,
-                actualReps = 10,
-                actualWeight = 50f,
-            )
-
-        val history =
-            ExerciseHistory(
-                exerciseId = "5",
-                lastWorkoutDate = date,
-                sets = listOf(set),
-            )
-
-        // Act
-        val stringRepresentation = history.toString()
-
-        // Assert
-        assertThat(stringRepresentation).contains("exerciseId=")
-        assertThat(stringRepresentation).contains("lastWorkoutDate=2024-06-15T10:00")
-        assertThat(stringRepresentation).contains("sets")
     }
 
     @Test

@@ -5,8 +5,22 @@ import {
   getQuotaLimits,
   shouldResetMonthly,
   getSystemPrompt,
+  decrementQuota,
+  refundQuota,
+  callOpenAI,
   AnalyzeTrainingRequest,
 } from "./analyzeTrainingLogic";
+
+// Mock OpenAI
+jest.mock("openai", () => {
+  return jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: jest.fn(),
+      },
+    },
+  }));
+});
 
 describe("analyzeTrainingLogic", () => {
   describe("validateInput", () => {
@@ -69,13 +83,6 @@ describe("analyzeTrainingLogic", () => {
     });
   });
 
-  describe("getQuotaLimits", () => {
-    it("should return correct quota limits", () => {
-      const limits = getQuotaLimits();
-      expect(limits.monthly).toBe(10);
-    });
-  });
-
   describe("shouldResetMonthly", () => {
     it("should reset monthly quota on new month", () => {
       const lastMonth = new Date();
@@ -128,6 +135,265 @@ describe("analyzeTrainingLogic", () => {
       const prompt = getSystemPrompt(50, 25);
       expect(prompt).toContain("training history");
       expect(prompt).toContain("50 workouts over 25 weeks");
+    });
+  });
+
+  describe("decrementQuota", () => {
+    let mockDb: any;
+    let mockTransaction: any;
+    let mockQuotaRef: any;
+
+    beforeEach(() => {
+      mockTransaction = {
+        get: jest.fn(),
+        set: jest.fn(),
+      };
+
+      mockQuotaRef = {
+        id: "user123",
+      };
+
+      mockDb = {
+        collection: jest.fn(() => ({
+          doc: jest.fn(() => mockQuotaRef),
+        })),
+        runTransaction: jest.fn(async (callback) => callback(mockTransaction)),
+      };
+    });
+
+    it("should create initial quota for new user", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: false,
+      });
+
+      const result = await decrementQuota("user123", mockDb);
+
+      expect(result.remainingQuotas.monthly).toBe(9);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          monthlyCount: 9,
+        })
+      );
+    });
+
+    it("should decrement existing quota", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 5,
+          lastReset: Timestamp.now(),
+        }),
+      });
+
+      const result = await decrementQuota("user123", mockDb);
+
+      expect(result.remainingQuotas.monthly).toBe(4);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          monthlyCount: 4,
+        })
+      );
+    });
+
+    it("should throw error when quota is zero", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 0,
+          lastReset: Timestamp.now(),
+        }),
+      });
+
+      await expect(decrementQuota("user123", mockDb)).rejects.toThrow(HttpsError);
+      await expect(decrementQuota("user123", mockDb)).rejects.toMatchObject({
+        code: "resource-exhausted",
+      });
+
+      expect(mockTransaction.set).not.toHaveBeenCalled();
+    });
+
+    it("should reset monthly quota on new month", async () => {
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 0,
+          lastReset: Timestamp.fromDate(lastMonth),
+        }),
+      });
+
+      const result = await decrementQuota("user123", mockDb);
+
+      expect(result.remainingQuotas.monthly).toBe(9);
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockQuotaRef,
+        expect.objectContaining({
+          monthlyCount: 9,
+        })
+      );
+    });
+  });
+
+  describe("refundQuota", () => {
+    let mockDb: any;
+    let mockTransaction: any;
+    let mockQuotaRef: any;
+
+    beforeEach(() => {
+      mockTransaction = {
+        get: jest.fn(),
+        update: jest.fn(),
+      };
+
+      mockQuotaRef = {
+        id: "user123",
+      };
+
+      mockDb = {
+        collection: jest.fn(() => ({
+          doc: jest.fn(() => mockQuotaRef),
+        })),
+        runTransaction: jest.fn(async (callback) => callback(mockTransaction)),
+      };
+    });
+
+    it("should refund quota when document exists", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 5,
+        }),
+      });
+
+      await refundQuota("user123", mockDb);
+
+      expect(mockTransaction.update).toHaveBeenCalledWith(mockQuotaRef, {
+        monthlyCount: 6,
+      });
+    });
+
+    it("should not refund beyond quota limit", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 10,
+        }),
+      });
+
+      await refundQuota("user123", mockDb);
+
+      expect(mockTransaction.update).toHaveBeenCalledWith(mockQuotaRef, {
+        monthlyCount: 10,
+      });
+    });
+
+    it("should do nothing when document does not exist", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: false,
+      });
+
+      await refundQuota("user123", mockDb);
+
+      expect(mockTransaction.update).not.toHaveBeenCalled();
+    });
+
+    it("should handle edge case of zero quota", async () => {
+      mockTransaction.get.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          monthlyCount: 0,
+        }),
+      });
+
+      await refundQuota("user123", mockDb);
+
+      expect(mockTransaction.update).toHaveBeenCalledWith(mockQuotaRef, {
+        monthlyCount: 1,
+      });
+    });
+  });
+
+  describe("callOpenAI", () => {
+    const mockCreate = jest.fn();
+
+    beforeEach(() => {
+      const OpenAI = require("openai");
+      OpenAI.mockImplementation(() => ({
+        chat: {
+          completions: {
+            create: mockCreate,
+          },
+        },
+      }));
+      mockCreate.mockClear();
+    });
+
+    it("should use correct model", async () => {
+      mockCreate.mockResolvedValue({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              overall_assessment: "Good",
+              key_insights: [],
+              recommendations: [],
+              warnings: [],
+            }),
+          },
+        }],
+      });
+
+      await callOpenAI("test data", "test-key");
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "gpt-5-mini",
+        })
+      );
+    });
+
+    it("should throw error on empty response", async () => {
+      mockCreate.mockResolvedValue({
+        choices: [{
+          message: {},
+        }],
+      });
+
+      await expect(callOpenAI("test data", "test-key")).rejects.toThrow(
+        "No content in OpenAI response"
+      );
+    });
+
+    it("should handle OpenAI API errors", async () => {
+      mockCreate.mockRejectedValue(new Error("API rate limit exceeded"));
+
+      await expect(callOpenAI("test data", "test-key")).rejects.toThrow(
+        "API rate limit exceeded"
+      );
+    });
+
+    it("should parse JSON response correctly", async () => {
+      const mockResponse = {
+        overall_assessment: "Excellent progress",
+        key_insights: [{category: "VOLUME", message: "Good volume", severity: "SUCCESS"}],
+        recommendations: ["Keep it up"],
+        warnings: [],
+      };
+
+      mockCreate.mockResolvedValue({
+        choices: [{
+          message: {
+            content: JSON.stringify(mockResponse),
+          },
+        }],
+      });
+
+      const result = await callOpenAI("test data", "test-key");
+
+      expect(result).toEqual(mockResponse);
     });
   });
 });

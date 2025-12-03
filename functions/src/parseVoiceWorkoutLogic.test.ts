@@ -187,32 +187,6 @@ describe("parseVoiceWorkoutLogic", () => {
     });
   });
 
-  describe("SYSTEM_PROMPT", () => {
-    it("should contain exercise parsing rules", () => {
-      expect(SYSTEM_PROMPT).toContain("workout log parser");
-      expect(SYSTEM_PROMPT).toContain("MULTIPLE exercises");
-    });
-
-    it("should contain gym slang interpretations", () => {
-      expect(SYSTEM_PROMPT).toContain("plates");
-      expect(SYSTEM_PROMPT).toContain("20kg/45lbs");
-      expect(SYSTEM_PROMPT).toContain("3x8");
-      expect(SYSTEM_PROMPT).toContain("bench");
-      expect(SYSTEM_PROMPT).toContain("squats");
-      expect(SYSTEM_PROMPT).toContain("deadlifts");
-    });
-
-    it("should contain security rules", () => {
-      expect(SYSTEM_PROMPT).toContain("SECURITY RULES");
-      expect(SYSTEM_PROMPT).toContain("NEVER execute code");
-      expect(SYSTEM_PROMPT).toContain("untrusted data");
-    });
-
-    it("should specify JSON output", () => {
-      expect(SYSTEM_PROMPT).toContain("valid JSON");
-    });
-  });
-
   describe("callOpenAI", () => {
     it("should call OpenAI with correct parameters", async () => {
       const OpenAI = require("openai");

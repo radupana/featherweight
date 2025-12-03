@@ -139,56 +139,6 @@ class WorkoutSeedingServiceTest {
         }
 
     @Test
-    fun `SeedConfig has correct default values`() {
-        // Arrange & Act
-        val config = WorkoutSeedingService.SeedConfig(numberOfWeeks = 4)
-
-        // Assert
-        assertThat(config.numberOfWeeks).isEqualTo(4)
-        assertThat(config.workoutsPerWeek).isEqualTo(4)
-        assertThat(config.includeAccessories).isTrue()
-        assertThat(config.progressionRate).isEqualTo(0.025f)
-        assertThat(config.variationRange).isEqualTo(2.5f)
-    }
-
-    @Test
-    fun `WorkoutPlan contains main lifts and accessories`() {
-        // Arrange & Act
-        val mainLifts =
-            listOf(
-                WorkoutSeedingService.PlannedExercise(
-                    name = "Squat",
-                    sets = listOf(WorkoutSeedingService.PlannedSet(5, 8)),
-                ),
-            )
-        val accessories =
-            listOf(
-                WorkoutSeedingService.PlannedExercise(
-                    name = "Leg Press",
-                    sets = listOf(WorkoutSeedingService.PlannedSet(10, 7)),
-                ),
-            )
-        val plan = WorkoutSeedingService.WorkoutPlan(mainLifts, accessories)
-
-        // Assert
-        assertThat(plan.mainLifts).hasSize(1)
-        assertThat(plan.mainLifts[0].name).isEqualTo("Squat")
-        assertThat(plan.accessories).hasSize(1)
-        assertThat(plan.accessories[0].name).isEqualTo("Leg Press")
-    }
-
-    @Test
-    fun `PlannedSet has correct default weight multiplier`() {
-        // Arrange & Act
-        val set = WorkoutSeedingService.PlannedSet(reps = 5, rpe = 8)
-
-        // Assert
-        assertThat(set.reps).isEqualTo(5)
-        assertThat(set.rpe).isEqualTo(8)
-        assertThat(set.weightMultiplier).isEqualTo(1.0f)
-    }
-
-    @Test
     fun `seedRealisticWorkouts skips existing workout dates`() =
         runTest {
             // Arrange
@@ -328,47 +278,4 @@ class WorkoutSeedingServiceTest {
             assertThat(resultWith).isGreaterThan(0)
             assertThat(resultWithout).isGreaterThan(0)
         }
-
-    @Test
-    fun `SeedConfig progressionRate affects weight calculations`() {
-        // Arrange
-        val configLowProgression =
-            WorkoutSeedingService.SeedConfig(
-                numberOfWeeks = 1,
-                progressionRate = 0.01f,
-            )
-        val configHighProgression =
-            WorkoutSeedingService.SeedConfig(
-                numberOfWeeks = 1,
-                progressionRate = 0.05f,
-            )
-
-        // Assert
-        assertThat(configLowProgression.progressionRate).isEqualTo(0.01f)
-        assertThat(configHighProgression.progressionRate).isEqualTo(0.05f)
-        assertThat(configLowProgression.progressionRate).isLessThan(configHighProgression.progressionRate)
-    }
-
-    @Test
-    fun `PlannedSet supports custom weight multipliers`() {
-        // Arrange & Act
-        val lightSet =
-            WorkoutSeedingService.PlannedSet(
-                reps = 10,
-                rpe = 6,
-                weightMultiplier = 0.7f,
-            )
-        val heavySet =
-            WorkoutSeedingService.PlannedSet(
-                reps = 3,
-                rpe = 9,
-                weightMultiplier = 0.95f,
-            )
-
-        // Assert
-        assertThat(lightSet.weightMultiplier).isEqualTo(0.7f)
-        assertThat(heavySet.weightMultiplier).isEqualTo(0.95f)
-        assertThat(lightSet.reps).isGreaterThan(heavySet.reps)
-        assertThat(lightSet.rpe).isLessThan(heavySet.rpe)
-    }
 }

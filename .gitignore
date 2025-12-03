@@ -42,3 +42,5 @@ exercises.json
 functions/node_modules/
 functions/lib/
 functions/*.log
+.kotlin/
+*.lck
