@@ -337,20 +337,48 @@ class InsightsViewModel(
             null
         }
 
+    private data class WorkoutDataBatch(
+        val exerciseLogsByWorkout: Map<String, List<com.github.radupana.featherweight.data.ExerciseLog>>,
+        val setLogsByExerciseLog: Map<String, List<com.github.radupana.featherweight.data.SetLog>>,
+        val exerciseMap: Map<String, com.github.radupana.featherweight.data.exercise.Exercise>,
+    )
+
+    private data class WorkoutAggregates(
+        val allSets: List<com.github.radupana.featherweight.data.SetLog>,
+        val setsByExercise: Map<String, List<com.github.radupana.featherweight.data.SetLog>>,
+        val exercisesUsed: Map<String, com.github.radupana.featherweight.data.exercise.Exercise>,
+        val workoutSessions: List<com.github.radupana.featherweight.service.WorkoutSessionData>,
+        val workoutsArray: com.google.gson.JsonArray,
+    )
+
     private suspend fun buildAnalysisPayload(workouts: List<WorkoutSummary>): String {
         val payload = JsonObject()
-
         val metadata = calculateAnalysisMetadata(workouts)
 
+        payload.add("analysis_period", buildAnalysisPeriod(metadata))
+
+        val dataBatch = batchFetchWorkoutData(workouts)
+        val aggregates = buildWorkoutsArray(workouts, dataBatch)
+
+        payload.add("workouts", aggregates.workoutsArray)
+        payload.add("training_metrics", buildTrainingMetrics(aggregates))
+        payload.add("personal_records", buildPersonalRecordsArray())
+
+        addProgrammeDeviationSummary(payload)
+        return gson.toJson(payload)
+    }
+
+    private fun buildAnalysisPeriod(metadata: AnalysisMetadata): JsonObject {
         val period = JsonObject()
         period.addProperty("start_date", metadata.startDate.toString())
         period.addProperty("end_date", metadata.endDate.toString())
         period.addProperty("total_workouts", metadata.totalWorkouts)
         period.addProperty("total_weeks", metadata.totalWeeks)
         period.addProperty("avg_frequency_per_week", String.format(Locale.US, "%.1f", metadata.avgFrequencyPerWeek))
-        payload.add("analysis_period", period)
+        return period
+    }
 
-        // Batch fetch all data upfront to avoid N+1 queries
+    private suspend fun batchFetchWorkoutData(workouts: List<WorkoutSummary>): WorkoutDataBatch {
         val workoutIds = workouts.map { it.id }
         val allExerciseLogs = repository.getExerciseLogsForWorkouts(workoutIds)
         val exerciseLogsByWorkout = allExerciseLogs.groupBy { it.workoutId }
@@ -363,94 +391,127 @@ class InsightsViewModel(
         val exerciseEntities = repository.getExercisesByIds(uniqueExerciseIds)
         val exerciseMap = exerciseEntities.associateBy { it.id }
 
+        return WorkoutDataBatch(exerciseLogsByWorkout, setLogsByExerciseLog, exerciseMap)
+    }
+
+    private fun buildWorkoutsArray(
+        workouts: List<WorkoutSummary>,
+        dataBatch: WorkoutDataBatch,
+    ): WorkoutAggregates {
         val allSets = mutableListOf<com.github.radupana.featherweight.data.SetLog>()
         val setsByExercise = mutableMapOf<String, MutableList<com.github.radupana.featherweight.data.SetLog>>()
         val exercisesUsed = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.Exercise>()
         val workoutSessions = mutableListOf<com.github.radupana.featherweight.service.WorkoutSessionData>()
-
         val workoutsArray = com.google.gson.JsonArray()
 
         for (workout in workouts) {
-            val workoutObj = JsonObject()
-            workoutObj.addProperty("id", workout.id)
-            workoutObj.addProperty("date", workout.date.toLocalDate().toString())
-            workoutObj.addProperty("name", workout.name ?: "Workout")
-            workoutObj.addProperty("duration_minutes", workout.duration?.div(60) ?: 0)
-            workoutObj.addProperty("notes", "")
-
-            val exercises = exerciseLogsByWorkout[workout.id] ?: emptyList()
-            val exercisesArray = com.google.gson.JsonArray()
-            val sessionData = mutableListOf<com.github.radupana.featherweight.service.ExerciseSessionData>()
-
-            for (exercise in exercises) {
-                val exerciseObj = JsonObject()
-                val exerciseEntity = exerciseMap[exercise.exerciseId]
-                val exerciseName = exerciseEntity?.name ?: "Unknown Exercise"
-                exerciseObj.addProperty("name", exerciseName)
-
-                if (exerciseEntity != null) {
-                    exercisesUsed[exercise.exerciseId] = exerciseEntity
-                }
-
-                val sets = setLogsByExerciseLog[exercise.id] ?: emptyList()
-                val setsArray = com.google.gson.JsonArray()
-
-                allSets.addAll(sets)
-                setsByExercise.getOrPut(exercise.exerciseId) { mutableListOf() }.addAll(sets)
-
-                var maxWeight = 0f
-                var totalVolume = 0f
-
-                for ((index, set) in sets.withIndex()) {
-                    val setObj = JsonObject()
-                    setObj.addProperty("set_number", index + 1)
-                    val weight = set.actualWeight ?: 0f
-                    setObj.addProperty("weight", weight)
-                    setObj.addProperty("reps", set.actualReps ?: set.targetReps)
-                    setObj.addProperty("rpe", set.actualRpe)
-                    setObj.addProperty("rest_seconds", 180)
-                    setObj.addProperty("completed", set.isCompleted)
-                    setsArray.add(setObj)
-
-                    if (set.isCompleted) {
-                        if (weight > maxWeight) maxWeight = weight
-                        totalVolume += weight * (set.actualReps ?: 0)
-                    }
-                }
-
-                exerciseObj.add("sets", setsArray)
-                exercisesArray.add(exerciseObj)
-            }
+            val workoutObj = buildSingleWorkoutJson(workout, dataBatch, allSets, setsByExercise, exercisesUsed)
+            workoutsArray.add(workoutObj)
 
             workoutSessions.add(
                 com.github.radupana.featherweight.service.WorkoutSessionData(
                     date = workout.date.toLocalDate().toString(),
-                    exerciseData = sessionData,
+                    exerciseData = emptyList(),
                 ),
             )
-
-            workoutObj.add("exercises", exercisesArray)
-            workoutsArray.add(workoutObj)
         }
 
-        payload.add("workouts", workoutsArray)
+        return WorkoutAggregates(allSets, setsByExercise, exercisesUsed, workoutSessions, workoutsArray)
+    }
 
+    private fun buildSingleWorkoutJson(
+        workout: WorkoutSummary,
+        dataBatch: WorkoutDataBatch,
+        allSets: MutableList<com.github.radupana.featherweight.data.SetLog>,
+        setsByExercise: MutableMap<String, MutableList<com.github.radupana.featherweight.data.SetLog>>,
+        exercisesUsed: MutableMap<String, com.github.radupana.featherweight.data.exercise.Exercise>,
+    ): JsonObject {
+        val workoutObj = JsonObject()
+        workoutObj.addProperty("id", workout.id)
+        workoutObj.addProperty("date", workout.date.toLocalDate().toString())
+        workoutObj.addProperty("name", workout.name ?: "Workout")
+        workoutObj.addProperty("duration_minutes", workout.duration?.div(60) ?: 0)
+        workoutObj.addProperty("notes", "")
+
+        val exercises = dataBatch.exerciseLogsByWorkout[workout.id] ?: emptyList()
+        val exercisesArray = com.google.gson.JsonArray()
+
+        for (exercise in exercises) {
+            val exerciseObj = buildExerciseJson(exercise, dataBatch, allSets, setsByExercise, exercisesUsed)
+            exercisesArray.add(exerciseObj)
+        }
+
+        workoutObj.add("exercises", exercisesArray)
+        return workoutObj
+    }
+
+    private fun buildExerciseJson(
+        exercise: com.github.radupana.featherweight.data.ExerciseLog,
+        dataBatch: WorkoutDataBatch,
+        allSets: MutableList<com.github.radupana.featherweight.data.SetLog>,
+        setsByExercise: MutableMap<String, MutableList<com.github.radupana.featherweight.data.SetLog>>,
+        exercisesUsed: MutableMap<String, com.github.radupana.featherweight.data.exercise.Exercise>,
+    ): JsonObject {
+        val exerciseObj = JsonObject()
+        val exerciseEntity = dataBatch.exerciseMap[exercise.exerciseId]
+        exerciseObj.addProperty("name", exerciseEntity?.name ?: "Unknown Exercise")
+
+        if (exerciseEntity != null) {
+            exercisesUsed[exercise.exerciseId] = exerciseEntity
+        }
+
+        val sets = dataBatch.setLogsByExerciseLog[exercise.id] ?: emptyList()
+        allSets.addAll(sets)
+        setsByExercise.getOrPut(exercise.exerciseId) { mutableListOf() }.addAll(sets)
+
+        val setsArray = com.google.gson.JsonArray()
+        for ((index, set) in sets.withIndex()) {
+            setsArray.add(buildSetJson(set, index + 1))
+        }
+        exerciseObj.add("sets", setsArray)
+
+        return exerciseObj
+    }
+
+    private fun buildSetJson(
+        set: com.github.radupana.featherweight.data.SetLog,
+        setNumber: Int,
+    ): JsonObject {
+        val setObj = JsonObject()
+        setObj.addProperty("set_number", setNumber)
+        setObj.addProperty("weight", set.actualWeight ?: 0f)
+        setObj.addProperty("reps", set.actualReps ?: set.targetReps)
+        setObj.addProperty("rpe", set.actualRpe)
+        setObj.addProperty("rest_seconds", 180)
+        setObj.addProperty("completed", set.isCompleted)
+        return setObj
+    }
+
+    private fun buildTrainingMetrics(aggregates: WorkoutAggregates): JsonObject {
         val volumeMetrics =
             com.github.radupana.featherweight.service.TrainingMetricsCalculator.calculateVolumeMetrics(
-                exercisesUsed,
-                setsByExercise,
+                aggregates.exercisesUsed,
+                aggregates.setsByExercise,
             )
         val intensityMetrics =
             com.github.radupana.featherweight.service.TrainingMetricsCalculator
-                .calculateIntensityMetrics(allSets)
+                .calculateIntensityMetrics(aggregates.allSets)
         val progressionMetrics =
             com.github.radupana.featherweight.service.TrainingMetricsCalculator.calculateProgressionMetrics(
-                exercisesUsed,
-                workoutSessions,
+                aggregates.exercisesUsed,
+                aggregates.workoutSessions,
             )
 
         val metricsObj = JsonObject()
+        metricsObj.add("volume", buildVolumeMetrics(volumeMetrics))
+        metricsObj.add("intensity", buildIntensityMetrics(intensityMetrics))
+        metricsObj.add("progression", buildProgressionMetrics(progressionMetrics))
+        return metricsObj
+    }
 
+    private fun buildVolumeMetrics(
+        volumeMetrics: com.github.radupana.featherweight.service.VolumeMetrics,
+    ): JsonObject {
         val volumeObj = JsonObject()
         volumeObj.addProperty("total_sets", volumeMetrics.totalSets)
         volumeObj.addProperty("total_completed_sets", volumeMetrics.totalCompletedSets)
@@ -474,8 +535,12 @@ class InsightsViewModel(
             categoryObj.addProperty(category, count)
         }
         volumeObj.add("sets_by_category", categoryObj)
-        metricsObj.add("volume", volumeObj)
+        return volumeObj
+    }
 
+    private fun buildIntensityMetrics(
+        intensityMetrics: com.github.radupana.featherweight.service.IntensityMetrics,
+    ): JsonObject {
         val intensityObj = JsonObject()
         intensityObj.addProperty("avg_rpe", String.format(Locale.US, "%.2f", intensityMetrics.avgRpe))
         intensityObj.addProperty("sets_with_rpe", intensityMetrics.setsWithRpe)
@@ -491,13 +556,15 @@ class InsightsViewModel(
                 String.format(Locale.US, "%.1f", intensityMetrics.setsBelowRpe6.toFloat() / intensityMetrics.setsWithRpe * 100),
             )
         }
-        metricsObj.add("intensity", intensityObj)
+        return intensityObj
+    }
 
+    private fun buildProgressionMetrics(
+        progressionMetrics: List<com.github.radupana.featherweight.service.ExerciseProgression>,
+    ): com.google.gson.JsonArray {
         val progressionArray = com.google.gson.JsonArray()
-        val progressingExercises = progressionMetrics.filter { it.isProgressing }
-        val plateauedExercises = progressionMetrics.filter { it.isPlateaued }
 
-        progressingExercises.forEach { prog ->
+        progressionMetrics.filter { it.isProgressing }.forEach { prog ->
             val progObj = JsonObject()
             progObj.addProperty("exercise", prog.exerciseName)
             progObj.addProperty("status", "progressing")
@@ -505,7 +572,7 @@ class InsightsViewModel(
             progressionArray.add(progObj)
         }
 
-        plateauedExercises.forEach { prog ->
+        progressionMetrics.filter { it.isPlateaued }.forEach { prog ->
             val progObj = JsonObject()
             progObj.addProperty("exercise", prog.exerciseName)
             progObj.addProperty("status", "plateaued")
@@ -514,42 +581,40 @@ class InsightsViewModel(
             progressionArray.add(progObj)
         }
 
-        metricsObj.add("progression", progressionArray)
+        return progressionArray
+    }
 
-        payload.add("training_metrics", metricsObj)
-
+    private suspend fun buildPersonalRecordsArray(): com.google.gson.JsonArray {
         val prs = repository.getRecentPRs(limit = 20)
-        val prsArray = com.google.gson.JsonArray()
-
-        // Batch fetch exercise names for PRs
         val prExerciseIds = prs.map { it.exerciseId }.distinct()
         val prExerciseEntities = repository.getExercisesByIds(prExerciseIds)
         val prExerciseMap = prExerciseEntities.associateBy { it.id }
 
+        val prsArray = com.google.gson.JsonArray()
         for (pr in prs) {
-            val prObj = JsonObject()
-            val exerciseName = prExerciseMap[pr.exerciseId]?.name ?: "Unknown Exercise"
-            prObj.addProperty("exercise", exerciseName)
-            prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
-            prObj.addProperty("weight", pr.weight)
-            prObj.addProperty("reps", pr.reps)
-
-            if (pr.previousWeight != null) {
-                val prevObj = JsonObject()
-                prevObj.addProperty("weight", pr.previousWeight)
-                prevObj.addProperty("reps", pr.previousReps)
-                prevObj.addProperty("date", pr.previousDate?.toLocalDate().toString())
-                prObj.add("previous_best", prevObj)
-            }
-
-            prsArray.add(prObj)
+            prsArray.add(buildPRJson(pr, prExerciseMap))
         }
+        return prsArray
+    }
 
-        payload.add("personal_records", prsArray)
+    private fun buildPRJson(
+        pr: com.github.radupana.featherweight.data.PersonalRecord,
+        exerciseMap: Map<String, com.github.radupana.featherweight.data.exercise.Exercise>,
+    ): JsonObject {
+        val prObj = JsonObject()
+        prObj.addProperty("exercise", exerciseMap[pr.exerciseId]?.name ?: "Unknown Exercise")
+        prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
+        prObj.addProperty("weight", pr.weight)
+        prObj.addProperty("reps", pr.reps)
 
-        addProgrammeDeviationSummary(payload)
-
-        return gson.toJson(payload)
+        if (pr.previousWeight != null) {
+            val prevObj = JsonObject()
+            prevObj.addProperty("weight", pr.previousWeight)
+            prevObj.addProperty("reps", pr.previousReps)
+            prevObj.addProperty("date", pr.previousDate?.toLocalDate().toString())
+            prObj.add("previous_best", prevObj)
+        }
+        return prObj
     }
 
     private suspend fun addProgrammeDeviationSummary(payload: JsonObject) {

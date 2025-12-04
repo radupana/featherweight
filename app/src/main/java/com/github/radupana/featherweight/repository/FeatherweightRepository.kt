@@ -634,180 +634,200 @@ class FeatherweightRepository(
         dayNumber: Int,
     ): String =
         withContext(Dispatchers.IO) {
-            CloudLogger.debug("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
-            CloudLogger.debug("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
+            CloudLogger.debug(TAG, "=== CREATING WORKOUT FROM PROGRAMME ===")
+            CloudLogger.debug(TAG, "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
 
             programmeDao.getProgrammeById(programmeId)
                 ?: throw IllegalArgumentException("Programme not found")
 
             val progress = programmeDao.getProgressForProgramme(programmeId)
             if (progress == null) {
-                CloudLogger.error("FeatherweightRepository", "No progress found for programme $programmeId")
+                CloudLogger.error(TAG, "No progress found for programme $programmeId")
                 error("Programme progress not found")
             }
 
             val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
             if (nextWorkoutInfo == null) {
-                CloudLogger.error("FeatherweightRepository", "No next workout found for programme $programmeId")
+                CloudLogger.error(TAG, "No next workout found for programme $programmeId")
                 error("No workout available for this programme")
             }
 
             val workoutStructure = nextWorkoutInfo.workoutStructure
-            CloudLogger.debug("FeatherweightRepository", "Found workout structure: ${workoutStructure.name}")
-            CloudLogger.debug("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
+            CloudLogger.debug(TAG, "Found workout structure: ${workoutStructure.name}")
+            CloudLogger.debug(TAG, "Exercises in structure: ${workoutStructure.exercises.size}")
 
-            val now = LocalDateTime.now()
-            val defaultName =
-                workoutStructure.name
-            val workout =
-                Workout(
-                    userId = authManager.getCurrentUserId() ?: "local",
-                    date = now,
-                    name = defaultName,
-                    status = WorkoutStatus.IN_PROGRESS,
-                    programmeId = programmeId,
-                    weekNumber = nextWorkoutInfo.actualWeekNumber,
-                    dayNumber = workoutStructure.day,
-                    programmeWorkoutName = workoutStructure.name,
-                    isProgrammeWorkout = true,
-                )
+            val workout = createProgrammeWorkout(programmeId, nextWorkoutInfo, workoutStructure)
             workoutDao.insertWorkout(workout)
             val workoutId = workout.id
-            CloudLogger.debug("FeatherweightRepository", "Created workout with ID: $workoutId")
+            CloudLogger.debug(TAG, "Created workout with ID: $workoutId")
 
             workoutStructure.exercises.forEachIndexed { index, exerciseStructure ->
-                CloudLogger.debug("FeatherweightRepository", "Adding exercise ${index + 1}: ${exerciseStructure.name}")
-                CloudLogger.debug("FeatherweightRepository", "  exerciseId: ${exerciseStructure.exerciseId}")
-
-                val exerciseId = exerciseStructure.exerciseId
-                if (exerciseId != null) {
-                    val exerciseLog =
-                        ExerciseLog(
-                            userId = authManager.getCurrentUserId() ?: "local",
-                            workoutId = workoutId,
-                            exerciseId = exerciseId,
-                            exerciseOrder = index,
-                            notes = exerciseStructure.note,
-                        )
-                    exerciseLogDao.insertExerciseLog(exerciseLog)
-                    val exerciseLogId = exerciseLog.id
-                    CloudLogger.debug("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
-
-                    val weights = exerciseStructure.weights
-                    val rpeList = exerciseStructure.rpeValues
-
-                    CloudLogger.debug("FeatherweightRepository", "  Weights: $weights, RPE values: $rpeList")
-
-                    when (val reps = exerciseStructure.reps) {
-                        is RepsStructure.PerSet -> {
-                            reps.values.forEachIndexed { setIndex, repValue ->
-                                val targetReps =
-                                    repValue.toIntOrNull() ?: run {
-                                        CloudLogger.warn(TAG, "Invalid rep value '$repValue' for exercise '${exerciseStructure.name}', using default 10")
-                                        10
-                                    }
-                                val targetWeight = weights?.getOrNull(setIndex)
-                                val targetRpe = rpeList?.getOrNull(setIndex)
-
-                                val setLog =
-                                    SetLog(
-                                        userId = authManager.getCurrentUserId() ?: "local",
-                                        exerciseLogId = exerciseLogId,
-                                        setOrder = setIndex + 1,
-                                        targetReps = targetReps,
-                                        targetWeight = targetWeight,
-                                        targetRpe = targetRpe,
-                                        actualReps = targetReps,
-                                        actualWeight = targetWeight ?: 0f,
-                                        actualRpe = targetRpe,
-                                    )
-                                CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
-                                setLogDao.insertSetLog(setLog)
-                            }
-                        }
-                        is RepsStructure.Range -> {
-                            repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex)
-                                val targetRpe = rpeList?.getOrNull(setIndex)
-
-                                val setLog =
-                                    SetLog(
-                                        userId = authManager.getCurrentUserId() ?: "local",
-                                        exerciseLogId = exerciseLogId,
-                                        setOrder = setIndex + 1,
-                                        targetReps = reps.min,
-                                        targetWeight = targetWeight,
-                                        targetRpe = targetRpe,
-                                        actualReps = reps.min,
-                                        actualWeight = targetWeight ?: 0f,
-                                        actualRpe = targetRpe,
-                                    )
-                                setLogDao.insertSetLog(setLog)
-                            }
-                        }
-                        is RepsStructure.Single -> {
-                            repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex)
-
-                                val setLog =
-                                    SetLog(
-                                        userId = authManager.getCurrentUserId() ?: "local",
-                                        exerciseLogId = exerciseLogId,
-                                        setOrder = setIndex + 1,
-                                        targetReps = reps.value,
-                                        targetWeight = targetWeight,
-                                        actualReps = reps.value,
-                                        actualWeight = targetWeight ?: 0f,
-                                    )
-                                setLogDao.insertSetLog(setLog)
-                            }
-                        }
-                        is RepsStructure.RangeString -> {
-                            val parts = reps.value.split("-")
-                            val minReps =
-                                parts.getOrNull(0)?.toIntOrNull() ?: run {
-                                    CloudLogger.warn(TAG, "Invalid min reps '${parts.getOrNull(0)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 8")
-                                    8
-                                }
-                            val maxReps =
-                                parts.getOrNull(1)?.toIntOrNull() ?: run {
-                                    CloudLogger.warn(TAG, "Invalid max reps '${parts.getOrNull(1)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 12")
-                                    12
-                                }
-                            val targetReps = (minReps + maxReps) / 2
-
-                            repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex)
-                                val targetRpe = rpeList?.getOrNull(setIndex)
-
-                                val setLog =
-                                    SetLog(
-                                        userId = authManager.getCurrentUserId() ?: "local",
-                                        exerciseLogId = exerciseLogId,
-                                        setOrder = setIndex + 1,
-                                        targetReps = targetReps,
-                                        targetWeight = targetWeight,
-                                        targetRpe = targetRpe,
-                                        actualReps = targetReps,
-                                        actualWeight = targetWeight ?: 0f,
-                                        actualRpe = targetRpe,
-                                    )
-                                CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
-                                setLogDao.insertSetLog(setLog)
-                            }
-                        }
-                    }
-                    CloudLogger.debug("FeatherweightRepository", "  Created ${exerciseStructure.sets} sets")
-                } else {
-                    CloudLogger.warn("FeatherweightRepository", "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
-                }
+                processExerciseStructure(workoutId, index, exerciseStructure)
             }
 
-            CloudLogger.debug("FeatherweightRepository", "=== WORKOUT CREATION COMPLETE ===")
-            CloudLogger.debug("FeatherweightRepository", "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
+            CloudLogger.debug(TAG, "=== WORKOUT CREATION COMPLETE ===")
+            CloudLogger.debug(TAG, "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
 
             workoutId
         }
+
+    private fun createProgrammeWorkout(
+        programmeId: String,
+        nextWorkoutInfo: NextProgrammeWorkoutInfo,
+        workoutStructure: com.github.radupana.featherweight.data.programme.WorkoutStructure,
+    ): Workout =
+        Workout(
+            userId = authManager.getCurrentUserId() ?: "local",
+            date = LocalDateTime.now(),
+            name = workoutStructure.name,
+            status = WorkoutStatus.IN_PROGRESS,
+            programmeId = programmeId,
+            weekNumber = nextWorkoutInfo.actualWeekNumber,
+            dayNumber = workoutStructure.day,
+            programmeWorkoutName = workoutStructure.name,
+            isProgrammeWorkout = true,
+        )
+
+    private suspend fun processExerciseStructure(
+        workoutId: String,
+        index: Int,
+        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+    ) {
+        CloudLogger.debug(TAG, "Adding exercise ${index + 1}: ${exerciseStructure.name}")
+        CloudLogger.debug(TAG, "  exerciseId: ${exerciseStructure.exerciseId}")
+
+        val exerciseId = exerciseStructure.exerciseId
+        if (exerciseId == null) {
+            CloudLogger.warn(TAG, "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
+            return
+        }
+
+        val exerciseLog =
+            ExerciseLog(
+                userId = authManager.getCurrentUserId() ?: "local",
+                workoutId = workoutId,
+                exerciseId = exerciseId,
+                exerciseOrder = index,
+                notes = exerciseStructure.note,
+            )
+        exerciseLogDao.insertExerciseLog(exerciseLog)
+        val exerciseLogId = exerciseLog.id
+        CloudLogger.debug(TAG, "  Created exercise log with ID: $exerciseLogId")
+
+        createSetsForExercise(exerciseLogId, exerciseStructure)
+        CloudLogger.debug(TAG, "  Created ${exerciseStructure.sets} sets")
+    }
+
+    private suspend fun createSetsForExercise(
+        exerciseLogId: String,
+        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+    ) {
+        val weights = exerciseStructure.weights
+        val rpeList = exerciseStructure.rpeValues
+        CloudLogger.debug(TAG, "  Weights: $weights, RPE values: $rpeList")
+
+        when (val reps = exerciseStructure.reps) {
+            is RepsStructure.PerSet -> createSetsForPerSetReps(exerciseLogId, reps, weights, rpeList, exerciseStructure.name)
+            is RepsStructure.Range -> createSetsForRangeReps(exerciseLogId, reps, weights, rpeList, exerciseStructure.sets)
+            is RepsStructure.Single -> createSetsForSingleReps(exerciseLogId, reps, weights, exerciseStructure.sets)
+            is RepsStructure.RangeString -> createSetsForRangeStringReps(exerciseLogId, reps, weights, rpeList, exerciseStructure)
+        }
+    }
+
+    private suspend fun createSetsForPerSetReps(
+        exerciseLogId: String,
+        reps: RepsStructure.PerSet,
+        weights: List<Float>?,
+        rpeList: List<Float?>?,
+        exerciseName: String,
+    ) {
+        reps.values.forEachIndexed { setIndex, repValue ->
+            val targetReps =
+                repValue.toIntOrNull() ?: run {
+                    CloudLogger.warn(TAG, "Invalid rep value '$repValue' for exercise '$exerciseName', using default 10")
+                    10
+                }
+            val targetWeight = weights?.getOrNull(setIndex)
+            val targetRpe = rpeList?.getOrNull(setIndex)
+
+            insertSetLog(exerciseLogId, setIndex + 1, targetReps, targetWeight, targetRpe)
+        }
+    }
+
+    private suspend fun createSetsForRangeReps(
+        exerciseLogId: String,
+        reps: RepsStructure.Range,
+        weights: List<Float>?,
+        rpeList: List<Float?>?,
+        setCount: Int,
+    ) {
+        repeat(setCount) { setIndex ->
+            val targetWeight = weights?.getOrNull(setIndex)
+            val targetRpe = rpeList?.getOrNull(setIndex)
+            insertSetLog(exerciseLogId, setIndex + 1, reps.min, targetWeight, targetRpe)
+        }
+    }
+
+    private suspend fun createSetsForSingleReps(
+        exerciseLogId: String,
+        reps: RepsStructure.Single,
+        weights: List<Float>?,
+        setCount: Int,
+    ) {
+        repeat(setCount) { setIndex ->
+            val targetWeight = weights?.getOrNull(setIndex)
+            insertSetLog(exerciseLogId, setIndex + 1, reps.value, targetWeight, null)
+        }
+    }
+
+    private suspend fun createSetsForRangeStringReps(
+        exerciseLogId: String,
+        reps: RepsStructure.RangeString,
+        weights: List<Float>?,
+        rpeList: List<Float?>?,
+        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+    ) {
+        val parts = reps.value.split("-")
+        val minReps =
+            parts.getOrNull(0)?.toIntOrNull() ?: run {
+                CloudLogger.warn(TAG, "Invalid min reps '${parts.getOrNull(0)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 8")
+                8
+            }
+        val maxReps =
+            parts.getOrNull(1)?.toIntOrNull() ?: run {
+                CloudLogger.warn(TAG, "Invalid max reps '${parts.getOrNull(1)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 12")
+                12
+            }
+        val targetReps = (minReps + maxReps) / 2
+
+        repeat(exerciseStructure.sets) { setIndex ->
+            val targetWeight = weights?.getOrNull(setIndex)
+            val targetRpe = rpeList?.getOrNull(setIndex)
+            insertSetLog(exerciseLogId, setIndex + 1, targetReps, targetWeight, targetRpe)
+        }
+    }
+
+    private suspend fun insertSetLog(
+        exerciseLogId: String,
+        setOrder: Int,
+        targetReps: Int,
+        targetWeight: Float?,
+        targetRpe: Float?,
+    ) {
+        val setLog =
+            SetLog(
+                userId = authManager.getCurrentUserId() ?: "local",
+                exerciseLogId = exerciseLogId,
+                setOrder = setOrder,
+                targetReps = targetReps,
+                targetWeight = targetWeight,
+                targetRpe = targetRpe,
+                actualReps = targetReps,
+                actualWeight = targetWeight ?: 0f,
+                actualRpe = targetRpe,
+            )
+        setLogDao.insertSetLog(setLog)
+    }
 
     // Get next programme workout to do
     suspend fun getNextProgrammeWorkout(programmeId: String): NextProgrammeWorkoutInfo? =

@@ -21,7 +21,9 @@ class ParseRequestDaoTest : BaseDaoTest() {
 
     /**
      * Creates a test ParseRequest.
+     * Note: Test helper intentionally has many parameters for flexible test data creation.
      */
+    @Suppress("LongParameterList")
     private fun createParseRequest(
         id: String = "test-request",
         userId: String? = "test-user",

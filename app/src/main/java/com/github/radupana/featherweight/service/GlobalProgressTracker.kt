@@ -299,132 +299,26 @@ class GlobalProgressTracker(
         progress: GlobalExerciseProgress,
         sets: List<SetLog>,
     ): Pair<GlobalExerciseProgress, PendingOneRMUpdate?> {
-        // Only consider sets with sufficient data for estimation
-        val estimableSets =
-            sets.filter { set ->
-                set.actualReps in 1..12 && set.actualWeight > 0
-            }
-
+        val estimableSets = sets.filter { it.actualReps in 1..12 && it.actualWeight > 0 }
         if (estimableSets.isEmpty()) return Pair(progress, null)
 
-        // Get current stored max from profile FIRST for confidence calculation
         val currentUserMax = database.exerciseMaxTrackingDao().getCurrentMax(progress.exerciseId, progress.userId ?: "local")
         val storedMaxWeight = currentUserMax?.oneRMEstimate
 
-        // Find the best set for 1RM calculation
-        // Priority: 1) Actual 1RMs, 2) Lowest reps with highest weight, 3) Highest confidence
-        var bestEstimate: OneRMEstimate? = null
-        var hasActual1RM = false
-
-        for (set in estimableSets) {
-            val estimate = calculateOneRMWithConfidence(set, storedMaxWeight)
-            if (estimate != null) {
-                when {
-                    // Always prefer actual 1RMs
-                    set.actualReps == 1 -> {
-                        if (!hasActual1RM || estimate.estimatedMax > (bestEstimate?.estimatedMax ?: 0f)) {
-                            bestEstimate = estimate
-                            hasActual1RM = true
-                        }
-                    }
-                    // If we don't have a 1RM yet, use multi-rep sets
-                    !hasActual1RM -> {
-                        val currentBestReps = estimableSets.find { it.actualWeight == bestEstimate?.estimatedMax }?.actualReps ?: Int.MAX_VALUE
-                        val hasLowerReps = set.actualReps < currentBestReps
-                        val hasSameRepsHigherConfidence = set.actualReps == currentBestReps && estimate.confidence > (bestEstimate?.confidence ?: 0f)
-
-                        if (bestEstimate == null || hasLowerReps || hasSameRepsHigherConfidence) {
-                            bestEstimate = estimate
-                        }
-                    }
-                }
-            }
-        }
-
-        // Only proceed if we have confidence >= 60%
+        val bestEstimate = findBestEstimate(estimableSets, storedMaxWeight)
         if (bestEstimate == null || bestEstimate.confidence < 0.6f) {
             return Pair(progress, null)
         }
 
         val estimated1RM = bestEstimate.estimatedMax
 
-        // Automatically update 1RM if it's an improvement or first record
-        val shouldUpdate1RM =
-            when {
-                // First time recording - save if confidence is reasonable
-                currentUserMax == null && bestEstimate.confidence >= 0.60f -> true
-
-                // Clear improvement - always update
-                currentUserMax != null && estimated1RM > currentUserMax.oneRMEstimate -> true
-
-                else -> false
-            }
-
-        if (shouldUpdate1RM) {
-            // Automatically save the new 1RM
+        if (shouldUpdateStoredMax(currentUserMax, bestEstimate, estimated1RM)) {
             val bestSet = estimableSets.maxByOrNull { it.actualWeight }
             if (bestSet != null) {
-                if (currentUserMax != null) {
-                    val updatedMax =
-                        currentUserMax.copy(
-                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
-                            context = bestEstimate.source,
-                            sourceSetId = bestSet.id,
-                            oneRMConfidence = bestEstimate.confidence,
-                            recordedAt = LocalDateTime.now(),
-                            // Update mostWeight fields if this set is heavier
-                            mostWeightLifted =
-                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
-                                    bestSet.actualWeight
-                                } else {
-                                    currentUserMax.mostWeightLifted
-                                },
-                            mostWeightReps =
-                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
-                                    bestSet.actualReps
-                                } else {
-                                    currentUserMax.mostWeightReps
-                                },
-                            mostWeightRpe =
-                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
-                                    bestSet.actualRpe
-                                } else {
-                                    currentUserMax.mostWeightRpe
-                                },
-                            mostWeightDate =
-                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
-                                    LocalDateTime.now()
-                                } else {
-                                    currentUserMax.mostWeightDate
-                                },
-                        )
-                    database.exerciseMaxTrackingDao().update(updatedMax)
-                } else {
-                    val newMax =
-                        ExerciseMaxTracking(
-                            userId = bestSet.userId,
-                            exerciseId = progress.exerciseId,
-                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
-                            context = bestEstimate.source,
-                            sourceSetId = bestSet.id,
-                            recordedAt = LocalDateTime.now(),
-                            mostWeightLifted = bestSet.actualWeight,
-                            mostWeightReps = bestSet.actualReps,
-                            mostWeightRpe = bestSet.actualRpe,
-                            mostWeightDate = LocalDateTime.now(),
-                            oneRMConfidence = bestEstimate.confidence,
-                            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
-                            notes = null,
-                        )
-                    database.exerciseMaxTrackingDao().insert(newMax)
-                }
+                persistMaxUpdate(currentUserMax, bestSet, bestEstimate, estimated1RM, progress.exerciseId)
             }
         }
 
-        // No longer return pending updates since we're not prompting users
-        val pendingUpdate: PendingOneRMUpdate? = null
-
-        // Always update internal tracking
         val updatedProgress =
             if (estimated1RM > progress.estimatedMax) {
                 progress.copy(estimatedMax = estimated1RM)
@@ -432,8 +326,118 @@ class GlobalProgressTracker(
                 progress
             }
 
-        return Pair(updatedProgress, pendingUpdate)
+        return Pair(updatedProgress, null)
     }
+
+    private fun findBestEstimate(
+        estimableSets: List<SetLog>,
+        storedMaxWeight: Float?,
+    ): OneRMEstimate? {
+        var bestEstimate: OneRMEstimate? = null
+        var hasActual1RM = false
+
+        for (set in estimableSets) {
+            val estimate = calculateOneRMWithConfidence(set, storedMaxWeight) ?: continue
+
+            when {
+                set.actualReps == 1 -> {
+                    if (!hasActual1RM || estimate.estimatedMax > (bestEstimate?.estimatedMax ?: 0f)) {
+                        bestEstimate = estimate
+                        hasActual1RM = true
+                    }
+                }
+                !hasActual1RM -> {
+                    if (isBetterMultiRepEstimate(set, estimate, bestEstimate, estimableSets)) {
+                        bestEstimate = estimate
+                    }
+                }
+            }
+        }
+
+        return bestEstimate
+    }
+
+    private fun isBetterMultiRepEstimate(
+        set: SetLog,
+        estimate: OneRMEstimate,
+        currentBest: OneRMEstimate?,
+        allSets: List<SetLog>,
+    ): Boolean {
+        if (currentBest == null) return true
+        val currentBestReps = allSets.find { it.actualWeight == currentBest.estimatedMax }?.actualReps ?: Int.MAX_VALUE
+        val hasLowerReps = set.actualReps < currentBestReps
+        val hasSameRepsHigherConfidence = set.actualReps == currentBestReps && estimate.confidence > currentBest.confidence
+        return hasLowerReps || hasSameRepsHigherConfidence
+    }
+
+    private fun shouldUpdateStoredMax(
+        currentUserMax: ExerciseMaxTracking?,
+        bestEstimate: OneRMEstimate,
+        estimated1RM: Float,
+    ): Boolean =
+        when {
+            currentUserMax == null && bestEstimate.confidence >= 0.60f -> true
+            currentUserMax != null && estimated1RM > currentUserMax.oneRMEstimate -> true
+            else -> false
+        }
+
+    private suspend fun persistMaxUpdate(
+        currentUserMax: ExerciseMaxTracking?,
+        bestSet: SetLog,
+        bestEstimate: OneRMEstimate,
+        estimated1RM: Float,
+        exerciseId: String,
+    ) {
+        if (currentUserMax != null) {
+            val updatedMax = buildUpdatedMax(currentUserMax, bestSet, bestEstimate, estimated1RM)
+            database.exerciseMaxTrackingDao().update(updatedMax)
+        } else {
+            val newMax = buildNewMax(bestSet, bestEstimate, estimated1RM, exerciseId)
+            database.exerciseMaxTrackingDao().insert(newMax)
+        }
+    }
+
+    private fun buildUpdatedMax(
+        currentMax: ExerciseMaxTracking,
+        bestSet: SetLog,
+        bestEstimate: OneRMEstimate,
+        estimated1RM: Float,
+    ): ExerciseMaxTracking {
+        val isNewBestWeight = bestSet.actualWeight > currentMax.mostWeightLifted
+        return currentMax.copy(
+            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
+            context = bestEstimate.source,
+            sourceSetId = bestSet.id,
+            oneRMConfidence = bestEstimate.confidence,
+            recordedAt = LocalDateTime.now(),
+            mostWeightLifted = if (isNewBestWeight) bestSet.actualWeight else currentMax.mostWeightLifted,
+            mostWeightReps = if (isNewBestWeight) bestSet.actualReps else currentMax.mostWeightReps,
+            mostWeightRpe = if (isNewBestWeight) bestSet.actualRpe else currentMax.mostWeightRpe,
+            mostWeightDate = if (isNewBestWeight) LocalDateTime.now() else currentMax.mostWeightDate,
+        )
+    }
+
+    private fun buildNewMax(
+        bestSet: SetLog,
+        bestEstimate: OneRMEstimate,
+        estimated1RM: Float,
+        exerciseId: String,
+    ): ExerciseMaxTracking =
+        ExerciseMaxTracking(
+            userId = bestSet.userId,
+            exerciseId = exerciseId,
+            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
+            context = bestEstimate.source,
+            sourceSetId = bestSet.id,
+            recordedAt = LocalDateTime.now(),
+            mostWeightLifted = bestSet.actualWeight,
+            mostWeightReps = bestSet.actualReps,
+            mostWeightRpe = bestSet.actualRpe,
+            mostWeightDate = LocalDateTime.now(),
+            oneRMConfidence = bestEstimate.confidence,
+            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+            notes = null,
+        )
 
     private data class OneRMEstimate(
         val estimatedMax: Float,
@@ -441,7 +445,6 @@ class GlobalProgressTracker(
         val source: String,
     )
 
-    // Calculate confidence based primarily on rep count, with minor RPE adjustments
     private fun calculateOneRMWithConfidence(
         set: SetLog,
         currentStoredMax: Float? = null,
@@ -450,80 +453,93 @@ class GlobalProgressTracker(
         val weight = set.actualWeight
         val rpe = set.actualRpe
 
-        // Calculate effective reps based on RPE for singles
-        val effectiveReps =
-            when {
-                reps == 1 && rpe != null -> {
-                    val repsInReserve = (10f - rpe).coerceAtLeast(0f)
-                    reps + repsInReserve
-                }
-                else -> reps.toFloat()
-            }
-
-        // Calculate estimated 1RM using Brzycki formula
-        val estimated1RM =
-            if (effectiveReps == 1f) {
-                weight
-            } else if (effectiveReps <= 15f) {
-                weight / (1.0278f - 0.0278f * effectiveReps)
-            } else {
-                weight * 1.5f
-            }
-
-        // Base confidence primarily on rep count and context
-        val baseConfidence =
-            when {
-                // Single that exceeds current max - high confidence regardless of RPE
-                reps == 1 && weight > (currentStoredMax ?: 0f) -> 0.90f
-                // Single with high RPE - near maximal
-                reps == 1 && rpe != null && rpe >= 9.5f -> 0.95f
-                reps == 1 && rpe != null && rpe >= 8.5f -> 0.85f
-                // Single with moderate/low RPE - adjusted estimate
-                reps == 1 && rpe != null -> 0.70f
-                // Single without RPE below current max - could be warm-up
-                reps == 1 -> 0.40f
-                // Multi-rep sets
-                reps in 2..3 -> 0.85f // Very reliable
-                reps in 4..5 -> 0.75f // Reliable
-                reps in 6..8 -> 0.65f // Decent
-                reps in 9..12 -> 0.50f // Less reliable
-                else -> 0.30f // Very high reps unreliable
-            }
-
-        // Minor RPE adjustment (only for multi-rep sets, max ±5%)
-        val rpeAdjustment =
-            if (reps > 1 && rpe != null) {
-                when {
-                    rpe >= 9f -> 0.05f // Near maximal effort
-                    rpe >= 7f -> 0.0f // Neutral
-                    else -> -0.05f // Too easy to be accurate
-                }
-            } else if (reps > 1) {
-                -0.05f // Missing RPE data
-            } else {
-                0.0f // No adjustment for singles (already handled in base confidence)
-            }
-
+        val effectiveReps = calculateEffectiveReps(reps, rpe)
+        val estimated1RM = calculateEstimated1RM(weight, effectiveReps)
+        val baseConfidence = calculateBaseConfidence(reps, weight, rpe, currentStoredMax)
+        val rpeAdjustment = calculateRpeAdjustment(reps, rpe)
         val finalConfidence = (baseConfidence + rpeAdjustment).coerceIn(0f, 1f)
+        val source = formatSourceString(reps, weight, rpe, effectiveReps)
 
-        // Format source string
-        val source =
-            when {
-                reps == 1 && rpe != null && rpe < 10 ->
-                    "1×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)} (est. ${effectiveReps.toInt()}RM)"
-                reps == 1 && rpe != null -> "1RM @ RPE ${WeightFormatter.formatRPE(rpe)}"
-                reps == 1 -> "1RM"
-                rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)}"
-                else -> "$reps×${weight.roundToInt()}kg"
-            }
-
-        val result =
-            OneRMEstimate(
-                estimatedMax = estimated1RM,
-                confidence = finalConfidence,
-                source = source,
-            )
-
-        return result
+        return OneRMEstimate(
+            estimatedMax = estimated1RM,
+            confidence = finalConfidence,
+            source = source,
+        )
     }
+
+    private fun calculateEffectiveReps(
+        reps: Int,
+        rpe: Float?,
+    ): Float =
+        if (reps == 1 && rpe != null) {
+            val repsInReserve = (10f - rpe).coerceAtLeast(0f)
+            reps + repsInReserve
+        } else {
+            reps.toFloat()
+        }
+
+    private fun calculateEstimated1RM(
+        weight: Float,
+        effectiveReps: Float,
+    ): Float =
+        when {
+            effectiveReps == 1f -> weight
+            effectiveReps <= 15f -> weight / (1.0278f - 0.0278f * effectiveReps)
+            else -> weight * 1.5f
+        }
+
+    private fun calculateBaseConfidence(
+        reps: Int,
+        weight: Float,
+        rpe: Float?,
+        currentStoredMax: Float?,
+    ): Float =
+        when {
+            reps == 1 -> calculateSingleRepConfidence(weight, rpe, currentStoredMax)
+            reps in 2..3 -> 0.85f
+            reps in 4..5 -> 0.75f
+            reps in 6..8 -> 0.65f
+            reps in 9..12 -> 0.50f
+            else -> 0.30f
+        }
+
+    private fun calculateSingleRepConfidence(
+        weight: Float,
+        rpe: Float?,
+        currentStoredMax: Float?,
+    ): Float =
+        when {
+            weight > (currentStoredMax ?: 0f) -> 0.90f
+            rpe != null && rpe >= 9.5f -> 0.95f
+            rpe != null && rpe >= 8.5f -> 0.85f
+            rpe != null -> 0.70f
+            else -> 0.40f
+        }
+
+    private fun calculateRpeAdjustment(
+        reps: Int,
+        rpe: Float?,
+    ): Float =
+        when {
+            reps == 1 -> 0.0f
+            rpe == null -> -0.05f
+            rpe >= 9f -> 0.05f
+            rpe >= 7f -> 0.0f
+            else -> -0.05f
+        }
+
+    private fun formatSourceString(
+        reps: Int,
+        weight: Float,
+        rpe: Float?,
+        effectiveReps: Float,
+    ): String =
+        when {
+            reps == 1 && rpe != null && rpe < 10 ->
+                "1×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)} (est. ${effectiveReps.toInt()}RM)"
+            reps == 1 && rpe != null -> "1RM @ RPE ${WeightFormatter.formatRPE(rpe)}"
+            reps == 1 -> "1RM"
+            rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)}"
+            else -> "$reps×${weight.roundToInt()}kg"
+        }
 }
