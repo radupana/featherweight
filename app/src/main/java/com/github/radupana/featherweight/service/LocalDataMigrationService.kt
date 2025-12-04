@@ -314,6 +314,7 @@ class LocalDataMigrationService(
      * Delete all local data after successful migration.
      * This is a cleanup operation to prevent duplicate migrations.
      */
+    @Suppress("CyclomaticComplexMethod")
     suspend fun cleanupLocalData(): Boolean =
         withContext(Dispatchers.IO) {
             try {

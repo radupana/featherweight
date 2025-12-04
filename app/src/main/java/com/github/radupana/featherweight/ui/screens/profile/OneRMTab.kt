@@ -32,6 +32,7 @@ import com.github.radupana.featherweight.viewmodel.ExerciseMaxWithName
 import com.github.radupana.featherweight.viewmodel.ProfileUiState
 
 @Composable
+@Suppress("LongParameterList")
 fun OneRMTab(
     uiState: ProfileUiState,
     onToggleBig4SubSection: () -> Unit,

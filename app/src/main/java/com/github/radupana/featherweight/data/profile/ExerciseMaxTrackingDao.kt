@@ -1,3 +1,8 @@
+// Suppression justified: Room DAO interfaces inherently require many query methods to support
+// the various data access patterns needed by the application. Splitting into multiple DAOs
+// would create artificial boundaries and complicate transaction management.
+@file:Suppress("TooManyFunctions")
+
 package com.github.radupana.featherweight.data.profile
 
 import androidx.room.Dao
@@ -324,6 +329,7 @@ interface ExerciseMaxTrackingDao {
     /**
      * Upsert a 1RM record: update if exists (by sourceSetId), insert otherwise.
      */
+    @Suppress("LongParameterList")
     @Transaction
     suspend fun upsert(
         exerciseId: String,

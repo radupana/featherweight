@@ -40,6 +40,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
     onStartProgrammeWorkout: () -> Unit,

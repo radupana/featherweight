@@ -21,6 +21,7 @@ import com.github.radupana.featherweight.viewmodel.ProfileUiState
 import com.github.radupana.featherweight.viewmodel.SeedingState
 
 @Composable
+@Suppress("LongMethod")
 fun DeveloperTab(
     uiState: ProfileUiState,
     onUpdateSeedingWeeks: (Int) -> Unit,

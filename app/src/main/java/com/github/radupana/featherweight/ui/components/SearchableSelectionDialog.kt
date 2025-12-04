@@ -56,6 +56,7 @@ import androidx.compose.ui.window.DialogProperties
  * @param onSelect Called when item is selected (single-select)
  */
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun <T> SearchableSelectionDialog(
     title: String,
     items: List<T>,

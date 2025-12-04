@@ -63,6 +63,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun ProgrammeHistoryDetailScreen(
     programmeId: String,
     onBack: () -> Unit,
@@ -231,6 +232,7 @@ fun ProgrammeHistoryDetailScreen(
 }
 
 @Composable
+@Suppress("LongMethod")
 fun ProgrammeDetailsContent(
     details: ProgrammeHistoryDetails,
     completionStats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats?,
@@ -582,6 +584,7 @@ fun StatItem(
 }
 
 @Composable
+@Suppress("LongMethod")
 fun ProgrammeInsightsSection(
     stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats,
     durationWeeks: Int,

@@ -19,7 +19,80 @@ data class DeviationSummary(
     val keyDeviations: List<String>,
 )
 
+/**
+ * Summarizer for a single deviation type.
+ * Returns a human-readable summary string or null if no summary applies.
+ */
+private fun interface DeviationSummarizer {
+    fun summarize(
+        deviations: List<WorkoutDeviation>,
+        completedWorkouts: Int,
+    ): String?
+}
+
 class DeviationSummaryService {
+    /**
+     * Map of deviation types to their summarizers.
+     * Each summarizer knows how to convert deviations of its type into a human-readable string.
+     */
+    private val deviationSummarizers: Map<DeviationType, DeviationSummarizer> =
+        mapOf(
+            DeviationType.VOLUME_DEVIATION to
+                DeviationSummarizer { devs, _ ->
+                    summarizeMagnitudeDeviation(devs, "Volume", "higher", "lower", "exercises")
+                },
+            DeviationType.INTENSITY_DEVIATION to
+                DeviationSummarizer { devs, _ ->
+                    summarizeMagnitudeDeviation(devs, "Weight", "heavier", "lighter", "exercises")
+                },
+            DeviationType.EXERCISE_SWAP to
+                DeviationSummarizer { devs, completed ->
+                    if (devs.isNotEmpty() && completed > 0) {
+                        val uniqueWorkouts = devs.map { it.workoutId }.distinct().size
+                        "Swapped exercises in $uniqueWorkouts of $completed workouts"
+                    } else {
+                        null
+                    }
+                },
+            DeviationType.EXERCISE_SKIPPED to
+                DeviationSummarizer { devs, _ ->
+                    if (devs.isNotEmpty()) "Skipped ${devs.size} prescribed exercises" else null
+                },
+            DeviationType.EXERCISE_ADDED to
+                DeviationSummarizer { devs, _ ->
+                    if (devs.isNotEmpty()) "Added ${devs.size} extra exercises" else null
+                },
+            DeviationType.SET_COUNT_DEVIATION to
+                DeviationSummarizer { devs, _ ->
+                    summarizeMagnitudeDeviation(devs, "", "more", "fewer", "sets on average", prefix = true)
+                },
+            DeviationType.REP_DEVIATION to
+                DeviationSummarizer { devs, _ ->
+                    summarizeMagnitudeDeviation(devs, "", "more", "fewer", "reps on average", prefix = true)
+                },
+        )
+
+    private fun summarizeMagnitudeDeviation(
+        deviations: List<WorkoutDeviation>,
+        label: String,
+        positiveDirection: String,
+        negativeDirection: String,
+        suffix: String,
+        prefix: Boolean = false,
+    ): String? {
+        if (deviations.isEmpty()) return null
+
+        val avgMagnitude = deviations.map { it.deviationMagnitude }.average() * 100
+        val direction = if (avgMagnitude >= 0) positiveDirection else negativeDirection
+        val magnitude = abs(avgMagnitude).toInt()
+
+        return if (prefix) {
+            "$magnitude% $direction $suffix"
+        } else {
+            "$label $magnitude% $direction on average across ${deviations.size} $suffix"
+        }
+    }
+
     fun summarizeDeviations(
         deviations: List<WorkoutDeviation>,
         programmeDetails: ProgrammeWithDetailsRaw,
@@ -44,27 +117,17 @@ class DeviationSummaryService {
             )
         }
 
-        val volumeDeviations = deviations.filter { it.deviationType == DeviationType.VOLUME_DEVIATION }
-        val intensityDeviations = deviations.filter { it.deviationType == DeviationType.INTENSITY_DEVIATION }
-        val swaps = deviations.filter { it.deviationType == DeviationType.EXERCISE_SWAP }
-        val skips = deviations.filter { it.deviationType == DeviationType.EXERCISE_SKIPPED }
-        val adds = deviations.filter { it.deviationType == DeviationType.EXERCISE_ADDED }
+        val byType = deviations.groupBy { it.deviationType }
 
-        val avgVolumeDeviation =
-            if (volumeDeviations.isNotEmpty()) {
-                volumeDeviations.map { it.deviationMagnitude }.average().toFloat() * 100
-            } else {
-                0f
-            }
+        val volumeDeviations = byType[DeviationType.VOLUME_DEVIATION] ?: emptyList()
+        val intensityDeviations = byType[DeviationType.INTENSITY_DEVIATION] ?: emptyList()
+        val swaps = byType[DeviationType.EXERCISE_SWAP] ?: emptyList()
+        val skips = byType[DeviationType.EXERCISE_SKIPPED] ?: emptyList()
+        val adds = byType[DeviationType.EXERCISE_ADDED] ?: emptyList()
 
-        val avgIntensityDeviation =
-            if (intensityDeviations.isNotEmpty()) {
-                intensityDeviations.map { it.deviationMagnitude }.average().toFloat() * 100
-            } else {
-                0f
-            }
-
-        val keyDeviations = buildKeyDeviations(deviations, completedWorkouts)
+        val avgVolumeDeviation = calculateAverageDeviation(volumeDeviations)
+        val avgIntensityDeviation = calculateAverageDeviation(intensityDeviations)
+        val keyDeviations = buildKeyDeviations(byType, completedWorkouts)
 
         return DeviationSummary(
             programmeName = programme.name,
@@ -81,71 +144,23 @@ class DeviationSummaryService {
         )
     }
 
+    private fun calculateAverageDeviation(deviations: List<WorkoutDeviation>): Float =
+        if (deviations.isNotEmpty()) {
+            deviations.map { it.deviationMagnitude }.average().toFloat() * 100
+        } else {
+            0f
+        }
+
     private fun buildKeyDeviations(
-        deviations: List<WorkoutDeviation>,
+        byType: Map<DeviationType, List<WorkoutDeviation>>,
         completedWorkouts: Int,
-    ): List<String> {
-        val summaries = mutableListOf<String>()
-
-        val byType = deviations.groupBy { it.deviationType }
-
-        byType[DeviationType.VOLUME_DEVIATION]?.let { volumeDevs ->
-            if (volumeDevs.isNotEmpty()) {
-                val avgMagnitude = volumeDevs.map { it.deviationMagnitude }.average() * 100
-                val direction = if (avgMagnitude >= 0) "higher" else "lower"
-                summaries.add(
-                    "Volume ${abs(avgMagnitude).toInt()}% $direction on average across ${volumeDevs.size} exercises",
-                )
-            }
-        }
-
-        byType[DeviationType.INTENSITY_DEVIATION]?.let { intensityDevs ->
-            if (intensityDevs.isNotEmpty()) {
-                val avgMagnitude = intensityDevs.map { it.deviationMagnitude }.average() * 100
-                val direction = if (avgMagnitude >= 0) "heavier" else "lighter"
-                summaries.add(
-                    "Weight ${abs(avgMagnitude).toInt()}% $direction on average across ${intensityDevs.size} exercises",
-                )
-            }
-        }
-
-        byType[DeviationType.EXERCISE_SWAP]?.let { swaps ->
-            if (swaps.isNotEmpty() && completedWorkouts > 0) {
-                val uniqueWorkouts = swaps.map { it.workoutId }.distinct().size
-                summaries.add("Swapped exercises in $uniqueWorkouts of $completedWorkouts workouts")
-            }
-        }
-
-        byType[DeviationType.EXERCISE_SKIPPED]?.let { skips ->
-            if (skips.isNotEmpty()) {
-                summaries.add("Skipped ${skips.size} prescribed exercises")
-            }
-        }
-
-        byType[DeviationType.EXERCISE_ADDED]?.let { adds ->
-            if (adds.isNotEmpty()) {
-                summaries.add("Added ${adds.size} extra exercises")
-            }
-        }
-
-        byType[DeviationType.SET_COUNT_DEVIATION]?.let { setDevs ->
-            if (setDevs.isNotEmpty()) {
-                val avgMagnitude = setDevs.map { it.deviationMagnitude }.average() * 100
-                val direction = if (avgMagnitude >= 0) "more" else "fewer"
-                summaries.add("${abs(avgMagnitude).toInt()}% $direction sets on average")
-            }
-        }
-
-        byType[DeviationType.REP_DEVIATION]?.let { repDevs ->
-            if (repDevs.isNotEmpty()) {
-                val avgMagnitude = repDevs.map { it.deviationMagnitude }.average() * 100
-                val direction = if (avgMagnitude >= 0) "more" else "fewer"
-                summaries.add("${abs(avgMagnitude).toInt()}% $direction reps on average")
-            }
-        }
-
-        return summaries.take(MAX_KEY_DEVIATIONS)
-    }
+    ): List<String> =
+        deviationSummarizers
+            .mapNotNull { (type, summarizer) ->
+                byType[type]?.let { deviations ->
+                    summarizer.summarize(deviations, completedWorkouts)
+                }
+            }.take(MAX_KEY_DEVIATIONS)
 
     companion object {
         /**

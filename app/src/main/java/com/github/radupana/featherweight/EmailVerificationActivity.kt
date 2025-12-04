@@ -181,6 +181,7 @@ class EmailVerificationActivity : ComponentActivity() {
 }
 
 @Composable
+@Suppress("LongMethod")
 fun EmailVerificationScreen(
     onVerificationComplete: () -> Unit,
     onSignOut: () -> Unit,

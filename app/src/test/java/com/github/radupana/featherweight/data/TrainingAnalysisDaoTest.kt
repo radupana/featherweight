@@ -21,7 +21,9 @@ class TrainingAnalysisDaoTest : BaseDaoTest() {
 
     /**
      * Creates a test TrainingAnalysis.
+     * Note: Test helper intentionally has many parameters for flexible test data creation.
      */
+    @Suppress("LongParameterList")
     private fun createAnalysis(
         id: String = "test-analysis",
         userId: String? = "test-user",

@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.service
 
 import android.content.Context
+import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.AuthenticationManager
@@ -33,132 +34,126 @@ open class ProgrammeTextParser(
         withContext(Dispatchers.IO) {
             try {
                 CloudLogger.info(TAG, "Starting programme parsing - text length: ${request.rawText.length}, maxes: ${request.userMaxes.size}")
-
-                rateLimiter.checkLimit()
-
-                val validationResult = validateInput(request.rawText)
-                if (!validationResult.isValid) {
-                    CloudLogger.warn(TAG, "Validation failed: ${validationResult.error}")
-                    return@withContext TextParsingResult(
-                        success = false,
-                        error = validationResult.error,
-                    )
-                }
-
-                CloudLogger.debug(TAG, "Validation passed, checking authentication...")
-
-                if (!authenticationManager.isAuthenticated()) {
-                    CloudLogger.warn(TAG, "User not authenticated, cannot use AI parsing")
-                    return@withContext TextParsingResult(
-                        success = false,
-                        error = "Sign in required to use AI programme parsing",
-                    )
-                }
-
-                CloudLogger.debug(TAG, "Authentication verified, calling Cloud Function...")
-
-                val result =
-                    cloudFunctionService.parseProgram(
-                        request.rawText,
-                        request.userMaxes,
-                    )
-
-                rateLimiter.recordRequest()
-
-                if (result.isFailure) {
-                    val exception = result.exceptionOrNull()
-                    CloudLogger.error(TAG, "Cloud Function call failed: ${exception?.message}")
-
-                    // Handle quota exceeded specifically
-                    if (exception is CloudFunctionService.QuotaExceededException) {
-                        return@withContext TextParsingResult(
-                            success = false,
-                            error = exception.message ?: "Quota exceeded",
-                        )
-                    }
-
-                    throw exception ?: IOException("Cloud Function call failed")
-                }
-
-                val programme = result.getOrThrow()
-                CloudLogger.debug(TAG, "Received programme from Cloud Function")
-
-                CloudLogger.debug(TAG, "Programme parsed successfully!")
-                CloudLogger.debug(TAG, "Programme name: ${programme.name}")
-                CloudLogger.debug(TAG, "Duration: ${programme.durationWeeks} weeks")
-                CloudLogger.debug(TAG, "Number of weeks: ${programme.weeks.size}")
-                programme.weeks.forEachIndexed { weekIdx, week ->
-                    CloudLogger.debug(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
-                    week.workouts.forEachIndexed { workoutIdx, workout ->
-                        CloudLogger.debug(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
-                    }
-                }
-
-                TextParsingResult(
-                    success = true,
-                    programme = programme,
-                )
+                executeParsing(request)
             } catch (e: RateLimitException) {
-                CloudLogger.warn(TAG, "Rate limit exceeded: ${e.message}")
-                TextParsingResult(
-                    success = false,
-                    error = e.message,
-                )
+                handleRateLimitException(e)
             } catch (e: IOException) {
-                CloudLogger.error(TAG, "=== Programme Parsing FAILED (IOException) ===")
-                CloudLogger.error(TAG, "Network or API error: ${e.message}")
-                CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
-                CloudLogger.error(TAG, "Full stack trace:", e)
-
-                val userFriendlyError =
-                    when {
-                        e.message?.contains("timeout") == true -> "Request timed out. Please try again."
-                        e.message?.contains("Network") == true -> "Network error. Check your connection."
-                        e.message?.contains("500") == true || e.message?.contains("503") == true ->
-                            "AI service temporarily unavailable. Please try again in a few moments."
-                        e.message?.contains("401") == true -> "Authentication failed. Please contact support."
-                        else -> "Failed to connect to AI service: ${e.message}"
-                    }
-
-                TextParsingResult(
-                    success = false,
-                    error = userFriendlyError,
-                )
+                handleIOException(e)
             } catch (e: IllegalArgumentException) {
-                CloudLogger.error(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
-                CloudLogger.error(TAG, "Error message: ${e.message}")
-                CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
-                CloudLogger.error(TAG, "Full stack trace:", e)
-
-                val userFriendlyError =
-                    when {
-                        e.message?.contains("too complex") == true -> e.message
-                        e.message?.contains("Unable to parse") == true -> e.message
-                        e.message?.contains("Invalid content") == true -> e.message
-                        else ->
-                            "Unable to parse programme${if (e.message != null) ": ${e.message}" else ""}. Please check the format and try again."
-                    }
-
-                TextParsingResult(
-                    success = false,
-                    error = userFriendlyError,
-                )
+                handleIllegalArgumentException(e)
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {
-                CloudLogger.error(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
-                CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
-                CloudLogger.error(TAG, "Error message: ${e.message}")
-                CloudLogger.error(TAG, "Full stack trace:", e)
-
-                val userFriendlyError = "An unexpected error occurred: ${e.message ?: "Unknown error"}. Please try again."
-
-                TextParsingResult(
-                    success = false,
-                    error = userFriendlyError,
-                )
+                handleUnexpectedException(e)
             }
         }
+
+    private suspend fun executeParsing(request: TextParsingRequest): TextParsingResult {
+        rateLimiter.checkLimit()
+
+        val validationResult = validateInput(request.rawText)
+        if (!validationResult.isValid) {
+            CloudLogger.warn(TAG, "Validation failed: ${validationResult.error}")
+            return TextParsingResult(success = false, error = validationResult.error)
+        }
+
+        CloudLogger.debug(TAG, "Validation passed, checking authentication...")
+
+        if (!authenticationManager.isAuthenticated()) {
+            CloudLogger.warn(TAG, "User not authenticated, cannot use AI parsing")
+            return TextParsingResult(success = false, error = "Sign in required to use AI programme parsing")
+        }
+
+        CloudLogger.debug(TAG, "Authentication verified, calling Cloud Function...")
+        val result = cloudFunctionService.parseProgram(request.rawText, request.userMaxes)
+        rateLimiter.recordRequest()
+
+        return processCloudFunctionResult(result)
+    }
+
+    private fun processCloudFunctionResult(result: Result<ParsedProgramme>): TextParsingResult {
+        if (result.isFailure) {
+            val exception = result.exceptionOrNull()
+            CloudLogger.error(TAG, "Cloud Function call failed: ${exception?.message}")
+
+            if (exception is CloudFunctionService.QuotaExceededException) {
+                return TextParsingResult(success = false, error = exception.message ?: "Quota exceeded")
+            }
+
+            throw exception ?: IOException("Cloud Function call failed")
+        }
+
+        val programme = result.getOrThrow()
+        logSuccessfulParse(programme)
+        return TextParsingResult(success = true, programme = programme)
+    }
+
+    private fun logSuccessfulParse(programme: ParsedProgramme) {
+        CloudLogger.debug(TAG, "Received programme from Cloud Function")
+        CloudLogger.debug(TAG, "Programme parsed successfully!")
+        CloudLogger.debug(TAG, "Programme name: ${programme.name}")
+        CloudLogger.debug(TAG, "Duration: ${programme.durationWeeks} weeks")
+        CloudLogger.debug(TAG, "Number of weeks: ${programme.weeks.size}")
+        programme.weeks.forEachIndexed { weekIdx, week ->
+            CloudLogger.debug(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
+            week.workouts.forEachIndexed { workoutIdx, workout ->
+                CloudLogger.debug(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
+            }
+        }
+    }
+
+    private fun handleRateLimitException(e: RateLimitException): TextParsingResult {
+        CloudLogger.warn(TAG, "Rate limit exceeded: ${e.message}")
+        return TextParsingResult(success = false, error = e.message)
+    }
+
+    private fun handleIOException(e: IOException): TextParsingResult {
+        CloudLogger.error(TAG, "=== Programme Parsing FAILED (IOException) ===")
+        CloudLogger.error(TAG, "Network or API error: ${e.message}")
+        CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
+        CloudLogger.error(TAG, "Full stack trace:", e)
+
+        val userFriendlyError = mapIOExceptionToUserMessage(e)
+        return TextParsingResult(success = false, error = userFriendlyError)
+    }
+
+    private fun mapIOExceptionToUserMessage(e: IOException): String =
+        when {
+            e.message?.contains("timeout") == true -> "Request timed out. Please try again."
+            e.message?.contains("Network") == true -> "Network error. Check your connection."
+            e.message?.contains("500") == true || e.message?.contains("503") == true ->
+                "AI service temporarily unavailable. Please try again in a few moments."
+            e.message?.contains("401") == true -> "Authentication failed. Please contact support."
+            else -> "Failed to connect to AI service: ${e.message}"
+        }
+
+    private fun handleIllegalArgumentException(e: IllegalArgumentException): TextParsingResult {
+        CloudLogger.error(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
+        CloudLogger.error(TAG, "Error message: ${e.message}")
+        CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
+        CloudLogger.error(TAG, "Full stack trace:", e)
+
+        val userFriendlyError = mapIllegalArgumentToUserMessage(e)
+        return TextParsingResult(success = false, error = userFriendlyError)
+    }
+
+    private fun mapIllegalArgumentToUserMessage(e: IllegalArgumentException): String =
+        when {
+            e.message?.contains("too complex") == true -> e.message ?: "Programme too complex"
+            e.message?.contains("Unable to parse") == true -> e.message ?: "Unable to parse"
+            e.message?.contains("Invalid content") == true -> e.message ?: "Invalid content"
+            else -> "Unable to parse programme${if (e.message != null) ": ${e.message}" else ""}. Please check the format and try again."
+        }
+
+    private fun handleUnexpectedException(e: Exception): TextParsingResult {
+        CloudLogger.error(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
+        CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
+        CloudLogger.error(TAG, "Error message: ${e.message}")
+        CloudLogger.error(TAG, "Full stack trace:", e)
+
+        val userFriendlyError = "An unexpected error occurred: ${e.message ?: "Unknown error"}. Please try again."
+        return TextParsingResult(success = false, error = userFriendlyError)
+    }
 
     private fun validateInput(text: String): ValidationResult {
         CloudLogger.debug(TAG, "Validating input text, length: ${text.length}")

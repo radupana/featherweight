@@ -132,6 +132,7 @@ fun ExerciseMappingScreen(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun ExerciseMappingContent(
     currentExercise: String,
     currentExerciseIndex: Int,

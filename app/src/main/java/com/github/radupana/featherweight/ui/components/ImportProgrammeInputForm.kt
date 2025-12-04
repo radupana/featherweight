@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
+@Suppress("LongParameterList")
 fun ImportProgrammeInputForm(
     inputText: String,
     error: String?,

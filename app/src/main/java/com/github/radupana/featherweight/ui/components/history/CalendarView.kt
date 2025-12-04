@@ -48,6 +48,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
+@Suppress("LongMethod")
 fun CalendarView(
     selectedDate: LocalDate?,
     workoutDayInfo: Map<LocalDate, WorkoutDayInfo>,

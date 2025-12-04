@@ -33,6 +33,7 @@ data class FrequencyDataPoint(
 )
 
 @Composable
+@Suppress("LongMethod")
 fun TrainingPatternsChart(
     dataPoints: List<FrequencyDataPoint>,
     modifier: Modifier = Modifier,

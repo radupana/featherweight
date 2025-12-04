@@ -45,6 +45,7 @@ import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 
 @Composable
+@Suppress("LongMethod")
 fun PRCelebrationDialog(
     personalRecords: List<PersonalRecord>,
     exerciseNames: Map<String, String>,
@@ -163,6 +164,7 @@ fun PRCelebrationDialog(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun PRDetailCard(
     personalRecord: PersonalRecord,
     exerciseNames: Map<String, String>,

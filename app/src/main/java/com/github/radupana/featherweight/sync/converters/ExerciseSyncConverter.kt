@@ -29,6 +29,41 @@ class ExerciseSyncConverter {
         private const val TAG = "ExerciseSyncConverter"
 
         /**
+         * Maps legacy movement pattern values from old schema to current MovementPattern enum values.
+         * Used during Firestore-to-SQLite conversion to handle backward compatibility.
+         */
+        private val LEGACY_MOVEMENT_PATTERN_MAPPINGS: Map<String, MovementPattern> =
+            mapOf(
+                "COMPOUND" to MovementPattern.PUSH,
+                "ISOLATION" to MovementPattern.EXTENSION,
+                "POWER" to MovementPattern.PUSH,
+                "STABILIZATION" to MovementPattern.ISOMETRIC,
+                "FLEXION" to MovementPattern.PULL,
+                "PRESS" to MovementPattern.PUSH,
+                "ROW" to MovementPattern.PULL,
+                "CURL" to MovementPattern.PULL,
+                "FLY" to MovementPattern.HORIZONTAL_PUSH,
+                "RAISE" to MovementPattern.PUSH,
+                "SHRUG" to MovementPattern.PULL,
+                "CRUNCH" to MovementPattern.CORE,
+                "HOLD" to MovementPattern.ISOMETRIC,
+                "WALK" to MovementPattern.LOCOMOTION,
+                "STEP" to MovementPattern.LOCOMOTION,
+                "CYCLE" to MovementPattern.LOCOMOTION,
+                "CRAWL" to MovementPattern.LOCOMOTION,
+                "COMPLEX" to MovementPattern.OTHER,
+                "EXPLOSIVE" to MovementPattern.OTHER,
+                "LIFT" to MovementPattern.OTHER,
+                "PIKE" to MovementPattern.CORE,
+                "TUCK" to MovementPattern.CORE,
+                "ROLL" to MovementPattern.CORE,
+                "KICK" to MovementPattern.OTHER,
+                "FLIP" to MovementPattern.OTHER,
+                "CIRCLE" to MovementPattern.OTHER,
+                "WAVE" to MovementPattern.OTHER,
+            )
+
+        /**
          * Converts a denormalized Firestore exercise to SQLite entities.
          * Returns a data class containing all the related entities.
          */
@@ -175,32 +210,13 @@ class ExerciseSyncConverter {
             }
 
         private fun parseMovementPattern(value: String): MovementPattern =
-            try {
-                // Handle legacy values from old schema and removed redundant values
-                when (value) {
-                    "COMPOUND" -> MovementPattern.PUSH
-                    "ISOLATION" -> MovementPattern.EXTENSION
-                    "POWER" -> MovementPattern.PUSH
-                    "STABILIZATION" -> MovementPattern.ISOMETRIC
-                    "FLEXION" -> MovementPattern.PULL
-                    "PRESS" -> MovementPattern.PUSH
-                    "ROW" -> MovementPattern.PULL
-                    "CURL" -> MovementPattern.PULL
-                    "FLY" -> MovementPattern.HORIZONTAL_PUSH
-                    "RAISE" -> MovementPattern.PUSH
-                    "SHRUG" -> MovementPattern.PULL
-                    "CRUNCH" -> MovementPattern.CORE
-                    "HOLD" -> MovementPattern.ISOMETRIC
-                    "WALK", "STEP", "CYCLE", "CRAWL" -> MovementPattern.LOCOMOTION
-                    "COMPLEX", "EXPLOSIVE", "LIFT" -> MovementPattern.OTHER
-                    "PIKE", "TUCK", "ROLL" -> MovementPattern.CORE
-                    "KICK", "FLIP", "CIRCLE", "WAVE" -> MovementPattern.OTHER
-                    else -> MovementPattern.valueOf(value)
+            LEGACY_MOVEMENT_PATTERN_MAPPINGS[value]
+                ?: try {
+                    MovementPattern.valueOf(value)
+                } catch (e: IllegalArgumentException) {
+                    CloudLogger.warn(TAG, "Invalid MovementPattern value: $value, defaulting to OTHER", e)
+                    MovementPattern.OTHER
                 }
-            } catch (e: IllegalArgumentException) {
-                CloudLogger.warn(TAG, "Invalid MovementPattern value: $value, defaulting to OTHER", e)
-                MovementPattern.OTHER
-            }
 
         private fun parseEquipment(value: String): Equipment =
             try {

@@ -43,6 +43,7 @@ import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBack: () -> Unit,
@@ -273,6 +274,7 @@ private fun ProfileTabBar(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun ProfileDialogs(
     uiState: com.github.radupana.featherweight.viewmodel.ProfileUiState,
     showExerciseSelector: Boolean,

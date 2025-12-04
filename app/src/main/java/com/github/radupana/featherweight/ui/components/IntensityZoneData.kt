@@ -162,6 +162,7 @@ private object IntensityZoneChartConstants {
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun IntensityZoneChartCanvas(
     intensityData: List<IntensityZoneData>,
     selectedZone: IntensityZoneData?,

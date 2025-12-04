@@ -33,6 +33,7 @@ import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 
 @Composable
+@Suppress("LongMethod")
 fun CreateCustomExerciseDialog(
     initialName: String = "",
     viewModel: ExerciseSelectorViewModel,
@@ -398,6 +399,7 @@ private fun CreateButton(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun SelectionDialogs(
     showCategoryDialog: Boolean,
     showPrimaryMusclesDialog: Boolean,

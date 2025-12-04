@@ -7,38 +7,61 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import java.time.LocalDateTime
 
 /**
- * Test fixtures for workout-related data
+ * Configuration for programme-related workout properties.
  */
+data class ProgrammeConfig(
+    val programmeId: String? = null,
+    val weekNumber: Int? = null,
+    val dayNumber: Int? = null,
+    val programmeWorkoutName: String? = null,
+    val isProgrammeWorkout: Boolean = false,
+)
+
+/**
+ * Configuration for workout timer properties.
+ */
+data class TimerConfig(
+    val durationSeconds: String? = null,
+    val timerStartTime: LocalDateTime? = null,
+    val timerElapsedSeconds: Int = 0,
+)
+
+/**
+ * Test fixtures for workout-related data.
+ *
+ * Note: These fixture functions have many parameters by design to enable
+ * flexible test data creation. For production code, prefer data classes
+ * with fewer parameters or builder patterns.
+ */
+@Suppress("LongParameterList")
 object WorkoutFixtures {
+    /**
+     * Creates a workout with grouped configuration objects.
+     * Use this for complex workout configurations.
+     */
     fun createWorkout(
         id: String = "1",
         date: LocalDateTime = LocalDateTime.now(),
         name: String? = "Test Workout",
         notes: String? = null,
         status: WorkoutStatus = WorkoutStatus.IN_PROGRESS,
-        programmeId: String? = null,
-        weekNumber: Int? = null,
-        dayNumber: Int? = null,
-        programmeWorkoutName: String? = null,
-        isProgrammeWorkout: Boolean = false,
-        durationSeconds: String? = null,
-        timerStartTime: LocalDateTime? = null,
-        timerElapsedSeconds: Int = 0,
+        programme: ProgrammeConfig = ProgrammeConfig(),
+        timer: TimerConfig = TimerConfig(),
     ) = Workout(
         id = id,
         date = date,
         name = name,
         notes = notes,
         notesUpdatedAt = null,
-        programmeId = programmeId,
-        weekNumber = weekNumber,
-        dayNumber = dayNumber,
-        programmeWorkoutName = programmeWorkoutName,
-        isProgrammeWorkout = isProgrammeWorkout,
+        programmeId = programme.programmeId,
+        weekNumber = programme.weekNumber,
+        dayNumber = programme.dayNumber,
+        programmeWorkoutName = programme.programmeWorkoutName,
+        isProgrammeWorkout = programme.isProgrammeWorkout,
         status = status,
-        durationSeconds = durationSeconds,
-        timerStartTime = timerStartTime,
-        timerElapsedSeconds = timerElapsedSeconds,
+        durationSeconds = timer.durationSeconds,
+        timerStartTime = timer.timerStartTime,
+        timerElapsedSeconds = timer.timerElapsedSeconds,
     )
 
     fun createExerciseLog(
@@ -59,34 +82,34 @@ object WorkoutFixtures {
         isSwapped = isSwapped,
     )
 
+    /**
+     * Creates a SetLog for testing with direct performance parameters.
+     * Parameters are ordered by frequency of use in tests.
+     */
+    @Suppress("LongParameterList")
     fun createSetLog(
         id: String = "1",
         userId: String? = "test-user-id",
         exerciseLogId: String = "1",
         setOrder: Int = 1,
-        targetReps: Int? = 10,
-        targetWeight: Float? = 60f,
-        actualReps: Int = 10,
         actualWeight: Float = 60f,
+        actualReps: Int = 10,
         actualRpe: Float? = 8f,
         isCompleted: Boolean = true,
-        completedAt: String? = null,
-        tag: String? = null,
-        notes: String? = null,
     ) = SetLog(
         id = id,
         userId = userId,
         exerciseLogId = exerciseLogId,
         setOrder = setOrder,
-        targetReps = targetReps,
-        targetWeight = targetWeight,
+        targetReps = actualReps,
+        targetWeight = actualWeight,
         actualReps = actualReps,
         actualWeight = actualWeight,
         actualRpe = actualRpe,
-        tag = tag,
-        notes = notes,
+        tag = null,
+        notes = null,
         isCompleted = isCompleted,
-        completedAt = completedAt,
+        completedAt = null,
     )
 
     fun createCompletedSets(
@@ -100,10 +123,9 @@ object WorkoutFixtures {
                 id = setNumber.toString(),
                 userId = userId,
                 setOrder = setNumber,
-                targetReps = reps,
-                targetWeight = weight,
-                actualReps = reps,
                 actualWeight = weight,
+                actualReps = reps,
+                actualRpe = null,
                 isCompleted = true,
             )
         }

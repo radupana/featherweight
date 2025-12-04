@@ -133,6 +133,7 @@ private object VolumeBarChartConstants {
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun VolumeBarChartCanvas(
     dataPoints: List<ExerciseDataPoint>,
     selectedPoint: ExerciseDataPoint?,

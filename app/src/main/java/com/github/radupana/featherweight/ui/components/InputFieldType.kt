@@ -33,6 +33,7 @@ enum class InputFieldType {
 }
 
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun CenteredInputField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,

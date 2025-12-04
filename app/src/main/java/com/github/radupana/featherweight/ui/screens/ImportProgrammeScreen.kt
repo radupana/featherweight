@@ -34,6 +34,7 @@ import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList")
 fun ImportProgrammeScreen(
     onBack: () -> Unit,
     onProgrammeCreated: () -> Unit,

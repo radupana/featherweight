@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
+import com.github.radupana.featherweight.fixtures.ProgrammeConfig
 import com.github.radupana.featherweight.fixtures.WorkoutFixtures
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
@@ -81,7 +82,7 @@ class GlobalProgressTrackerTest {
             val workout =
                 WorkoutFixtures.createWorkout(
                     id = workoutId,
-                    programmeId = null, // Freestyle workout
+                    // Freestyle workout (no programme)
                 )
 
             val exerciseLog =
@@ -839,7 +840,7 @@ class GlobalProgressTrackerTest {
             val workout =
                 WorkoutFixtures.createWorkout(
                     id = workoutId,
-                    programmeId = programmeId, // Programme workout
+                    programme = ProgrammeConfig(programmeId = programmeId), // Programme workout
                 )
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
@@ -1070,7 +1071,6 @@ class GlobalProgressTrackerTest {
             val workout =
                 WorkoutFixtures.createWorkout(
                     id = workoutId,
-                    programmeId = null,
                 )
 
             val exerciseLog =

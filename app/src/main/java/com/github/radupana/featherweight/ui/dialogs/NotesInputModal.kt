@@ -31,6 +31,7 @@ import androidx.compose.ui.window.DialogProperties
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun NotesInputModal(
     isVisible: Boolean,
     title: String,

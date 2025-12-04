@@ -101,6 +101,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
@@ -457,6 +458,7 @@ fun WorkoutScreen(
 }
 
 @Composable
+@Suppress("LongParameterList", "ComplexCondition")
 private fun WorkoutStateEffects(
     workoutState: WorkoutState,
     pendingOneRMUpdates: List<PendingOneRMUpdate>,
@@ -505,6 +507,7 @@ private fun WorkoutStateEffects(
 }
 
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 private fun WorkoutDialogs(
     showWorkoutMenuDialog: Boolean,
     showDeleteWorkoutDialog: Boolean,
@@ -724,6 +727,7 @@ private fun WorkoutFooter(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 private fun WorkoutHeader(
     workoutState: WorkoutState,
     workoutTimerSeconds: Int,
@@ -1130,6 +1134,7 @@ private fun CompleteWorkoutDialog(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+@Suppress("LongParameterList")
 private fun ExercisesList(
     exercises: List<ExerciseLog>,
     sets: List<SetLog>,
@@ -1234,6 +1239,7 @@ private fun ExercisesList(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun WorkoutActionButtons(
     canCompleteWorkout: Boolean,
     onAddExercise: () -> Unit,
