@@ -103,7 +103,7 @@
 <body>
     <div class="container">
         <h1>Privacy Policy</h1>
-        <p class="last-updated">Last Updated: January 6, 2025</p>
+        <p class="last-updated">Last Updated: December 4, 2025</p>
 
         <p>Welcome to Featherweight, a weightlifting tracking application designed for serious lifters. We are committed to protecting your privacy and being transparent about how we collect, use, and safeguard your personal information.</p>
 
@@ -152,7 +152,15 @@
             <li>Your workout data is sent to OpenAI only when you explicitly use AI features, and is processed in accordance with OpenAI's data usage policies</li>
         </ul>
 
-        <h3>2.3 Account Management</h3>
+        <h3>2.3 Voice Input (Microphone)</h3>
+        <ul>
+            <li><strong>Purpose:</strong> The app uses microphone access to enable voice-based workout logging, allowing you to dictate exercises, sets, reps, and weights hands-free</li>
+            <li><strong>Processing:</strong> Audio recordings are sent to OpenAI's Whisper API (via Firebase Cloud Functions) for transcription into text</li>
+            <li><strong>Data Retention:</strong> Audio recordings are NOT stored after transcription. They are immediately deleted once the text has been extracted</li>
+            <li><strong>Optional Feature:</strong> Microphone access is only requested when you choose to use voice input. You can use all other app features without granting microphone permission</li>
+        </ul>
+
+        <h3>2.4 Account Management</h3>
         <ul>
             <li>Authenticating your identity and securing your account</li>
             <li>Enabling password resets and account recovery</li>
@@ -160,7 +168,7 @@
             <li>Processing account deletion requests</li>
         </ul>
 
-        <h3>2.4 Service Improvement</h3>
+        <h3>2.5 Service Improvement</h3>
         <ul>
             <li>Analyzing app usage patterns to improve features and user experience</li>
             <li>Diagnosing and fixing technical issues and crashes</li>
@@ -172,8 +180,7 @@
 
         <h3>3.1 Local Storage (On Your Device)</h3>
         <ul>
-            <li><strong>Database Encryption:</strong> All local data is encrypted using SQLCipher, an industry-standard encryption extension for SQLite databases</li>
-            <li><strong>Secure Key Storage:</strong> Encryption keys are stored using Android's EncryptedSharedPreferences with hardware-backed encryption (when available)</li>
+            <li><strong>Device Encryption:</strong> Your data is protected by Android's Filesystem-Based Encryption (FBE), which encrypts all app data at rest using your device's secure credentials</li>
             <li><strong>Offline-First Architecture:</strong> Your local database is the primary source of truth, ensuring data availability even without internet connection</li>
         </ul>
 

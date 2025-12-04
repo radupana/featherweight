@@ -371,8 +371,9 @@ fun WorkoutScreen(
         if (voiceInputState is VoiceInputState.Ready && allExercisesAutoMatched) {
             // All exercises are high-confidence matches - add them directly
             confirmableExercises.forEach { exercise ->
+                val exerciseId = exercise.selectedExerciseId ?: return@forEach
                 viewModel.addVoiceParsedExercise(
-                    exerciseId = exercise.selectedExerciseId!!,
+                    exerciseId = exerciseId,
                     sets =
                         exercise.parsedData.sets.map { set ->
                             VoiceParsedSetData(
@@ -403,9 +404,10 @@ fun WorkoutScreen(
             },
             onConfirmAll = {
                 // Add all confirmed exercises to the workout
-                confirmableExercises.filter { it.selectedExerciseId != null }.forEach { exercise ->
+                confirmableExercises.forEach { exercise ->
+                    val exerciseId = exercise.selectedExerciseId ?: return@forEach
                     viewModel.addVoiceParsedExercise(
-                        exerciseId = exercise.selectedExerciseId!!,
+                        exerciseId = exerciseId,
                         sets =
                             exercise.parsedData.sets.map { set ->
                                 VoiceParsedSetData(

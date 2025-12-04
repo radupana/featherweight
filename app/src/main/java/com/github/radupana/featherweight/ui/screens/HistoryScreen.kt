@@ -609,11 +609,13 @@ fun ProgrammeHistoryCard(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Text(
-                        text = "Completed ${programme.completedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    programme.completedAt?.let { completedDate ->
+                        Text(
+                            text = "Completed ${completedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 // Completion indicator and notes icon

@@ -33,10 +33,9 @@ class BatchCompletionService {
 
         // Find the set with the highest estimated 1RM
         return sets
-            .associateWith { calculate1RM(it) }
-            .filterValues { it != null }
-            .maxByOrNull { it.value!! }
-            ?.key
+            .mapNotNull { set -> calculate1RM(set)?.let { oneRM -> set to oneRM } }
+            .maxByOrNull { it.second }
+            ?.first
     }
 
     fun groupSetsByExercise(

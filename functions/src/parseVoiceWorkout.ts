@@ -6,6 +6,7 @@
 import {onCall, CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {Logging} from "@google-cloud/logging";
 import OpenAI from "openai";
+import {ALLOWED_CORS_ORIGINS} from "./index";
 
 const logging = new Logging();
 const log = logging.log("parseVoiceWorkout");
@@ -115,7 +116,7 @@ ${transcription}
  */
 export const parseVoiceWorkout = onCall<ParseVoiceWorkoutRequest>(
   {
-    cors: true,
+    cors: ALLOWED_CORS_ORIGINS,
     maxInstances: 10,
     timeoutSeconds: 60,
     memory: "256MiB",

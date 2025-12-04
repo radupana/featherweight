@@ -123,20 +123,23 @@ class FirestoreRepository {
         workouts: List<FirestoreWorkout>,
     ): Result<Unit> =
         try {
-            val batch = firestore.batch()
+            val batches = workouts.chunked(BATCH_SIZE)
             val collection = userDocument(userId).collection(WORKOUTS_COLLECTION)
 
-            workouts.forEach { workout ->
-                val docRef =
-                    if (!workout.id.isNullOrEmpty()) {
-                        collection.document(workout.id)
-                    } else {
-                        collection.document()
-                    }
-                batch.set(docRef, workout, SetOptions.merge())
+            batches.forEach { batch ->
+                val writeBatch = firestore.batch()
+                batch.forEach { workout ->
+                    val docRef =
+                        if (!workout.id.isNullOrEmpty()) {
+                            collection.document(workout.id)
+                        } else {
+                            collection.document()
+                        }
+                    writeBatch.set(docRef, workout, SetOptions.merge())
+                }
+                writeBatch.commit().await()
             }
 
-            batch.commit().await()
             Result.success(Unit)
         } catch (e: FirebaseException) {
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload workouts", e)
@@ -239,20 +242,23 @@ class FirestoreRepository {
         templates: List<FirestoreWorkoutTemplate>,
     ): Result<Unit> =
         try {
-            val batch = firestore.batch()
+            val batches = templates.chunked(BATCH_SIZE)
             val collection = userDocument(userId).collection(WORKOUT_TEMPLATES_COLLECTION)
 
-            templates.forEach { template ->
-                val docRef =
-                    if (!template.id.isNullOrEmpty()) {
-                        collection.document(template.id)
-                    } else {
-                        collection.document()
-                    }
-                batch.set(docRef, template, SetOptions.merge())
+            batches.forEach { batch ->
+                val writeBatch = firestore.batch()
+                batch.forEach { template ->
+                    val docRef =
+                        if (!template.id.isNullOrEmpty()) {
+                            collection.document(template.id)
+                        } else {
+                            collection.document()
+                        }
+                    writeBatch.set(docRef, template, SetOptions.merge())
+                }
+                writeBatch.commit().await()
             }
 
-            batch.commit().await()
             Result.success(Unit)
         } catch (e: FirebaseException) {
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload workout templates", e)
@@ -1146,10 +1152,14 @@ class FirestoreRepository {
                 CloudLogger.info(TAG, "No exercise max found with sourceSetId $sourceSetId")
                 Result.success(Unit)
             } else {
-                querySnapshot.documents.forEach { doc ->
-                    doc.reference.delete().await()
-                    CloudLogger.info(TAG, "Deleted exercise max ${doc.id} from Firestore")
+                querySnapshot.documents.chunked(BATCH_SIZE).forEach { chunk ->
+                    val batch = firestore.batch()
+                    chunk.forEach { doc ->
+                        batch.delete(doc.reference)
+                    }
+                    batch.commit().await()
                 }
+                CloudLogger.info(TAG, "Deleted ${querySnapshot.documents.size} exercise max records from Firestore")
                 Result.success(Unit)
             }
         } catch (e: FirebaseException) {

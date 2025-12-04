@@ -237,7 +237,7 @@ private fun ListeningContent(
                         contentColor = Color.White,
                     ),
             ) {
-                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Close, contentDescription = "Cancel", modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Cancel")
             }
@@ -249,7 +249,7 @@ private fun ListeningContent(
                         containerColor = MaterialTheme.colorScheme.error,
                     ),
             ) {
-                Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Stop, contentDescription = "Stop recording", modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Stop")
             }
@@ -352,7 +352,7 @@ private fun ErrorContent(
             ) {
                 Icon(
                     Icons.Filled.Warning,
-                    contentDescription = null,
+                    contentDescription = "Error",
                     modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.error,
                 )
@@ -378,7 +378,7 @@ private fun ErrorContent(
                 OutlinedButton(
                     onClick = onCancel,
                 ) {
-                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Close, contentDescription = "Cancel", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Dismiss")
                 }
@@ -391,7 +391,7 @@ private fun ErrorContent(
                                 containerColor = MaterialTheme.colorScheme.primary,
                             ),
                     ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Refresh, contentDescription = "Retry", modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Try Again")
                     }
@@ -469,7 +469,7 @@ fun VoiceInputConfirmationSheet(
             ) {
                 Icon(
                     Icons.Filled.Check,
-                    contentDescription = null,
+                    contentDescription = "Add exercises",
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -578,19 +578,19 @@ private fun ExerciseCardActions(
                     onClick = { onConfirm(bestMatch.exerciseId, bestMatch.exerciseName) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Check, contentDescription = "Confirm exercise", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Confirm")
                 }
             }
             OutlinedButton(onClick = onChangeExercise, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Edit, contentDescription = "Change exercise", modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(if (hasAutoMatch) "Change" else "Select Exercise")
             }
         } else {
             OutlinedButton(onClick = onChangeExercise, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Edit, contentDescription = "Change exercise", modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Change Exercise")
             }

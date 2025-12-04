@@ -9,6 +9,7 @@ import {Logging} from "@google-cloud/logging";
 import * as admin from "firebase-admin";
 import OpenAI from "openai";
 import {toFile} from "openai/uploads";
+import {ALLOWED_CORS_ORIGINS} from "./index";
 
 const logging = new Logging();
 const log = logging.log("transcribeAudio");
@@ -195,7 +196,7 @@ const WHISPER_PROMPT = "Transcribe this fitness workout log. The speaker is logg
  */
 export const transcribeAudio = onCall<TranscribeAudioRequest>(
   {
-    cors: true,
+    cors: ALLOWED_CORS_ORIGINS,
     maxInstances: 10,
     timeoutSeconds: 120,
     memory: "512MiB",

@@ -5,7 +5,6 @@
 import {
   validateInput,
   detectInjectionAttempt,
-  getQuotaLimits,
   shouldResetPeriod,
   buildPrompt,
   callOpenAI,
