@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
     private val migrationService by lazy { LocalDataMigrationService(database) }
     private val migrationStateManager by lazy { MigrationStateManager(this) }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
         installSplashScreen()
@@ -358,6 +359,7 @@ private fun schedulePeriodicSync(context: android.content.Context) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,

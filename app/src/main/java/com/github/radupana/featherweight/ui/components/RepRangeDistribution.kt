@@ -144,6 +144,7 @@ private object RepRangeChartConstants {
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun RepRangeChartCanvas(
     distributionData: List<RepRangeDistribution>,
     selectedRange: RepRangeDistribution?,

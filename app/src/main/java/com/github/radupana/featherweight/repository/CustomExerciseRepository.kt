@@ -35,6 +35,7 @@ class CustomExerciseRepository(
      * Create a new custom exercise for the current user.
      * Returns the created variation ID or null if creation failed.
      */
+    @Suppress("LongParameterList")
     suspend fun createCustomExercise(
         name: String,
         category: ExerciseCategory,

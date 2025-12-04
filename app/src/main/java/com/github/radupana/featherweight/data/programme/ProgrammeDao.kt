@@ -12,6 +12,9 @@ import androidx.room.Update
 import java.time.LocalDateTime
 
 @Dao
+// Suppression justified: Room DAO interfaces inherently require many query methods to support
+// the various data access patterns needed by the application. Splitting into multiple DAOs
+// would create artificial boundaries and complicate transaction management.
 @Suppress("TooManyFunctions")
 interface ProgrammeDao {
     // Programme CRUD operations

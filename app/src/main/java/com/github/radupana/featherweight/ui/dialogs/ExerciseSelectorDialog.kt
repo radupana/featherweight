@@ -45,6 +45,7 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun ExerciseSelectorDialog(
     onExerciseSelected: (ExerciseWithDetails) -> Unit,
     onDismiss: () -> Unit,

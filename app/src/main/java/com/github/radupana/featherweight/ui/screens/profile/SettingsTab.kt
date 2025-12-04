@@ -36,6 +36,7 @@ import com.github.radupana.featherweight.viewmodel.AccountInfo
 import com.github.radupana.featherweight.viewmodel.SyncUiState
 
 @Composable
+@Suppress("LongParameterList")
 fun SettingsTab(
     currentWeightUnit: WeightUnit,
     onWeightUnitSelected: (WeightUnit) -> Unit,

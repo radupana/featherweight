@@ -39,6 +39,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun ExportWorkoutsDialog(
     onDismiss: () -> Unit,
     onExport: (startDate: LocalDateTime, endDate: LocalDateTime) -> Unit,

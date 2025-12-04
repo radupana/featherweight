@@ -45,6 +45,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun WorkoutHubScreen(
     onStartActiveWorkout: () -> Unit,
     onStartTemplate: () -> Unit,

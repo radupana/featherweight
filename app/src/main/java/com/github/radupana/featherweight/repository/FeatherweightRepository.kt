@@ -130,6 +130,9 @@ class FeatherweightRepository(
     suspend fun getAllExercisesWithAliases() = exerciseRepository.getAllExercisesWithAliases()
 
     // Custom exercise methods
+    // Suppression justified: Exercise creation requires all these domain attributes.
+    // Using a data class would just move the parameters without reducing complexity.
+    @Suppress("LongParameterList")
     suspend fun createCustomExercise(
         name: String,
         category: ExerciseCategory,
@@ -178,6 +181,9 @@ class FeatherweightRepository(
     suspend fun deleteSystemCustomExercise(exerciseId: String): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseId)
 
     // Legacy create method
+    // Suppression justified: Exercise creation requires all these domain attributes.
+    // Using a data class would just move the parameters without reducing complexity.
+    @Suppress("LongParameterList")
     suspend fun createSystemCustomExercise(
         name: String,
         category: ExerciseCategory,
@@ -405,59 +411,61 @@ class FeatherweightRepository(
         }
     }
 
-    private suspend fun updateProgrammeProgressAfterWorkout(
-        programmeId: String,
-    ) {
+    private suspend fun updateProgrammeProgressAfterWorkout(programmeId: String) {
         try {
-            // Always increment completed workouts when a workout is completed
             programmeDao.incrementCompletedWorkouts(programmeId)
-
-            // Now find the next workout and update current week/day to that
-            val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
-            if (nextWorkoutInfo != null) {
-                // Update progress to point to the next workout
-                programmeDao.updateProgress(
-                    programmeId,
-                    nextWorkoutInfo.actualWeekNumber,
-                    nextWorkoutInfo.workoutStructure.day,
-                    LocalDateTime.now().toString(),
-                )
-            } else {
-                // Double-check the completion logic before marking complete
-                val finalProgress = programmeDao.getProgressForProgramme(programmeId)
-                if (finalProgress != null) {
-                    // CRITICAL FIX: Recalculate total workouts for custom programmes to ensure accuracy
-                    val programme = programmeDao.getProgrammeById(programmeId)
-                    if (programme != null && programme.isCustom) {
-                        val actualTotalWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId).size
-
-                        if (finalProgress.completedWorkouts < actualTotalWorkouts) {
-                            // Update the total workouts to fix the mismatch
-                            val correctedProgress = finalProgress.copy(totalWorkouts = actualTotalWorkouts)
-                            programmeDao.insertOrUpdateProgress(correctedProgress)
-                            return
-                        }
-                    }
-
-                    if (finalProgress.completedWorkouts >= finalProgress.totalWorkouts) {
-                        completeProgramme(programmeId)
-                    }
-                }
-            }
-
-            // Update adherence percentage
-            val progress = programmeDao.getProgressForProgramme(programmeId)
-            if (progress != null) {
-                val updatedProgress =
-                    progress.copy(
-                        lastWorkoutDate = LocalDateTime.now(),
-                    )
-                programmeDao.insertOrUpdateProgress(updatedProgress)
-            }
+            advanceToNextWorkoutOrComplete(programmeId)
+            updateLastWorkoutDate(programmeId)
         } catch (e: android.database.sqlite.SQLiteException) {
             CloudLogger.error("FeatherweightRepository", "Programme progress update failed", e)
-            // Programme progress update failed - this is not critical for app functionality
         }
+    }
+
+    private suspend fun advanceToNextWorkoutOrComplete(programmeId: String) {
+        val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
+        if (nextWorkoutInfo != null) {
+            programmeDao.updateProgress(
+                programmeId,
+                nextWorkoutInfo.actualWeekNumber,
+                nextWorkoutInfo.workoutStructure.day,
+                LocalDateTime.now().toString(),
+            )
+            return
+        }
+        handleProgrammeCompletion(programmeId)
+    }
+
+    private suspend fun handleProgrammeCompletion(programmeId: String) {
+        val finalProgress = programmeDao.getProgressForProgramme(programmeId) ?: return
+
+        if (correctCustomProgrammeTotalIfNeeded(programmeId, finalProgress)) {
+            return
+        }
+
+        if (finalProgress.completedWorkouts >= finalProgress.totalWorkouts) {
+            completeProgramme(programmeId)
+        }
+    }
+
+    private suspend fun correctCustomProgrammeTotalIfNeeded(
+        programmeId: String,
+        progress: ProgrammeProgress,
+    ): Boolean {
+        val programme = programmeDao.getProgrammeById(programmeId) ?: return false
+        if (!programme.isCustom) return false
+
+        val actualTotalWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId).size
+        if (progress.completedWorkouts >= actualTotalWorkouts) return false
+
+        val correctedProgress = progress.copy(totalWorkouts = actualTotalWorkouts)
+        programmeDao.insertOrUpdateProgress(correctedProgress)
+        return true
+    }
+
+    private suspend fun updateLastWorkoutDate(programmeId: String) {
+        val progress = programmeDao.getProgressForProgramme(programmeId) ?: return
+        val updatedProgress = progress.copy(lastWorkoutDate = LocalDateTime.now())
+        programmeDao.insertOrUpdateProgress(updatedProgress)
     }
 
     // History functionality
@@ -950,6 +958,7 @@ class FeatherweightRepository(
         }
     }
 
+    @Suppress("LongMethod")
     suspend fun createImportedProgramme(
         name: String,
         description: String,

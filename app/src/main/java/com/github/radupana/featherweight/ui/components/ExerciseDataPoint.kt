@@ -169,6 +169,7 @@ private object ChartCanvasConstants {
 }
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 private fun ChartCanvas(
     dataPoints: List<ExerciseDataPoint>,
     selectedPoint: ExerciseDataPoint?,

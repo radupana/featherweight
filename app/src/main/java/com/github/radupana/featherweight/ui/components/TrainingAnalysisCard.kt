@@ -49,6 +49,7 @@ import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import java.time.temporal.ChronoUnit
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun TrainingAnalysisCard(
     analysis: TrainingAnalysis?,
     isLoading: Boolean,

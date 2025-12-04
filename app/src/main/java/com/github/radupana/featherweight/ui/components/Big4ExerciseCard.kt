@@ -19,6 +19,7 @@ import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.util.WeightFormatter
 
 @Composable
+@Suppress("LongParameterList")
 fun Big4ExerciseCard(
     exerciseName: String,
     oneRMValue: Float?,

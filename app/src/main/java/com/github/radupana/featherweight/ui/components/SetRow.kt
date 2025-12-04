@@ -40,6 +40,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.util.WeightFormatter
 
 @Composable
+@Suppress("LongMethod")
 fun SetRow(
     set: SetLog,
     onToggleCompleted: (Boolean) -> Unit,

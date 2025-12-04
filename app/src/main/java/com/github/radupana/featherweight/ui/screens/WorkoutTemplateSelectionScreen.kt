@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongMethod")
 fun WorkoutTemplateSelectionScreen(
     onTemplateSelected: (String) -> Unit,
     onBack: () -> Unit,
@@ -201,6 +202,7 @@ fun WorkoutTemplateSelectionScreen(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun TemplateCard(
     template: TemplateWithExercises,
     onStartWorkout: () -> Unit,

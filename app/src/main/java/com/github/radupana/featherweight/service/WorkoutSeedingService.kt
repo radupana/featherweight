@@ -30,6 +30,35 @@ class WorkoutSeedingService(
         private const val THREE_REP_PERCENTAGE = 0.90f
         private const val FIVE_REP_PERCENTAGE = 0.85f
         private const val EIGHT_REP_PERCENTAGE = 0.75f
+
+        // Base percentage of 1RM for different rep counts (assuming RPE 10)
+        private val REP_TO_PERCENTAGE: Map<Int, Float> =
+            mapOf(
+                1 to 1.0f,
+                2 to 0.95f,
+                3 to 0.90f,
+                4 to 0.87f,
+                5 to 0.85f,
+                6 to 0.82f,
+                7 to 0.80f,
+                8 to 0.77f,
+                9 to 0.75f,
+                10 to 0.73f,
+                11 to 0.71f,
+                12 to 0.69f,
+            )
+        private const val DEFAULT_REP_PERCENTAGE = 0.65f
+
+        // RPE adjustment factors (reps in reserve)
+        private val RPE_TO_ADJUSTMENT: Map<Int, Float> =
+            mapOf(
+                6 to 0.85f, // 4 reps in reserve
+                7 to 0.90f, // 3 reps in reserve
+                8 to 0.94f, // 2 reps in reserve
+                9 to 0.97f, // 1 rep in reserve
+                10 to 1.0f, // 0 reps in reserve (max effort)
+            )
+        private const val DEFAULT_RPE_ADJUSTMENT = 0.90f
     }
 
     data class SeedConfig(
@@ -448,38 +477,8 @@ class WorkoutSeedingService(
         reps: Int,
         rpe: Int,
     ): Float {
-        // More realistic weight calculations based on RPE and rep ranges
-        // Using Epley formula inverse: weight = 1RM / (1 + reps/30) adjusted for RPE
-
-        // Base percentage based on reps (assuming RPE 10)
-        val basePercentage =
-            when (reps) {
-                1 -> 1.0f
-                2 -> 0.95f
-                3 -> 0.90f
-                4 -> 0.87f
-                5 -> 0.85f
-                6 -> 0.82f
-                7 -> 0.80f
-                8 -> 0.77f
-                9 -> 0.75f
-                10 -> 0.73f
-                11 -> 0.71f
-                12 -> 0.69f
-                else -> 0.65f
-            }
-
-        // Adjust for RPE (reps in reserve)
-        val rpeAdjustment =
-            when (rpe) {
-                6 -> 0.85f // 4 reps in reserve
-                7 -> 0.90f // 3 reps in reserve
-                8 -> 0.94f // 2 reps in reserve
-                9 -> 0.97f // 1 rep in reserve
-                10 -> 1.0f // 0 reps in reserve (max effort)
-                else -> 0.90f
-            }
-
+        val basePercentage = REP_TO_PERCENTAGE[reps] ?: DEFAULT_REP_PERCENTAGE
+        val rpeAdjustment = RPE_TO_ADJUSTMENT[rpe] ?: DEFAULT_RPE_ADJUSTMENT
         return oneRM * basePercentage * rpeAdjustment
     }
 
@@ -491,6 +490,10 @@ class WorkoutSeedingService(
         return (weight + variation).coerceAtLeast(20f) // Minimum 20kg (empty barbell)
     }
 
+    // Suppression justified: Workout creation requires all these contextual parameters for
+    // proper seeding (date, week/day info, plan, 1RMs, progression). Using a data class
+    // would just move the parameters without reducing complexity.
+    @Suppress("LongParameterList")
     private suspend fun createWorkout(
         date: LocalDate,
         weekNumber: Int,
@@ -605,111 +608,170 @@ class WorkoutSeedingService(
         return workoutId
     }
 
-    private suspend fun processWorkoutCompletion(
-        workoutId: String,
+    private suspend fun processWorkoutCompletion(workoutId: String) {
+        val workout =
+            repository.getWorkoutById(workoutId) ?: run {
+                completeWorkoutWithRandomDuration(workoutId)
+                return
+            }
+
+        val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
+        exerciseLogs.forEach { exerciseLog ->
+            processExerciseLogForCompletion(exerciseLog, workout)
+        }
+
+        completeWorkoutWithRandomDuration(workoutId)
+    }
+
+    private suspend fun processExerciseLogForCompletion(
+        exerciseLog: ExerciseLog,
+        workout: Workout,
     ) {
-        // Use OneRMService for proper validation
+        val sets = repository.getSetLogsForExercise(exerciseLog.id)
+        val scalingType = getScalingTypeForExercise(exerciseLog.exerciseId)
+        val currentMax =
+            repository
+                .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseId))[exerciseLog.exerciseId]
+
+        checkPRsForCompletedSets(sets, exerciseLog.exerciseId)
+        updateBest1RMIfImproved(sets, exerciseLog, currentMax, scalingType, workout)
+    }
+
+    private suspend fun getScalingTypeForExercise(
+        exerciseId: String,
+    ): com.github.radupana.featherweight.data.exercise.RMScalingType {
+        val exercise = repository.getExerciseById(exerciseId)
+        return exercise?.rmScalingType?.let { parseScalingType(it) }
+            ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+    }
+
+    private fun parseScalingType(
+        value: String,
+    ): com.github.radupana.featherweight.data.exercise.RMScalingType =
+        try {
+            com.github.radupana.featherweight.data.exercise.RMScalingType
+                .valueOf(value)
+        } catch (e: IllegalArgumentException) {
+            CloudLogger.warn(TAG, "Invalid RMScalingType value: '$value', using default STANDARD", e)
+            com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+        }
+
+    private suspend fun checkPRsForCompletedSets(
+        sets: List<SetLog>,
+        exerciseId: String,
+    ) {
+        sets.filter { it.isCompleted }.forEach { set ->
+            try {
+                repository.checkForPR(set, exerciseId)
+            } catch (e: IllegalStateException) {
+                CloudLogger.error(TAG, "PR check failed during seeding for exerciseId: $exerciseId, setId: ${set.id}", e)
+            }
+        }
+    }
+
+    private suspend fun updateBest1RMIfImproved(
+        sets: List<SetLog>,
+        exerciseLog: ExerciseLog,
+        currentMax: Float?,
+        scalingType: com.github.radupana.featherweight.data.exercise.RMScalingType,
+        workout: Workout,
+    ) {
         val oneRMService = OneRMService()
+        val best = findBestValidSet(sets, currentMax, scalingType, oneRMService) ?: return
+        saveExerciseMax(exerciseLog.exerciseId, best.first, best.second, workout)
+    }
 
-        // Process each exercise's sets with proper 1RM validation
-        val workout = repository.getWorkoutById(workoutId)
-        if (workout != null) {
-            val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
+    private fun findBestValidSet(
+        sets: List<SetLog>,
+        currentMax: Float?,
+        scalingType: com.github.radupana.featherweight.data.exercise.RMScalingType,
+        oneRMService: OneRMService,
+    ): Pair<Float, SetLog>? {
+        var bestEstimated1RM = 0f
+        var bestSet: SetLog? = null
 
-            exerciseLogs.forEach { exerciseLog ->
-                val sets = repository.getSetLogsForExercise(exerciseLog.id)
+        sets.filter { it.isCompleted && isMeaningfulSet(it) }.forEach { set ->
+            val estimated1RM =
+                oneRMService.calculateEstimated1RM(
+                    set.actualWeight,
+                    set.actualReps,
+                    scalingType = scalingType,
+                ) ?: return@forEach
 
-                // Get the exercise variation to determine scaling type
-                val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseId)
-                val scalingType =
-                    exerciseVariation?.rmScalingType?.let {
-                        try {
-                            com.github.radupana.featherweight.data.exercise.RMScalingType
-                                .valueOf(it)
-                        } catch (e: IllegalArgumentException) {
-                            CloudLogger.warn("WorkoutSeedingService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
-                            com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
-                        }
-                    } ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
-
-                // Get current 1RM for this exercise
-                val currentMax =
-                    repository
-                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseId))[exerciseLog.exerciseId]
-
-                // Find the best set that would actually update the 1RM
-                var shouldUpdate = false
-                var bestEstimated1RM = 0f
-                var bestSet: SetLog? = null
-
-                sets.filter { it.isCompleted }.forEach { set ->
-                    // Check for PRs
-                    try {
-                        repository.checkForPR(set, exerciseLog.exerciseId)
-                    } catch (e: IllegalStateException) {
-                        CloudLogger.error(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
-                    }
-
-                    // Only calculate 1RM for meaningful sets (not warmups)
-                    if (set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10) {
-                        // Calculate estimated 1RM using the service with correct scaling type
-                        val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, scalingType = scalingType)
-
-                        if (estimated1RM != null) {
-                            // Only update if this is truly better than current max
-                            // Add a threshold to avoid tiny improvements from seeded data
-                            val improvementThreshold = currentMax?.times(1 + MIN_IMPROVEMENT_THRESHOLD) ?: 0f
-
-                            if (estimated1RM > improvementThreshold && estimated1RM > bestEstimated1RM) {
-                                // Verify the set makes sense (not artificially inflated)
-                                val expectedWeight =
-                                    when (set.actualReps) {
-                                        1 -> estimated1RM * ONE_REP_PERCENTAGE
-                                        3 -> estimated1RM * THREE_REP_PERCENTAGE
-                                        5 -> estimated1RM * FIVE_REP_PERCENTAGE
-                                        8 -> estimated1RM * EIGHT_REP_PERCENTAGE
-                                        else -> estimated1RM * 0.70f
-                                    }
-
-                                // Only accept if the actual weight is within reasonable range
-                                val tolerance = RPE_TOLERANCE
-                                if (abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
-                                    bestEstimated1RM = estimated1RM
-                                    bestSet = set
-                                    shouldUpdate = true
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Only update 1RM if we found a valid update that passes all checks
-                if (shouldUpdate && bestSet != null) {
-                    val context =
-                        "${bestSet!!.actualWeight}kg × ${bestSet!!.actualReps}" +
-                            if (bestSet!!.actualRpe != null && bestSet!!.actualRpe > 0) {
-                                " @ RPE ${WeightFormatter.formatRPE(bestSet!!.actualRpe)}"
-                            } else {
-                                ""
-                            }
-
-                    try {
-                        repository.upsertExerciseMax(
-                            exerciseId = exerciseLog.exerciseId,
-                            oneRMEstimate = bestEstimated1RM,
-                            oneRMContext = context,
-                            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
-                            notes = "Generated from seeded workout",
-                            workoutDate = workout.date,
-                        )
-                    } catch (e: IllegalStateException) {
-                        CloudLogger.error(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
-                    }
-                }
+            if (isSignificantImprovement(estimated1RM, currentMax, bestEstimated1RM) &&
+                isReasonableWeight(set, estimated1RM)
+            ) {
+                bestEstimated1RM = estimated1RM
+                bestSet = set
             }
         }
 
-        // Complete the workout to trigger all analytics
+        return bestSet?.let { bestEstimated1RM to it }
+    }
+
+    private fun isMeaningfulSet(set: SetLog): Boolean = set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10
+
+    private fun isSignificantImprovement(
+        estimated1RM: Float,
+        currentMax: Float?,
+        bestSoFar: Float,
+    ): Boolean {
+        val improvementThreshold = currentMax?.times(1 + MIN_IMPROVEMENT_THRESHOLD) ?: 0f
+        return estimated1RM > improvementThreshold && estimated1RM > bestSoFar
+    }
+
+    private fun isReasonableWeight(
+        set: SetLog,
+        estimated1RM: Float,
+    ): Boolean {
+        val expectedWeight = getExpectedWeightForReps(set.actualReps, estimated1RM)
+        return abs(set.actualWeight - expectedWeight) / expectedWeight <= RPE_TOLERANCE
+    }
+
+    private fun getExpectedWeightForReps(
+        reps: Int,
+        estimated1RM: Float,
+    ): Float =
+        when (reps) {
+            1 -> estimated1RM * ONE_REP_PERCENTAGE
+            3 -> estimated1RM * THREE_REP_PERCENTAGE
+            5 -> estimated1RM * FIVE_REP_PERCENTAGE
+            8 -> estimated1RM * EIGHT_REP_PERCENTAGE
+            else -> estimated1RM * 0.70f
+        }
+
+    private suspend fun saveExerciseMax(
+        exerciseId: String,
+        estimated1RM: Float,
+        set: SetLog,
+        workout: Workout,
+    ) {
+        val context = buildSetContext(set)
+        try {
+            repository.upsertExerciseMax(
+                exerciseId = exerciseId,
+                oneRMEstimate = estimated1RM,
+                oneRMContext = context,
+                oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                notes = "Generated from seeded workout",
+                workoutDate = workout.date,
+            )
+        } catch (e: IllegalStateException) {
+            CloudLogger.error(TAG, "1RM update failed during seeding for exerciseId: $exerciseId", e)
+        }
+    }
+
+    private fun buildSetContext(set: SetLog): String {
+        val base = "${set.actualWeight}kg × ${set.actualReps}"
+        val rpe = set.actualRpe
+        return if (rpe != null && rpe > 0) {
+            "$base @ RPE ${WeightFormatter.formatRPE(rpe)}"
+        } else {
+            base
+        }
+    }
+
+    private suspend fun completeWorkoutWithRandomDuration(workoutId: String) {
         val duration = (60 + Random.nextInt(30)) * 60L // 60-90 minutes
         repository.completeWorkout(workoutId, duration.toString())
     }

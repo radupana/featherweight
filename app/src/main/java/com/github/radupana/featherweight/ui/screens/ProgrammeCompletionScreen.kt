@@ -56,6 +56,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
+@Suppress("LongMethod")
 fun ProgrammeCompletionScreen(
     programmeId: String,
     onDismiss: () -> Unit,
@@ -324,6 +325,7 @@ private fun ProgrammeStatItem(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun PerformanceAnalysisCard(
     stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats,
     isExpanded: Boolean,

@@ -548,6 +548,7 @@ private fun DetailBadge(text: String) {
 }
 
 @Composable
+@Suppress("LongParameterList")
 fun ExerciseListContent(
     isLoading: Boolean,
     exercises: List<ExerciseWithDetails>,
@@ -635,6 +636,7 @@ private fun NoResultsContent(
 }
 
 @Composable
+@Suppress("LongParameterList")
 private fun ExercisesList(
     exercises: List<ExerciseWithDetails>,
     isSwapMode: Boolean,

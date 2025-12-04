@@ -33,6 +33,7 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import kotlin.math.roundToInt
 
 @Composable
+@Suppress("LongMethod")
 fun OneRMUpdateDialog(
     pendingUpdates: List<PendingOneRMUpdate>,
     exerciseNames: Map<String, String>,

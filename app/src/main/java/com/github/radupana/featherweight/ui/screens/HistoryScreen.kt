@@ -70,6 +70,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
+@Suppress("LongMethod")
 fun HistoryScreen(
     modifier: Modifier = Modifier,
     onViewWorkout: (String) -> Unit = {},
@@ -268,6 +269,7 @@ fun HistoryScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+@Suppress("LongMethod")
 fun WorkoutHistoryCard(
     workout: WorkoutSummary,
     onViewWorkout: (String) -> Unit = {},
@@ -468,6 +470,7 @@ fun WorkoutStatItem(
 }
 
 @Composable
+@Suppress("LongParameterList")
 fun ProgrammesHistorySection(
     programmes: List<ProgrammeSummary>,
     isLoading: Boolean,
@@ -573,6 +576,7 @@ fun ProgrammesHistorySection(
 }
 
 @Composable
+@Suppress("LongMethod")
 fun ProgrammeHistoryCard(
     programme: ProgrammeSummary,
     onViewProgramme: (String) -> Unit,

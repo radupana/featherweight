@@ -60,6 +60,10 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+// Suppression justified: Jetpack Compose's state hoisting pattern requires passing state
+// and callbacks as parameters. The complex UI interactions and multiple user actions
+// in this component naturally result in many parameters and conditional logic.
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,

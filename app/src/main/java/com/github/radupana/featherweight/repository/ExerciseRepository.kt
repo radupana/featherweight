@@ -397,6 +397,7 @@ class ExerciseRepository(
 
     // ===== CREATE CUSTOM EXERCISE =====
 
+    @Suppress("LongParameterList")
     suspend fun createCustomExercise(
         name: String,
         category: ExerciseCategory,

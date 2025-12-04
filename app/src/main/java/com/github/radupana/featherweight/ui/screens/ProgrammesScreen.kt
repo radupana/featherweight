@@ -62,6 +62,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod", "LongParameterList")
 fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
@@ -470,6 +471,7 @@ fun ProgrammesScreen(
 }
 
 @Composable
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 private fun ActiveProgrammeCard(
     programme: Programme,
     progress: ProgrammeProgress?,

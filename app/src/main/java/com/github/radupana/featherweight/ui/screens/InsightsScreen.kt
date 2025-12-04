@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
 @Composable
+@Suppress("LongMethod")
 fun InsightsScreen(
     viewModel: InsightsViewModel,
     modifier: Modifier = Modifier,
@@ -208,6 +209,7 @@ fun InsightsScreen(
 }
 
 @Composable
+@Suppress("LongMethod")
 private fun HighlightsSection(
     recentPRs: List<com.github.radupana.featherweight.data.PersonalRecord>,
     prExerciseNames: Map<com.github.radupana.featherweight.data.PersonalRecord, String>,

@@ -226,7 +226,7 @@ class ExerciseNamingServiceTest {
                 "Barbell Bicep Curl" to ExerciseCategory.ARMS,
                 "Cable Chest Fly" to ExerciseCategory.CHEST,
                 "Dumbbell Shoulder Press" to ExerciseCategory.SHOULDERS,
-                "Machine Leg Press" to ExerciseCategory.FULL_BODY, // Implementation doesn't detect "leg" properly
+                "Machine Leg Press" to ExerciseCategory.LEGS, // Now correctly detects "leg" in name
             )
 
         // Assert

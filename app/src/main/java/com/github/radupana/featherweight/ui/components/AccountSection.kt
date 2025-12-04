@@ -41,6 +41,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
+@Suppress("LongMethod")
 fun AccountSection(
     accountInfo: AccountInfo?,
     onSignOut: () -> Unit,

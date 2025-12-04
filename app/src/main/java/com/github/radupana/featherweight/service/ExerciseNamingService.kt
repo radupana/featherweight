@@ -114,6 +114,56 @@ class ExerciseNamingService {
                 "kb" to "Kettlebell",
                 "ez" to "EZ Bar",
             )
+
+        // Muscle group to category mappings
+        private val MUSCLE_GROUP_TO_CATEGORY: Map<MuscleGroup, ExerciseCategory> =
+            mapOf(
+                MuscleGroup.CHEST to ExerciseCategory.CHEST,
+                MuscleGroup.UPPER_BACK to ExerciseCategory.BACK,
+                MuscleGroup.LATS to ExerciseCategory.BACK,
+                MuscleGroup.LOWER_BACK to ExerciseCategory.BACK,
+                MuscleGroup.SHOULDERS to ExerciseCategory.SHOULDERS,
+                MuscleGroup.FRONT_DELTS to ExerciseCategory.SHOULDERS,
+                MuscleGroup.SIDE_DELTS to ExerciseCategory.SHOULDERS,
+                MuscleGroup.REAR_DELTS to ExerciseCategory.SHOULDERS,
+                MuscleGroup.BICEPS to ExerciseCategory.ARMS,
+                MuscleGroup.TRICEPS to ExerciseCategory.ARMS,
+                MuscleGroup.FOREARMS to ExerciseCategory.ARMS,
+                MuscleGroup.QUADS to ExerciseCategory.LEGS,
+                MuscleGroup.HAMSTRINGS to ExerciseCategory.LEGS,
+                MuscleGroup.GLUTES to ExerciseCategory.LEGS,
+                MuscleGroup.CALVES to ExerciseCategory.LEGS,
+                MuscleGroup.OBLIQUES to ExerciseCategory.CORE,
+                MuscleGroup.CORE to ExerciseCategory.CORE,
+            )
+
+        // Name pattern to category mappings (checked in order)
+        private val NAME_PATTERN_TO_CATEGORY: List<Pair<(String) -> Boolean, ExerciseCategory>> =
+            listOf(
+                { n: String -> n.contains("press") && (n.contains("bench") || n.contains("chest")) } to ExerciseCategory.CHEST,
+                { n: String -> n.contains("fly") || n.contains("flye") } to ExerciseCategory.CHEST,
+                { n: String -> n.contains("row") || n.contains("pulldown") || n.contains("pull up") } to ExerciseCategory.BACK,
+                { n: String -> n.contains("curl") && n.contains("bicep") } to ExerciseCategory.ARMS,
+                { n: String -> n.contains("tricep") || n.contains("pushdown") || n.contains("extension") } to ExerciseCategory.ARMS,
+                { n: String -> n.contains("squat") || n.contains("lunge") || n.contains("leg") } to ExerciseCategory.LEGS,
+                { n: String -> n.contains("deadlift") } to ExerciseCategory.LEGS,
+                { n: String -> n.contains("shoulder") || n.contains("delt") || n.contains("raise") } to ExerciseCategory.SHOULDERS,
+                { n: String -> n.contains("plank") || n.contains("crunch") || n.contains("ab") } to ExerciseCategory.CORE,
+            )
+
+        // Name pattern to movement pattern mappings (checked in order)
+        private val NAME_PATTERN_TO_MOVEMENT: List<Pair<(String) -> Boolean, MovementPattern>> =
+            listOf(
+                { n: String -> n.contains("squat") } to MovementPattern.SQUAT,
+                { n: String -> n.contains("deadlift") } to MovementPattern.HINGE,
+                { n: String -> n.contains("bench") && n.contains("press") } to MovementPattern.HORIZONTAL_PUSH,
+                { n: String -> n.contains("overhead") || (n.contains("shoulder") && n.contains("press")) } to MovementPattern.VERTICAL_PUSH,
+                { n: String -> n.contains("row") } to MovementPattern.HORIZONTAL_PULL,
+                { n: String -> n.contains("pulldown") || n.contains("pull up") || n.contains("chin up") } to MovementPattern.VERTICAL_PULL,
+                { n: String -> n.contains("lunge") } to MovementPattern.LUNGE,
+                { n: String -> n.contains("curl") || n.contains("extension") || n.contains("raise") } to MovementPattern.VERTICAL_PULL,
+                { n: String -> n.contains("carry") } to MovementPattern.CARRY,
+            )
     }
 
     /**
@@ -394,51 +444,25 @@ class ExerciseNamingService {
         name: String,
         muscleGroup: MuscleGroup?,
     ): ExerciseCategory {
-        val lowerName = name.lowercase()
-
         // Use muscle group if available
-        muscleGroup?.let {
-            return when (it) {
-                MuscleGroup.CHEST -> ExerciseCategory.CHEST
-                MuscleGroup.UPPER_BACK, MuscleGroup.LATS, MuscleGroup.LOWER_BACK -> ExerciseCategory.BACK
-                MuscleGroup.SHOULDERS, MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.REAR_DELTS -> ExerciseCategory.SHOULDERS
-                MuscleGroup.BICEPS, MuscleGroup.TRICEPS, MuscleGroup.FOREARMS -> ExerciseCategory.ARMS
-                MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES, MuscleGroup.CALVES -> ExerciseCategory.LEGS
-                MuscleGroup.OBLIQUES, MuscleGroup.CORE -> ExerciseCategory.CORE
-                else -> ExerciseCategory.FULL_BODY
-            }
+        muscleGroup?.let { group ->
+            MUSCLE_GROUP_TO_CATEGORY[group]?.let { return it }
         }
 
         // Infer from name patterns
-        return when {
-            lowerName.contains("press") && (lowerName.contains("bench") || lowerName.contains("chest")) -> ExerciseCategory.CHEST
-            lowerName.contains("fly") || lowerName.contains("flye") -> ExerciseCategory.CHEST
-            lowerName.contains("row") || lowerName.contains("pulldown") || lowerName.contains("pull up") -> ExerciseCategory.BACK
-            lowerName.contains("curl") && lowerName.contains("bicep") -> ExerciseCategory.ARMS
-            lowerName.contains("tricep") || lowerName.contains("pushdown") || lowerName.contains("extension") -> ExerciseCategory.ARMS
-            lowerName.contains("squat") || lowerName.contains("lunge") || lowerName.contains("leg") -> ExerciseCategory.LEGS
-            lowerName.contains("deadlift") -> ExerciseCategory.LEGS
-            lowerName.contains("shoulder") || lowerName.contains("delt") || lowerName.contains("raise") -> ExerciseCategory.SHOULDERS
-            lowerName.contains("plank") || lowerName.contains("crunch") || lowerName.contains("ab") -> ExerciseCategory.CORE
-            else -> ExerciseCategory.FULL_BODY
-        }
+        val lowerName = name.lowercase()
+        return NAME_PATTERN_TO_CATEGORY
+            .firstOrNull { (matcher, _) -> matcher(lowerName) }
+            ?.second
+            ?: ExerciseCategory.FULL_BODY
     }
 
     private fun inferMovementPattern(name: String): MovementPattern {
         val lowerName = name.lowercase()
-
-        return when {
-            lowerName.contains("squat") -> MovementPattern.SQUAT
-            lowerName.contains("deadlift") -> MovementPattern.HINGE
-            lowerName.contains("bench") && lowerName.contains("press") -> MovementPattern.HORIZONTAL_PUSH
-            lowerName.contains("overhead") || (lowerName.contains("shoulder") && lowerName.contains("press")) -> MovementPattern.VERTICAL_PUSH
-            lowerName.contains("row") -> MovementPattern.HORIZONTAL_PULL
-            lowerName.contains("pulldown") || lowerName.contains("pull up") || lowerName.contains("chin up") -> MovementPattern.VERTICAL_PULL
-            lowerName.contains("lunge") -> MovementPattern.LUNGE
-            lowerName.contains("curl") || lowerName.contains("extension") || lowerName.contains("raise") -> MovementPattern.VERTICAL_PULL
-            lowerName.contains("carry") -> MovementPattern.CARRY
-            else -> MovementPattern.PUSH
-        }
+        return NAME_PATTERN_TO_MOVEMENT
+            .firstOrNull { (matcher, _) -> matcher(lowerName) }
+            ?.second
+            ?: MovementPattern.PUSH
     }
 
     /**

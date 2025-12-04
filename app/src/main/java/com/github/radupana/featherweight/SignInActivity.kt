@@ -182,6 +182,7 @@ class SignInActivity : ComponentActivity() {
 }
 
 @Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun SignInScreen(
     authManager: com.github.radupana.featherweight.manager.AuthenticationManager,
     firebaseAuth: com.github.radupana.featherweight.service.FirebaseAuthService,

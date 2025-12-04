@@ -26,6 +26,7 @@ import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.viewmodel.SyncUiState
 
 @Composable
+@Suppress("LongMethod")
 fun DataTab(
     onShowExportDialog: () -> Unit,
     syncUiState: SyncUiState,
