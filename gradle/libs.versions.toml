@@ -43,7 +43,7 @@ uiautomator = "2.3.0"
 testRunner = "1.7.0"
 testRules = "1.7.0"
 testOrchestrator = "1.6.1"
-sqliteJdbc = "3.47.2.0"
+sqliteJdbc = "3.51.1.0"
 workRuntimeKtx = "2.11.0"
 
 
