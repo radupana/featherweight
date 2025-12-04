@@ -1,0 +1,39 @@
+---
+import { SITE_CONFIG } from '../config/site';
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-base-200 border-t border-base-300">
+  <div class="container mx-auto px-4 py-12">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+      <div class="flex flex-col items-center md:items-start gap-4">
+        <a href="/" class="text-xl font-bold text-primary">
+          Featherweight
+        </a>
+        <p class="text-base-content/60 text-sm text-center md:text-left">
+          The intelligent weightlifting companion.
+        </p>
+      </div>
+
+      <nav class="flex flex-wrap justify-center gap-6 text-sm">
+        <a href="/privacy-policy" class="link link-hover text-base-content/70 hover:text-primary">
+          Privacy Policy
+        </a>
+        <a href="/terms" class="link link-hover text-base-content/70 hover:text-primary">
+          Terms of Service
+        </a>
+        <a href={SITE_CONFIG.socials.github} target="_blank" rel="noopener noreferrer" class="link link-hover text-base-content/70 hover:text-primary">
+          GitHub
+        </a>
+      </nav>
+    </div>
+
+    <div class="divider my-8"></div>
+
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-base-content/60">
+      <p>&copy; {currentYear} Featherweight. All rights reserved.</p>
+      <p>Made with dedication for lifters everywhere.</p>
+    </div>
+  </div>
+</footer>

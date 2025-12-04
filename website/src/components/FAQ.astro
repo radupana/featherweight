@@ -1,0 +1,33 @@
+---
+import { SITE_CONFIG } from '../config/site';
+---
+
+<section id="faq" class="py-20 lg:py-28 bg-base-200/50">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">
+        Frequently Asked
+        <span class="text-primary">Questions</span>
+      </h2>
+      <p class="text-lg text-base-content/70 max-w-2xl mx-auto">
+        Got questions? We have answers.
+      </p>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+      <div class="join join-vertical w-full">
+        {SITE_CONFIG.faqs.map((faq, index) => (
+          <div class="collapse collapse-arrow join-item border border-base-300 bg-base-100">
+            <input type="radio" name="faq-accordion" checked={index === 0} />
+            <div class="collapse-title text-lg font-medium">
+              {faq.question}
+            </div>
+            <div class="collapse-content">
+              <p class="text-base-content/70">{faq.answer}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

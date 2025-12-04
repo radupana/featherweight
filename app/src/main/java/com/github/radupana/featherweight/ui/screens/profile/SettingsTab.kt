@@ -162,7 +162,7 @@ private fun LegalLinksSection(modifier: Modifier = Modifier) {
                     val intent =
                         Intent(
                             Intent.ACTION_VIEW,
-                            "https://featherweight-app.web.app/privacy.html".toUri(),
+                            "https://featherweight.app/privacy-policy".toUri(),
                         )
                     context.startActivity(intent)
                 },
@@ -176,7 +176,7 @@ private fun LegalLinksSection(modifier: Modifier = Modifier) {
                     val intent =
                         Intent(
                             Intent.ACTION_VIEW,
-                            "https://featherweight-app.web.app/terms.html".toUri(),
+                            "https://featherweight.app/terms".toUri(),
                         )
                     context.startActivity(intent)
                 },

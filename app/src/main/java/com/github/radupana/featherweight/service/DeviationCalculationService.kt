@@ -392,6 +392,7 @@ class DeviationCalculationService(
             }
         }
 
+    @Suppress("ReturnCount")
     private suspend fun findTargetWorkout(workout: Workout): WorkoutSnapshot? {
         val programmeId = workout.programmeId ?: return null
         val programme =
