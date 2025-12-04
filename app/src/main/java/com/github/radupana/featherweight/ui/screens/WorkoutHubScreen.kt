@@ -188,60 +188,62 @@ fun WorkoutHubScreen(
     }
 
     // Continue or Start New Workout Dialog
-    if (showWorkoutDialog && pendingWorkout != null) {
-        AlertDialog(
-            onDismissRequest = { showWorkoutDialog = false },
-            title = { Text("Continue Workout?") },
-            text = {
-                Column {
-                    Text(
-                        "You have an in-progress workout:",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        pendingWorkout!!.name
-                            ?: "Started ${pendingWorkout!!.startDate.format(DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"))}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        "${pendingWorkout!!.exerciseCount} exercises • ${pendingWorkout!!.completedSets}/${pendingWorkout!!.setCount} sets completed",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Would you like to continue this workout or start a new one?",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            workoutViewModel.resumeWorkout(pendingWorkout!!.id)
+    if (showWorkoutDialog) {
+        pendingWorkout?.let { workout ->
+            AlertDialog(
+                onDismissRequest = { showWorkoutDialog = false },
+                title = { Text("Continue Workout?") },
+                text = {
+                    Column {
+                        Text(
+                            "You have an in-progress workout:",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            workout.name
+                                ?: "Started ${workout.startDate.format(DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"))}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Text(
+                            "${workout.exerciseCount} exercises • ${workout.completedSets}/${workout.setCount} sets completed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Would you like to continue this workout or start a new one?",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                workoutViewModel.resumeWorkout(workout.id)
+                                onStartActiveWorkout()
+                                showWorkoutDialog = false
+                            }
+                        },
+                    ) {
+                        Text("Continue")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = {
+                            workoutViewModel.startNewWorkout(forceNew = true)
                             onStartActiveWorkout()
                             showWorkoutDialog = false
-                        }
-                    },
-                ) {
-                    Text("Continue")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        workoutViewModel.startNewWorkout(forceNew = true)
-                        onStartActiveWorkout()
-                        showWorkoutDialog = false
-                    },
-                ) {
-                    Text("Start New")
-                }
-            },
-        )
+                        },
+                    ) {
+                        Text("Start New")
+                    }
+                },
+            )
+        }
     }
 }
 

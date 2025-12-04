@@ -6,6 +6,7 @@
 import {onCall, CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {Logging} from "@google-cloud/logging";
+import {ALLOWED_CORS_ORIGINS} from "./index";
 import {
   ParseProgramRequest,
   validateInput,
@@ -23,7 +24,7 @@ const log = logging.log("parseProgram");
  */
 export const parseProgram = onCall<ParseProgramRequest>(
   {
-    cors: true,
+    cors: ALLOWED_CORS_ORIGINS,
     maxInstances: 10,
     timeoutSeconds: 300,
     memory: "512MiB",

@@ -49,8 +49,8 @@ class DeviationCalculationService(
         if (hasExerciseIds) {
             val prescribedExercisesById =
                 workoutExercises
-                    .filter { it.exerciseId != null }
-                    .associateBy { it.exerciseId!! }
+                    .mapNotNull { exercise -> exercise.exerciseId?.let { id -> id to exercise } }
+                    .toMap()
 
             val actualExercisesById = exerciseLogs.associateBy { it.exerciseId }
 
@@ -393,9 +393,10 @@ class DeviationCalculationService(
         }
 
     private suspend fun findTargetWorkout(workout: Workout): WorkoutSnapshot? {
+        val programmeId = workout.programmeId ?: return null
         val programme =
-            programmeDao.getProgrammeById(workout.programmeId!!) ?: run {
-                CloudLogger.warn("DeviationCalculationService", "Programme not found: ${workout.programmeId}")
+            programmeDao.getProgrammeById(programmeId) ?: run {
+                CloudLogger.warn("DeviationCalculationService", "Programme not found: $programmeId")
                 return null
             }
 

@@ -405,9 +405,9 @@ class FeatherweightRepository(
         }
 
         // Update programme progress if this is a programme workout
-        val hasProgrammeDetails = workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null
-        if (workout.isProgrammeWorkout && hasProgrammeDetails) {
-            updateProgrammeProgressAfterWorkout(workout.programmeId!!)
+        val programmeId = workout.programmeId
+        if (workout.isProgrammeWorkout && programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
+            updateProgrammeProgressAfterWorkout(programmeId)
         }
     }
 
@@ -2395,7 +2395,8 @@ class FeatherweightRepository(
             // Use efficient paginated query at database level
             val programmes = programmeDao.getCompletedProgrammesPaged(pageSize, offset)
 
-            programmes.map { programme ->
+            programmes.mapNotNull { programme ->
+                val completedAt = programme.completedAt ?: return@mapNotNull null
                 val workouts = workoutDao.getWorkoutsByProgramme(programme.id)
                 val completedWorkouts = workouts.count { it.status == WorkoutStatus.COMPLETED }
 
@@ -2403,8 +2404,8 @@ class FeatherweightRepository(
                     id = programme.id,
                     name = programme.name,
                     startDate = programme.startedAt ?: programme.createdAt,
-                    completionDate = programme.completedAt!!,
-                    completedAt = programme.completedAt,
+                    completionDate = completedAt,
+                    completedAt = completedAt,
                     durationWeeks = programme.durationWeeks,
                     completedWorkouts = completedWorkouts,
                     totalWorkouts = workouts.size,

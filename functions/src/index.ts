@@ -20,6 +20,15 @@ setGlobalOptions({
 });
 
 /**
+ * Allowed CORS origins for HTTP functions.
+ * Mobile apps don't use CORS, but these protect against unauthorized web access.
+ */
+export const ALLOWED_CORS_ORIGINS = [
+  "https://featherweight-app.web.app",
+  "https://featherweight-app.firebaseapp.com",
+];
+
+/**
  * Log event structure from Android app
  */
 interface LogEvent {
@@ -54,7 +63,7 @@ interface LogBatch {
  */
 export const logEvent = onRequest(
   {
-    cors: true,
+    cors: ALLOWED_CORS_ORIGINS,
     maxInstances: 5,
     timeoutSeconds: 10,
     memory: "256MiB",

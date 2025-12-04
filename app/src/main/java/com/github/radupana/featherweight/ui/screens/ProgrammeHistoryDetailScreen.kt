@@ -179,9 +179,10 @@ fun ProgrammeHistoryDetailScreen(
             }
 
             programmeDetails != null -> {
+                val details = programmeDetails ?: return@Scaffold
                 Box(modifier = Modifier.fillMaxSize()) {
                     ProgrammeDetailsContent(
-                        details = programmeDetails!!,
+                        details = details,
                         completionStats = completionStats,
                         onViewWorkout = onViewWorkout,
                         modifier = Modifier.padding(paddingValues),
@@ -295,16 +296,20 @@ fun ProgrammeDetailsContent(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Dates
-                Text(
-                    text = "Started: ${details.startedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Completed: ${details.completedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                details.startedAt?.let { startedDate ->
+                    Text(
+                        text = "Started: ${startedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                details.completedAt?.let { completedDate ->
+                    Text(
+                        text = "Completed: ${completedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
@@ -334,7 +339,7 @@ fun ProgrammeDetailsContent(
         val sortedWeeks = workoutsByWeek.keys.sorted()
 
         sortedWeeks.forEach { weekNumber ->
-            val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
+            val weekWorkouts = (workoutsByWeek[weekNumber] ?: emptyList()).sortedBy { it.dayNumber }
             val totalCount = weekWorkouts.size
 
             item {

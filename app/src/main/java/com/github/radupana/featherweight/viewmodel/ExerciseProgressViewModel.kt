@@ -343,9 +343,9 @@ class ExerciseProgressViewModel(
                 val chartPoints =
                     oneRMHistory
                         .groupBy { it.recordedAt.toLocalDate() }
-                        .map { (date, records) ->
+                        .mapNotNull { (date, records) ->
                             // Get the highest 1RM estimate for that day
-                            val best1RM = records.maxByOrNull { it.oneRMEstimate }!!
+                            val best1RM = records.maxByOrNull { it.oneRMEstimate } ?: return@mapNotNull null
 
                             ExerciseDataPoint(
                                 date = date,
@@ -405,9 +405,11 @@ class ExerciseProgressViewModel(
                     workouts
                         .filter { it.actualWeight > 0f }
                         .groupBy { it.workoutDate.toLocalDate() }
-                        .map { (date, workoutsOnDate) ->
+                        .mapNotNull { (date, workoutsOnDate) ->
                             // Get the maximum weight lifted on this date
-                            val maxWeightWorkout = workoutsOnDate.maxByOrNull { it.actualWeight }!!
+                            val maxWeightWorkout =
+                                workoutsOnDate.maxByOrNull { it.actualWeight }
+                                    ?: return@mapNotNull null
 
                             ExerciseDataPoint(
                                 date = date,
@@ -642,7 +644,7 @@ class ExerciseProgressViewModel(
                 rpeZones.mapNotNull { (zoneName, rangeLabel, rpeRange) ->
                     val setsInZone =
                         completedSetsWithRPE.filter { set ->
-                            set.actualRpe!! in rpeRange
+                            (set.actualRpe ?: 0f) in rpeRange
                         }
 
                     if (setsInZone.isNotEmpty()) {

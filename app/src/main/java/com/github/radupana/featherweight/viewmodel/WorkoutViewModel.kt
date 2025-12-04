@@ -2145,8 +2145,8 @@ class WorkoutViewModel(
         _restTimerInitialSeconds.value = seconds
 
         // Store the end time for accurate tracking even when backgrounded
-        restTimerEndTime = LocalDateTime.now().plusSeconds(seconds.toLong())
-        val endTime = restTimerEndTime!!
+        val endTime = LocalDateTime.now().plusSeconds(seconds.toLong())
+        restTimerEndTime = endTime
 
         restTimerJob =
             viewModelScope.launch {
@@ -2185,7 +2185,8 @@ class WorkoutViewModel(
         val newValue = (_restTimerSeconds.value + adjustment).coerceAtLeast(0)
         if (newValue > 0) {
             // Update the end time when adjusting
-            restTimerEndTime = LocalDateTime.now().plusSeconds(newValue.toLong())
+            val endTime = LocalDateTime.now().plusSeconds(newValue.toLong())
+            restTimerEndTime = endTime
             _restTimerSeconds.value = newValue
             // Only update initialSeconds when adding time (+15s), not when subtracting (-15s)
             if (adjustment > 0) {
@@ -2193,7 +2194,6 @@ class WorkoutViewModel(
             }
 
             // Restart the timer with the new end time
-            val endTime = restTimerEndTime!!
             restTimerJob?.cancel()
             restTimerJob =
                 viewModelScope.launch {
@@ -2281,11 +2281,9 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             // Save timer start time to database
-            workoutTimerStartTime = LocalDateTime.now()
-            repository.updateWorkoutTimerStart(currentWorkoutId, workoutTimerStartTime!!)
-
-            // Capture the start time in a local variable to avoid race conditions
-            val startTime = workoutTimerStartTime!!
+            val startTime = LocalDateTime.now()
+            workoutTimerStartTime = startTime
+            repository.updateWorkoutTimerStart(currentWorkoutId, startTime)
 
             // Start the timer coroutine
             workoutTimerJob?.cancel()

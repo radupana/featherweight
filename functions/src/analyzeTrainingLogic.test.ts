@@ -2,7 +2,6 @@ import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
 import {
   validateInput,
-  getQuotaLimits,
   shouldResetMonthly,
   getSystemPrompt,
   decrementQuota,

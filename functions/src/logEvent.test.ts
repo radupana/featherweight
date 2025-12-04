@@ -69,11 +69,7 @@ describe("logEvent HTTPS function", () => {
 
     // Import the function - we need to dynamically create the handler
     // since onRequest is mocked to return the handler function
-    const {onRequest} = require("firebase-functions/v2/https");
-
-    // The onRequest mock returns the handler function directly
-    // We need to extract it properly
-    const mockOnRequest = jest.fn((config, handler) => handler);
+    require("firebase-functions/v2/https");
 
     // Create the logEvent handler inline (copied from index.ts logic)
     logEvent = async (req: any, res: any) => {
