@@ -411,7 +411,7 @@ class FeatherweightRepository(
                 programmeId != null &&
                 workout.weekNumber != null &&
                 workout.dayNumber != null
-        if (isProgrammeWorkoutComplete && programmeId != null) {
+        if (isProgrammeWorkoutComplete) {
             updateProgrammeProgressAfterWorkout(programmeId)
         }
     }

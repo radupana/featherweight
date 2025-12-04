@@ -392,6 +392,7 @@ class DeviationCalculationService(
             }
         }
 
+    // Early returns for validation improve readability over nested conditionals
     @Suppress("ReturnCount")
     private suspend fun findTargetWorkout(workout: Workout): WorkoutSnapshot? {
         val programmeId = workout.programmeId ?: return null
