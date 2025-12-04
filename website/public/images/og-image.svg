@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(100, 200)">
+    <g fill="none" stroke="white" stroke-width="4">
+      <path d="M25 25h55M25 85h55M20 55h65M30 25v60M75 25v60" stroke-linecap="round"/>
+    </g>
+    <text x="120" y="70" fill="white" font-family="system-ui, sans-serif" font-size="64" font-weight="bold">Featherweight</text>
+  </g>
+  <text x="100" y="350" fill="white" font-family="system-ui, sans-serif" font-size="36" opacity="0.9">Track Your Lifts. Crush Your Goals.</text>
+  <text x="100" y="420" fill="white" font-family="system-ui, sans-serif" font-size="24" opacity="0.7">The intelligent weightlifting companion</text>
+  <g transform="translate(100, 500)">
+    <rect x="0" y="0" width="120" height="30" rx="4" fill="white" opacity="0.2"/>
+    <text x="60" y="20" fill="white" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">100% Free</text>
+    <rect x="140" y="0" width="120" height="30" rx="4" fill="white" opacity="0.2"/>
+    <text x="200" y="20" fill="white" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">Offline-First</text>
+    <rect x="280" y="0" width="120" height="30" rx="4" fill="white" opacity="0.2"/>
+    <text x="340" y="20" fill="white" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">No Ads</text>
+  </g>
+</svg>

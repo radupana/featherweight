@@ -1,0 +1,50 @@
+---
+const steps = [
+  {
+    number: '01',
+    title: 'Set Up Your Profile',
+    description: 'Enter your training experience and goals. Featherweight adapts to your level.',
+  },
+  {
+    number: '02',
+    title: 'Choose a Programme',
+    description: 'Pick from proven programmes or create your own custom training plan.',
+  },
+  {
+    number: '03',
+    title: 'Track & Progress',
+    description: 'Log your workouts, watch your numbers climb, and celebrate new PRs.',
+  },
+];
+---
+
+<section id="how-it-works" class="py-20 lg:py-28">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">
+        Simple to Start,
+        <span class="text-primary">Powerful to Use</span>
+      </h2>
+      <p class="text-lg text-base-content/70 max-w-2xl mx-auto">
+        Get started in minutes. No complicated setup, no subscription walls.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
+      {steps.map((step, index) => (
+        <div class="relative">
+          {index < steps.length - 1 && (
+            <div class="hidden md:block absolute top-8 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/20 to-primary/5"></div>
+          )}
+          <div class="relative text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-primary text-primary-content rounded-2xl text-2xl font-bold mb-6 shadow-lg">
+              {step.number}
+            </div>
+            <h3 class="text-xl font-semibold mb-3">{step.title}</h3>
+            <p class="text-base-content/70">{step.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
