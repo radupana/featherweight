@@ -11,6 +11,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
 
 class InstallationIdProviderTest {
     private lateinit var mockContext: Context
@@ -115,7 +116,7 @@ class InstallationIdProviderTest {
         every { mockEditor.putString("installation_id", capture(savedIdSlot)) } returns mockEditor
 
         // When: Multiple threads try to get the ID simultaneously
-        val ids = mutableListOf<String>()
+        val ids = CopyOnWriteArrayList<String>()
         val threads =
             (1..10).map {
                 Thread {
