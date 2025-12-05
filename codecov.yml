@@ -39,6 +39,7 @@ ignore:
   - "**/RemoteConfigService.kt"
   - "**/CloudFunctionService.kt"
   - "**/AccountDeletionService.kt"
+  - "**/CustomExerciseRepository.kt"
 
   # Android Workers - require WorkManager/Android context
   - "**/worker/**"
@@ -54,8 +55,9 @@ ignore:
   - "**/VoiceInputViewModel.kt"
   - "**/SyncViewModel.kt"
 
-  # Utilities requiring Android context
+  # Utilities requiring Android context or Firebase
   - "**/CloudLogger.kt"
+  - "**/AnalyticsLogger.kt"
   - "**/InstallationIdProvider.kt"
   - "**/ExportHandler.kt"
   - "**/MigrationStateManager.kt"
