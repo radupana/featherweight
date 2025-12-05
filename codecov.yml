@@ -19,13 +19,50 @@ comment:
   require_changes: true
 
 ignore:
+  # UI Layer - requires Compose testing framework
   - "app/src/main/java/com/github/radupana/featherweight/ui/screens/**"
   - "app/src/main/java/com/github/radupana/featherweight/ui/components/**"
   - "app/src/main/java/com/github/radupana/featherweight/ui/dialogs/**"
   - "app/src/main/java/com/github/radupana/featherweight/ui/theme/**"
+  - "app/src/main/java/com/github/radupana/featherweight/ui/utils/**"
+
+  # Dependency Injection - Hilt/Android runtime
   - "app/src/main/java/com/github/radupana/featherweight/di/**"
+
+  # Android Activities - require Robolectric
   - "**/*Activity.kt"
   - "**/FeatherweightApplication.kt"
+
+  # Firebase implementations - require Firebase SDK at runtime
+  - "**/FirebaseAuthServiceImpl.kt"
+  - "**/FirestoreRepository.kt"
+  - "**/RemoteConfigService.kt"
+  - "**/CloudFunctionService.kt"
+  - "**/AccountDeletionService.kt"
+
+  # Android Workers - require WorkManager/Android context
+  - "**/worker/**"
+  - "**/sync/worker/**"
+
+  # Android system services - require Robolectric
+  - "**/AudioRecordingService.kt"
+  - "**/RestTimerNotificationService.kt"
+  - "**/NotificationProvider.kt"
+  - "**/VoiceTranscriptionService.kt"
+
+  # ViewModels with Application context - require Robolectric or AndroidX test
+  - "**/VoiceInputViewModel.kt"
+  - "**/SyncViewModel.kt"
+
+  # Utilities requiring Android context
+  - "**/CloudLogger.kt"
+  - "**/InstallationIdProvider.kt"
+  - "**/ExportHandler.kt"
+  - "**/MigrationStateManager.kt"
+  - "**/WeightUnitManagerImpl.kt"
+  - "**/AuthenticationManagerImpl.kt"
+
+  # Build artifacts
   - "**/build/**"
   - "**/generated/**"
 
