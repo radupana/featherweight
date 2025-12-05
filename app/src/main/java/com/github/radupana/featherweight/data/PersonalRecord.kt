@@ -7,8 +7,9 @@ import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 enum class PRType {
-    WEIGHT, // Higher weight lifted
+    WEIGHT, // Higher weight lifted (for weighted exercises)
     ESTIMATED_1RM, // Higher estimated 1 rep max
+    REPS, // More reps at bodyweight (for bodyweight exercises)
 }
 
 @Entity(

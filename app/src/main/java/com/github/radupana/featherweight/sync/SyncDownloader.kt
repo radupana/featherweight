@@ -249,6 +249,7 @@ class SyncDownloader(
                     when (record.recordType) {
                         PRType.WEIGHT -> record.weight > existing.weight
                         PRType.ESTIMATED_1RM -> (record.estimated1RM ?: 0f) > (existing.estimated1RM ?: 0f)
+                        PRType.REPS -> record.reps > existing.reps
                     }
                 if (shouldUpdate) {
                     database.personalRecordDao().updatePersonalRecord(record)
