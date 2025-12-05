@@ -31,6 +31,7 @@ private data class PRCheckContext(
     val sourceSetId: String,
     val estimated1RM: Float?,
     val currentMax1RM: Float?,
+    val requiresWeight: Boolean,
 )
 
 /**
@@ -48,44 +49,62 @@ class PRDetectionService(
     }
 
     /**
-     * Checks if a completed set represents a new weight PR and creates record if so.
-     * Only detects weight PRs (lifting more weight than previous best).
-     * Returns the PersonalRecord if a weight PR was detected, empty list otherwise
+     * Checks if a completed set represents a new PR and creates record if so.
+     * Detects weight PRs for weighted exercises, rep PRs for bodyweight exercises.
+     * Returns the PersonalRecord(s) if PR was detected, empty list otherwise.
      */
     suspend fun checkForPR(
         setLog: SetLog,
         exerciseId: String,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
-            if (!isValidForPRCheck(setLog)) {
+            // Basic validation - must be completed with reps
+            if (!setLog.isCompleted || setLog.actualReps <= 0) {
                 return@withContext emptyList()
             }
 
-            val context = buildPRCheckContext(setLog, exerciseId)
+            // Check if exercise requires weight
+            val exercise = exerciseDao.getExerciseById(exerciseId)
+            val requiresWeight = exercise?.requiresWeight ?: true
+
+            // For weighted exercises, require weight > 0
+            if (requiresWeight && setLog.actualWeight <= 0) {
+                return@withContext emptyList()
+            }
+
+            val context = buildPRCheckContext(setLog, exerciseId, requiresWeight)
             val newPRs = detectPRs(context)
             savePRsWithDuplicateHandling(newPRs)
             newPRs
         }
 
-    private fun isValidForPRCheck(setLog: SetLog): Boolean = setLog.isCompleted && setLog.actualReps > 0 && setLog.actualWeight > 0
-
     private suspend fun buildPRCheckContext(
         setLog: SetLog,
         exerciseId: String,
+        requiresWeight: Boolean,
     ): PRCheckContext {
         val workoutDate = getWorkoutDate(setLog.id)
         val workoutId = setLogDao.getWorkoutIdForSetLog(setLog.id)
-        val scalingType = getScalingType(exerciseId)
-        val estimated1RM =
-            calculateEstimated1RM(
-                setLog.actualWeight,
-                setLog.actualReps,
-                setLog.actualRpe,
-                scalingType,
-            )
-        val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseId)
 
-        logPRCheckStart(exerciseId, setLog, estimated1RM, currentMax1RM)
+        // Only calculate 1RM for weighted exercises
+        val estimated1RM: Float?
+        val currentMax1RM: Float?
+        if (requiresWeight) {
+            val scalingType = getScalingType(exerciseId)
+            estimated1RM =
+                calculateEstimated1RM(
+                    setLog.actualWeight,
+                    setLog.actualReps,
+                    setLog.actualRpe,
+                    scalingType,
+                )
+            currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseId)
+        } else {
+            estimated1RM = null
+            currentMax1RM = null
+        }
+
+        logPRCheckStart(exerciseId, setLog, estimated1RM, currentMax1RM, requiresWeight)
 
         return PRCheckContext(
             exerciseId = exerciseId,
@@ -98,6 +117,7 @@ class PRDetectionService(
             sourceSetId = setLog.id,
             estimated1RM = estimated1RM,
             currentMax1RM = currentMax1RM,
+            requiresWeight = requiresWeight,
         )
     }
 
@@ -135,19 +155,34 @@ class PRDetectionService(
         setLog: SetLog,
         estimated1RM: Float?,
         currentMax1RM: Float?,
+        requiresWeight: Boolean,
     ) {
-        CloudLogger.debug(TAG, "Checking PRs for exercise $exerciseId: ${setLog.actualWeight}kg × ${setLog.actualReps} @ RPE ${setLog.actualRpe}")
-        if (estimated1RM != null) {
-            CloudLogger.debug(TAG, "Calculated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg")
+        if (requiresWeight) {
+            CloudLogger.debug(TAG, "Checking PRs for exercise $exerciseId: ${setLog.actualWeight}kg × ${setLog.actualReps} @ RPE ${setLog.actualRpe}")
+            if (estimated1RM != null) {
+                CloudLogger.debug(TAG, "Calculated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg")
+            } else {
+                CloudLogger.debug(TAG, "No 1RM calculated (RPE too low or other criteria not met)")
+            }
+            CloudLogger.debug(TAG, "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
         } else {
-            CloudLogger.debug(TAG, "No 1RM calculated (RPE too low or other criteria not met)")
+            CloudLogger.debug(TAG, "Checking rep PR for bodyweight exercise $exerciseId: ${setLog.actualReps} reps @ RPE ${setLog.actualRpe}")
         }
-        CloudLogger.debug(TAG, "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
     }
 
     private suspend fun detectPRs(context: PRCheckContext): List<PersonalRecord> {
         val newPRs = mutableListOf<PersonalRecord>()
 
+        // For bodyweight exercises, check for rep PRs
+        if (!context.requiresWeight) {
+            checkRepPR(context)?.let { repPR ->
+                CloudLogger.debug(TAG, "Rep PR detected: ${repPR.reps} reps")
+                newPRs.add(repPR)
+            }
+            return newPRs
+        }
+
+        // For weighted exercises, check for weight and 1RM PRs
         checkWeightPR(context)?.let { weightPR ->
             CloudLogger.debug(TAG, "Weight PR detected: ${weightPR.weight}kg × ${weightPR.reps}")
             newPRs.add(weightPR)
@@ -189,6 +224,50 @@ class PRDetectionService(
             recordType = PRType.WEIGHT,
             volume = roundedWeight * context.reps,
             estimated1RM = context.estimated1RM,
+            notes = notes,
+            workoutId = context.workoutId,
+            sourceSetId = context.sourceSetId,
+        )
+    }
+
+    private suspend fun checkRepPR(context: PRCheckContext): PersonalRecord? {
+        val currentMaxReps = personalRecordDao.getMaxRepsForExercise(context.exerciseId)
+        CloudLogger.debug(TAG, "Rep PR check: current reps=${context.reps}, max reps in DB=${currentMaxReps ?: "None"}")
+
+        if (currentMaxReps != null && context.reps <= currentMaxReps) {
+            return null
+        }
+
+        val previousPR = personalRecordDao.getLatestPRForExerciseAndType(context.exerciseId, PRType.REPS)
+        val improvementPercentage =
+            if (currentMaxReps != null && currentMaxReps > 0) {
+                ((context.reps - currentMaxReps).toFloat() / currentMaxReps) * 100
+            } else {
+                100f
+            }
+        val notes =
+            if (currentMaxReps == null) {
+                "First rep record: ${context.reps} reps"
+            } else {
+                "New rep PR: ${context.reps} reps (previous: $currentMaxReps)"
+            }
+
+        CloudLogger.debug(TAG, "Creating rep PR: ${context.reps} reps, notes: $notes")
+
+        return PersonalRecord(
+            userId = context.userId,
+            exerciseId = context.exerciseId,
+            weight = 0f, // Bodyweight exercises have no external weight
+            reps = context.reps,
+            rpe = context.rpe,
+            recordDate = context.date,
+            previousWeight = 0f,
+            previousReps = previousPR?.reps ?: currentMaxReps,
+            previousDate = previousPR?.recordDate,
+            improvementPercentage = improvementPercentage,
+            recordType = PRType.REPS,
+            volume = 0f,
+            estimated1RM = null,
             notes = notes,
             workoutId = context.workoutId,
             sourceSetId = context.sourceSetId,
@@ -291,10 +370,18 @@ class PRDetectionService(
             return
         }
 
-        if (pr.weight > existingPR.weight) {
+        // For rep PRs, compare reps; for weight/1RM PRs, compare weight
+        val shouldReplace =
+            when (pr.recordType) {
+                PRType.REPS -> pr.reps > existingPR.reps
+                else -> pr.weight > existingPR.weight
+            }
+
+        if (shouldReplace) {
             deleteExistingPR(existingPR)
             personalRecordDao.insertPersonalRecord(pr)
-            CloudLogger.info(TAG, "PR saved (replaced existing): ${pr.recordType} for exercise ${pr.exerciseId}, ${pr.weight}kg × ${pr.reps}")
+            val prDetail = if (pr.recordType == PRType.REPS) "${pr.reps} reps" else "${pr.weight}kg × ${pr.reps}"
+            CloudLogger.info(TAG, "PR saved (replaced existing): ${pr.recordType} for exercise ${pr.exerciseId}, $prDetail")
         }
     }
 

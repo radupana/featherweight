@@ -101,6 +101,7 @@ class WorkoutCompletionViewModel(
                 when (prsForExerciseAndType.firstOrNull()?.recordType) {
                     PRType.WEIGHT -> prsForExerciseAndType.maxByOrNull { it.weight }
                     PRType.ESTIMATED_1RM -> prsForExerciseAndType.maxByOrNull { it.estimated1RM ?: 0f }
+                    PRType.REPS -> prsForExerciseAndType.maxByOrNull { it.reps }
                     null -> null
                 }
             }

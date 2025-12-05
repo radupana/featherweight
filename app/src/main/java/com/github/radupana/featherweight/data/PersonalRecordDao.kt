@@ -55,13 +55,23 @@ interface PersonalRecordDao {
 
     @Query(
         """
-        SELECT MAX(weight) 
-        FROM personal_records 
-        WHERE exerciseId = :exerciseId 
+        SELECT MAX(weight)
+        FROM personal_records
+        WHERE exerciseId = :exerciseId
         AND recordType = 'WEIGHT'
     """,
     )
     suspend fun getMaxWeightForExercise(exerciseId: String): Float?
+
+    @Query(
+        """
+        SELECT MAX(reps)
+        FROM personal_records
+        WHERE exerciseId = :exerciseId
+        AND recordType = 'REPS'
+    """,
+    )
+    suspend fun getMaxRepsForExercise(exerciseId: String): Int?
 
     @Query(
         """

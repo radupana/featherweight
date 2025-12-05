@@ -799,9 +799,8 @@ class WorkoutViewModel(
                 // For exercises that don't require weight (like pull-ups), only check actualReps
                 set.actualReps > 0
             } else {
-                // For exercises that require weight, check both actualReps and actualWeight
-                // Use >= 0 to support bodyweight exercises where weight can be 0
-                set.actualReps > 0 && set.actualWeight >= 0
+                // For exercises that require weight, both reps and weight must be > 0
+                set.actualReps > 0 && set.actualWeight > 0
             }
 
         return result
